@@ -6,11 +6,13 @@ import { Skeleton } from '../components/ui/skeleton';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { Timer } from '../components/Timer';
+import { Statistics } from './Statistics';
+import { Management } from './Management';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { storage } from '../utils/storage';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
-import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X } from 'lucide-react';
+import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
 
 const Index = () => {
@@ -28,7 +30,7 @@ const Index = () => {
   } = useWorkoutSession();
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
-  const [currentView, setCurrentView] = useState<'home' | 'workout'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'workout' | 'statistics' | 'management'>('home');
 
   useEffect(() => {
     loadStats();
@@ -85,6 +87,19 @@ const Index = () => {
 
   const handleCancelWorkout = () => {
     cancelWorkout();
+    setCurrentView('home');
+  };
+
+  // Navigation handlers
+  const handleNavigateToStatistics = () => {
+    setCurrentView('statistics');
+  };
+
+  const handleNavigateToManagement = () => {
+    setCurrentView('management');
+  };
+
+  const handleBackToHome = () => {
     setCurrentView('home');
   };
 
@@ -171,6 +186,16 @@ const Index = () => {
         )}
       </div>
     );
+  }
+
+  // Statistics View
+  if (currentView === 'statistics') {
+    return <Statistics onBack={handleBackToHome} />;
+  }
+
+  // Management View
+  if (currentView === 'management') {
+    return <Management onBack={handleBackToHome} />;
   }
 
   // Home View
@@ -264,6 +289,45 @@ const Index = () => {
             ))}
           </div>
         </div>
+
+        {/* Bottom Navigation */}
+        {currentView === 'home' && (
+          <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border">
+            <div className="max-w-md mx-auto p-4">
+              <div className="flex justify-around">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleBackToHome}
+                  className="flex flex-col items-center gap-1 h-auto py-2"
+                >
+                  <Home className="w-5 h-5" />
+                  <span className="text-xs">Início</span>
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNavigateToStatistics}
+                  className="flex flex-col items-center gap-1 h-auto py-2"
+                >
+                  <BarChart3 className="w-5 h-5" />
+                  <span className="text-xs">Estatísticas</span>
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNavigateToManagement}
+                  className="flex flex-col items-center gap-1 h-auto py-2"
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="text-xs">Gerenciar</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
