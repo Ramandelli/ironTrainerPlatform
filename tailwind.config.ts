@@ -26,7 +26,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -52,6 +53,22 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// Iron Tracker custom colors
+				iron: {
+					orange: 'hsl(var(--iron-orange))',
+					'orange-light': 'hsl(var(--iron-orange-light))',
+					'orange-dark': 'hsl(var(--iron-orange-dark))'
+				},
+				steel: {
+					blue: 'hsl(var(--steel-blue))',
+					'blue-dark': 'hsl(var(--steel-blue-dark))'
+				},
+				success: {
+					DEFAULT: 'hsl(var(--success-green))'
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning-amber))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -62,6 +79,20 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				}
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-steel': 'var(--gradient-steel)',
+				'gradient-success': 'var(--gradient-success)'
+			},
+			boxShadow: {
+				'primary': 'var(--shadow-primary)',
+				'card': 'var(--shadow-card)',
+				'timer': 'var(--shadow-timer)'
+			},
+			transitionTimingFunction: {
+				'smooth': 'var(--transition-smooth)',
+				'bounce': 'var(--transition-bounce)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

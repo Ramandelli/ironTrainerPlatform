@@ -8,33 +8,62 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Iron Tracker Design System - Fitness Orange & Strong Blues */
+    --background: 210 20% 8%;
+    --foreground: 0 0% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 215 28% 12%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 215 28% 12%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Energetic Orange as primary - representing strength and energy */
+    --primary: 20 95% 58%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 25 100% 65%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Strong Steel Blue for secondary elements */
+    --secondary: 210 40% 20%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 25% 15%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Bright success green for completed exercises */
+    --accent: 145 85% 45%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive red for warnings */
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 215 25% 20%;
+    --input: 215 25% 18%;
+    --ring: 20 95% 58%;
+
+    /* Custom Iron Tracker colors */
+    --iron-orange: 20 95% 58%;
+    --iron-orange-light: 25 100% 65%;
+    --iron-orange-dark: 18 90% 45%;
+    --steel-blue: 210 40% 20%;
+    --steel-blue-dark: 215 45% 15%;
+    --success-green: 145 85% 45%;
+    --warning-amber: 45 95% 55%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--iron-orange)), hsl(var(--iron-orange-light)));
+    --gradient-steel: linear-gradient(180deg, hsl(var(--steel-blue)), hsl(var(--steel-blue-dark)));
+    --gradient-success: linear-gradient(90deg, hsl(var(--success-green)), hsl(145 85% 55%));
+    
+    /* Shadows with orange glow */
+    --shadow-primary: 0 10px 30px -10px hsl(var(--iron-orange) / 0.4);
+    --shadow-card: 0 4px 20px -5px hsl(215 45% 5% / 0.8);
+    --shadow-timer: 0 0 30px hsl(var(--iron-orange) / 0.6);
+    
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --radius: 0.5rem;
 
