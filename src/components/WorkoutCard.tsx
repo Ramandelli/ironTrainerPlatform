@@ -86,7 +86,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
           className="w-full"
           onClick={onStartWorkout}
         >
-          {isToday ? "Iniciar Treino de Hoje" : "Ver Treino"}
+          {isToday ? "Iniciar Treino de Hoje" : "Visualizar Treino"}
         </Button>
       </CardContent>
     </Card>

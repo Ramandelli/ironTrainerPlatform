@@ -21,28 +21,33 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
   };
 
   const handleDuplicateWorkout = (workout: WorkoutDay) => {
-    // TODO: Implement workout duplication
-    console.log('Duplicating workout:', workout.name);
+    // Implementar duplicação de treino
+    alert('Funcionalidade em desenvolvimento');
   };
 
   const handleDeleteWorkout = (workoutId: string) => {
-    // TODO: Implement workout deletion
-    console.log('Deleting workout:', workoutId);
+    // Implementar exclusão de treino
+    alert('Funcionalidade em desenvolvimento');
   };
 
   const handleAddExercise = () => {
-    // TODO: Implement add exercise
-    console.log('Adding new exercise');
+    // Implementar adição de exercício
+    alert('Funcionalidade em desenvolvimento');
   };
 
   const handleEditExercise = (exercise: Exercise) => {
-    // TODO: Implement exercise editing
-    console.log('Editing exercise:', exercise.name);
+    // Implementar edição de exercício
+    alert('Funcionalidade em desenvolvimento');
   };
 
   const handleDeleteExercise = (exerciseId: string) => {
-    // TODO: Implement exercise deletion
-    console.log('Deleting exercise:', exerciseId);
+    // Implementar exclusão de exercício
+    alert('Funcionalidade em desenvolvimento');
+  };
+
+  const handleCreateNewWorkout = () => {
+    // Implementar criação de novo treino
+    alert('Funcionalidade em desenvolvimento - Criar novo treino');
   };
 
   // Workout List View
@@ -70,7 +75,7 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
               <p className="text-sm text-muted-foreground mb-4">
                 Adicione um novo dia de treino personalizado
               </p>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={handleCreateNewWorkout}>
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Treino
               </Button>

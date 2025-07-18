@@ -30,7 +30,8 @@ const Index = () => {
   } = useWorkoutSession();
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
-  const [currentView, setCurrentView] = useState<'home' | 'workout' | 'statistics' | 'management'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'workout' | 'workout-view' | 'statistics' | 'management'>('home');
+  const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null);
 
   useEffect(() => {
     loadStats();
@@ -57,8 +58,16 @@ const Index = () => {
   const isRestDay = !todayWorkout;
 
   const handleStartWorkout = (workoutDayId: string) => {
-    startWorkout(workoutDayId);
-    setCurrentView('workout');
+    const isToday = workoutDayId === todayWorkoutId;
+    
+    if (isToday) {
+      startWorkout(workoutDayId);
+      setCurrentView('workout');
+    } else {
+      // Modo visualização para treinos de outros dias
+      setViewingWorkoutId(workoutDayId);
+      setCurrentView('workout-view');
+    }
   };
 
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: any) => {
@@ -115,7 +124,163 @@ const Index = () => {
     );
   }
 
-  // Workout View
+  // Workout View Mode (apenas visualização)
+  if (currentView === 'workout-view' && viewingWorkoutId) {
+    const workoutDay = WORKOUT_PLAN.find(day => day.id === viewingWorkoutId);
+    
+    if (!workoutDay) {
+      setCurrentView('home');
+      return null;
+    }
+
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <div className="sticky top-0 bg-background/95 backdrop-blur-lg border-b border-border z-40">
+          <div className="max-w-md mx-auto p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-lg font-bold text-foreground">{workoutDay.name}</h1>
+                <p className="text-sm text-muted-foreground">{workoutDay.day} (Modo Visualização)</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleBackToHome}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Exercise List - Read Only */}
+        <div className="max-w-md mx-auto p-4 space-y-4 pb-24">
+          {/* Aerobic Exercise */}
+          {workoutDay.aerobic && (
+            <Card className="border-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-iron-orange" />
+                  Exercício Aeróbico ({workoutDay.aerobic.timing})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tipo:</span>
+                    <span className="capitalize">{workoutDay.aerobic.type}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Duração:</span>
+                    <span>{workoutDay.aerobic.duration} minutos</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Intensidade:</span>
+                    <span className="capitalize">{workoutDay.aerobic.intensity}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main Exercises */}
+          {workoutDay.exercises.map((exercise) => (
+            <Card key={exercise.id} className="border-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Dumbbell className="w-4 h-4 text-iron-orange" />
+                  {exercise.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Séries:</span>
+                    <span>{exercise.sets}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Repetições alvo:</span>
+                    <span>{exercise.targetReps}</span>
+                  </div>
+                  {exercise.suggestedWeight && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Carga sugerida:</span>
+                      <span>{exercise.suggestedWeight}kg</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Abdominal Exercises */}
+          {workoutDay.abdominal && workoutDay.abdominal.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-foreground">Exercícios Abdominais</h2>
+              {workoutDay.abdominal.map((exercise) => (
+                <Card key={exercise.id} className="border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Dumbbell className="w-4 h-4 text-iron-orange" />
+                      {exercise.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Séries:</span>
+                        <span>{exercise.sets}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Repetições/Tempo:</span>
+                        <span>{exercise.targetReps}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Navigation - Always visible in view mode */}
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border">
+          <div className="max-w-md mx-auto p-4">
+            <div className="flex justify-around">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleBackToHome}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <Home className="w-5 h-5" />
+                <span className="text-xs">Início</span>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleNavigateToStatistics}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span className="text-xs">Estatísticas</span>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleNavigateToManagement}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="text-xs">Gerenciar</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Active Workout View
   if (currentView === 'workout' && currentSession) {
     const workoutDay = WORKOUT_PLAN.find(day => day.id === currentSession.workoutDayId);
     const currentTime = calculateWorkoutTime(currentSession.startTime);
@@ -290,44 +455,42 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Bottom Navigation */}
-        {currentView === 'home' && (
-          <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border">
-            <div className="max-w-md mx-auto p-4">
-              <div className="flex justify-around">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleBackToHome}
-                  className="flex flex-col items-center gap-1 h-auto py-2"
-                >
-                  <Home className="w-5 h-5" />
-                  <span className="text-xs">Início</span>
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleNavigateToStatistics}
-                  className="flex flex-col items-center gap-1 h-auto py-2"
-                >
-                  <BarChart3 className="w-5 h-5" />
-                  <span className="text-xs">Estatísticas</span>
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleNavigateToManagement}
-                  className="flex flex-col items-center gap-1 h-auto py-2"
-                >
-                  <Settings className="w-5 h-5" />
-                  <span className="text-xs">Gerenciar</span>
-                </Button>
-              </div>
+        {/* Bottom Navigation - Always visible on home */}
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border">
+          <div className="max-w-md mx-auto p-4">
+            <div className="flex justify-around">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleBackToHome}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <Home className="w-5 h-5" />
+                <span className="text-xs">Início</span>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleNavigateToStatistics}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span className="text-xs">Estatísticas</span>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleNavigateToManagement}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="text-xs">Gerenciar</span>
+              </Button>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
