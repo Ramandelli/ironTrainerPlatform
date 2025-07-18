@@ -6,6 +6,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { Timer } from '../components/Timer';
+import { AerobicTimer } from '../components/AerobicTimer';
 import { Statistics } from './Statistics';
 import { Management } from './Management';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
@@ -26,12 +27,15 @@ const Index = () => {
     startRestTimer,
     stopTimer,
     finishWorkout,
-    cancelWorkout
+    cancelWorkout,
+    completeAerobic
   } = useWorkoutSession();
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [currentView, setCurrentView] = useState<'home' | 'workout' | 'workout-view' | 'statistics' | 'management'>('home');
   const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null);
+  const [showAerobicTimer, setShowAerobicTimer] = useState(false);
+  const [abdominalCompleted, setAbdominalCompleted] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -92,6 +96,23 @@ const Index = () => {
   const handleFinishWorkout = () => {
     finishWorkout();
     setCurrentView('home');
+    setShowAerobicTimer(false);
+    setAbdominalCompleted(false);
+  };
+
+  const handleCompleteAerobic = () => {
+    completeAerobic();
+    setShowAerobicTimer(false);
+    handleFinishWorkout();
+  };
+
+  const handleSkipAerobic = () => {
+    setShowAerobicTimer(false);
+    handleFinishWorkout();
+  };
+
+  const handleCompleteAbdominals = () => {
+    setAbdominalCompleted(true);
   };
 
   const handleCancelWorkout = () => {
@@ -286,6 +307,22 @@ const Index = () => {
     const currentTime = calculateWorkoutTime(currentSession.startTime);
     const completedExercises = currentSession.exercises.filter(e => e.completed).length;
     const nextExercise = getNextExercise(currentSession.exercises);
+    const allMainExercisesCompleted = completedExercises === currentSession.exercises.length;
+    const hasAbdominals = workoutDay?.abdominal && workoutDay.abdominal.length > 0;
+    const hasAerobic = workoutDay?.aerobic;
+    const shouldShowAerobicOption = allMainExercisesCompleted && (!hasAbdominals || abdominalCompleted) && hasAerobic && hasAerobic.timing === 'depois';
+
+    // Show Aerobic Timer
+    if (showAerobicTimer && hasAerobic) {
+      return (
+        <AerobicTimer
+          duration={hasAerobic.duration}
+          type={hasAerobic.type}
+          onComplete={handleCompleteAerobic}
+          onCancel={handleSkipAerobic}
+        />
+      );
+    }
 
     return (
       <div className="min-h-screen bg-background">
@@ -337,10 +374,78 @@ const Index = () => {
               isActive={nextExercise?.id === exercise.id}
             />
           ))}
+
+          {/* Abdominal Exercises Section */}
+          {allMainExercisesCompleted && hasAbdominals && !abdominalCompleted && (
+            <div className="space-y-4 mt-8">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-foreground mb-2">Exercícios Abdominais</h2>
+                <p className="text-sm text-muted-foreground mb-4">Complete os exercícios abdominais para finalizar</p>
+              </div>
+              
+              {workoutDay.abdominal!.map((exercise) => (
+                <Card key={exercise.id} className="border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Dumbbell className="w-4 h-4 text-iron-orange" />
+                      {exercise.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Séries:</span>
+                        <span>{exercise.sets}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Repetições/Tempo:</span>
+                        <span>{exercise.targetReps}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              <Button 
+                variant="success" 
+                className="w-full" 
+                onClick={handleCompleteAbdominals}
+              >
+                Concluir Abdominais ✅
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Finish Workout Button */}
-        {completedExercises === currentSession.exercises.length && (
+        {/* Aerobic Options or Finish Workout */}
+        {shouldShowAerobicOption ? (
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-border">
+            <div className="max-w-md mx-auto space-y-3">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-foreground">Exercício Aeróbico</h3>
+                <p className="text-sm text-muted-foreground">
+                  {hasAerobic.type} - {hasAerobic.duration} minutos
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  variant="workout" 
+                  className="flex-1" 
+                  onClick={() => setShowAerobicTimer(true)}
+                >
+                  Iniciar Cardio 🏃
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={handleSkipAerobic}
+                >
+                  Pular Cardio
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : allMainExercisesCompleted && (!hasAbdominals || abdominalCompleted) && !hasAerobic ? (
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-border">
             <div className="max-w-md mx-auto">
               <Button variant="success" className="w-full" onClick={handleFinishWorkout}>
@@ -348,7 +453,7 @@ const Index = () => {
               </Button>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     );
   }

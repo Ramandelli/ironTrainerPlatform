@@ -161,6 +161,22 @@ export const useWorkoutSession = () => {
     await storage.clearTimerState();
   }, []);
 
+  const completeAerobic = useCallback(async () => {
+    if (!currentSession) return;
+
+    try {
+      const workoutDay = WORKOUT_PLAN.find(day => day.id === currentSession.workoutDayId);
+      if (workoutDay?.aerobic) {
+        setCurrentSession(prev => prev ? { 
+          ...prev, 
+          aerobic: { ...workoutDay.aerobic!, completed: true } 
+        } : null);
+      }
+    } catch (error) {
+      console.error('Failed to complete aerobic:', error);
+    }
+  }, [currentSession]);
+
   const finishWorkout = useCallback(async (notes?: string) => {
     if (!currentSession) return;
 
@@ -237,6 +253,7 @@ export const useWorkoutSession = () => {
     startRestTimer,
     stopTimer,
     finishWorkout,
-    cancelWorkout
+    cancelWorkout,
+    completeAerobic
   };
 };
