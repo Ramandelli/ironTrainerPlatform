@@ -4,6 +4,8 @@ export interface Exercise {
   sets: number;
   targetReps?: string;
   suggestedWeight?: number;
+  restTime?: number;
+  notes?: string;
   completed: boolean;
   currentSet: number;
   setData: SetData[];

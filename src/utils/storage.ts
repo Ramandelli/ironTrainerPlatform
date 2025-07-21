@@ -159,6 +159,34 @@ class StorageManager {
       console.error('Failed to create backup:', error);
     }
   }
+
+  // Generic methods for custom data storage
+  async setItem(key: string, value: string): Promise<void> {
+    try {
+      await Preferences.set({ key, value });
+    } catch (error) {
+      console.error(`Failed to set item ${key}:`, error);
+      throw error;
+    }
+  }
+
+  async getItem(key: string): Promise<string | null> {
+    try {
+      const { value } = await Preferences.get({ key });
+      return value;
+    } catch (error) {
+      console.error(`Failed to get item ${key}:`, error);
+      return null;
+    }
+  }
+
+  async removeItem(key: string): Promise<void> {
+    try {
+      await Preferences.remove({ key });
+    } catch (error) {
+      console.error(`Failed to remove item ${key}:`, error);
+    }
+  }
 }
 
 export const storage = new StorageManager();
