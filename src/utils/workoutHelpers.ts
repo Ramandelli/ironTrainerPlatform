@@ -128,3 +128,12 @@ export const calculateWeeklyStats = (history: WorkoutSession[]): { averageTime: 
     weeklyVolume: totalVolume
   };
 };
+
+export const isWorkoutCompletedToday = (history: WorkoutSession[], workoutDayId: string): boolean => {
+  const today = format(new Date(), 'yyyy-MM-dd');
+  return history.some(session => 
+    session.date === today && 
+    session.workoutDayId === workoutDayId && 
+    session.completed
+  );
+};

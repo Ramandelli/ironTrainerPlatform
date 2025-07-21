@@ -301,6 +301,38 @@ const Index = () => {
     );
   }
 
+  // Get current workout phase
+  const getWorkoutPhase = () => {
+    if (!currentSession) return 'none';
+    
+    const workoutDay = WORKOUT_PLAN.find(day => day.id === currentSession.workoutDayId);
+    if (!workoutDay) return 'none';
+
+    // Check if we should show aerobic first (before exercises)
+    if (workoutDay.aerobic?.timing === 'antes' && !currentSession.aerobic?.completed) {
+      return 'aerobic-before';
+    }
+
+    // Check if all main exercises are completed
+    const allExercisesCompleted = currentSession.exercises.every(ex => ex.completed);
+    
+    if (!allExercisesCompleted) {
+      return 'exercises';
+    }
+
+    // Check if there are abdominals and they're not completed
+    if (workoutDay.abdominal && !abdominalCompleted) {
+      return 'abdominal';
+    }
+
+    // Check if we should show aerobic after
+    if (workoutDay.aerobic?.timing === 'depois' && !currentSession.aerobic?.completed) {
+      return 'aerobic-after';
+    }
+
+    return 'finished';
+  };
+
   // Active Workout View
   if (currentView === 'workout' && currentSession) {
     const workoutDay = WORKOUT_PLAN.find(day => day.id === currentSession.workoutDayId);
@@ -311,6 +343,7 @@ const Index = () => {
     const hasAbdominals = workoutDay?.abdominal && workoutDay.abdominal.length > 0;
     const hasAerobic = workoutDay?.aerobic;
     const shouldShowAerobicOption = allMainExercisesCompleted && (!hasAbdominals || abdominalCompleted) && hasAerobic && hasAerobic.timing === 'depois';
+    const workoutPhase = getWorkoutPhase();
 
     // Show Aerobic Timer
     if (showAerobicTimer && hasAerobic) {
@@ -362,9 +395,31 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Exercise List */}
+        {/* Content based on workout phase */}
         <div className="max-w-md mx-auto p-4 space-y-4 pb-24">
-          {currentSession.exercises.map((exercise) => (
+          {/* Aerobic Before Phase */}
+          {workoutPhase === 'aerobic-before' && workoutDay?.aerobic && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold mb-2">Cardio - {workoutDay.aerobic.type}</h2>
+                <p className="text-muted-foreground">
+                  {workoutDay.aerobic.duration} minutos • {workoutDay.aerobic.intensity}
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Comece com o cardio antes dos exercícios
+                </p>
+              </div>
+              <AerobicTimer 
+                duration={workoutDay.aerobic.duration}
+                type={workoutDay.aerobic.type}
+                onComplete={() => completeAerobic()}
+                onCancel={() => completeAerobic()}
+              />
+            </div>
+          )}
+
+          {/* Main Exercises Phase */}
+          {workoutPhase === 'exercises' && currentSession.exercises.map((exercise) => (
             <ExerciseCard
               key={exercise.id}
               exercise={exercise}
@@ -375,15 +430,15 @@ const Index = () => {
             />
           ))}
 
-          {/* Abdominal Exercises Section */}
-          {allMainExercisesCompleted && hasAbdominals && !abdominalCompleted && (
+          {/* Abdominal Exercises Phase */}
+          {workoutPhase === 'abdominal' && hasAbdominals && workoutDay?.abdominal && (
             <div className="space-y-4 mt-8">
               <div className="text-center">
                 <h2 className="text-xl font-bold text-foreground mb-2">Exercícios Abdominais</h2>
                 <p className="text-sm text-muted-foreground mb-4">Complete os exercícios abdominais para finalizar</p>
               </div>
               
-              {workoutDay.abdominal!.map((exercise) => (
+              {workoutDay.abdominal.map((exercise) => (
                 <Card key={exercise.id} className="border-border">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -415,16 +470,14 @@ const Index = () => {
               </Button>
             </div>
           )}
-        </div>
 
-        {/* Aerobic Options or Finish Workout */}
-        {shouldShowAerobicOption ? (
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-border">
-            <div className="max-w-md mx-auto space-y-3">
+          {/* Aerobic After Phase */}
+          {workoutPhase === 'aerobic-after' && workoutDay?.aerobic && (
+            <div className="space-y-6">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-foreground">Exercício Aeróbico</h3>
-                <p className="text-sm text-muted-foreground">
-                  {hasAerobic.type} - {hasAerobic.duration} minutos
+                <h2 className="text-2xl font-bold mb-2">Finalize com Cardio</h2>
+                <p className="text-muted-foreground">
+                  {workoutDay.aerobic.type} - {workoutDay.aerobic.duration} minutos
                 </p>
               </div>
               <div className="flex gap-3">
@@ -444,16 +497,21 @@ const Index = () => {
                 </Button>
               </div>
             </div>
-          </div>
-        ) : allMainExercisesCompleted && (!hasAbdominals || abdominalCompleted) && !hasAerobic ? (
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-border">
-            <div className="max-w-md mx-auto">
+          )}
+
+          {/* Workout Finished */}
+          {workoutPhase === 'finished' && (
+            <div className="text-center space-y-4">
+              <div className="text-4xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold text-foreground">Treino Concluído!</h2>
+              <p className="text-muted-foreground">Parabéns pelo seu desempenho!</p>
               <Button variant="success" className="w-full" onClick={handleFinishWorkout}>
-                Finalizar Treino 🎉
+                Finalizar Treino
               </Button>
             </div>
-          </div>
-        ) : null}
+          )}
+        </div>
+
       </div>
     );
   }

@@ -8,7 +8,8 @@ import {
   completeExercise,
   calculateWorkoutTime,
   calculatePersonalRecords,
-  calculateWeeklyStats
+  calculateWeeklyStats,
+  isWorkoutCompletedToday
 } from '../utils/workoutHelpers';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { useToast } from './use-toast';
@@ -91,10 +92,27 @@ export const useWorkoutSession = () => {
 
   const startWorkout = useCallback(async (workoutDayId: string) => {
     try {
+      // Check if workout was already completed today
+      const history = await storage.loadWorkoutHistory();
+      if (isWorkoutCompletedToday(history, workoutDayId)) {
+        toast({
+          title: "Treino já realizado",
+          description: "Você já completou este treino hoje!",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const workoutDay = WORKOUT_PLAN.find(day => day.id === workoutDayId);
       if (!workoutDay) throw new Error('Workout day not found');
 
       const session = createWorkoutSession(workoutDayId, workoutDay.exercises);
+      
+      // If aerobic is "antes", add it to session
+      if (workoutDay.aerobic?.timing === 'antes') {
+        session.aerobic = { ...workoutDay.aerobic };
+      }
+      
       setCurrentSession(session);
       
       toast({
