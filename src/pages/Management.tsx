@@ -61,17 +61,31 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
     setShowWorkoutForm(true);
   };
 
-  const handleEditWorkout = (workout: WorkoutDay) => {
-    if (!customWorkoutManager.isCustomWorkout(workout.id)) {
+  const handleEditWorkout = async (workout: WorkoutDay) => {
+    try {
+      let workoutToEdit = workout;
+      
+      // If it's a default workout, convert it to custom first
+      if (!customWorkoutManager.isCustomWorkout(workout.id)) {
+        workoutToEdit = await customWorkoutManager.convertToCustomWorkout(workout);
+        await loadWorkouts(); // Refresh the list
+        
+        toast({
+          title: "Treino convertido",
+          description: "O treino foi convertido para personalizado e agora pode ser editado.",
+        });
+      }
+      
+      setEditingWorkout(workoutToEdit);
+      setShowWorkoutForm(true);
+    } catch (error) {
+      console.error('Failed to prepare workout for editing:', error);
       toast({
-        title: "Não é possível editar",
-        description: "Apenas treinos customizados podem ser editados. Duplique este treino para editá-lo.",
+        title: "Erro",
+        description: "Não foi possível preparar o treino para edição.",
         variant: "destructive"
       });
-      return;
     }
-    setEditingWorkout(workout);
-    setShowWorkoutForm(true);
   };
 
   const handleSaveWorkout = async (workoutData: Omit<WorkoutDay, 'id'> & { id?: string }) => {
@@ -206,7 +220,7 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
                         {workout.name}
                         {customWorkoutManager.isCustomWorkout(workout.id) && (
                           <Badge variant="secondary" className="text-xs">
-                            Customizado
+                            {customWorkoutManager.getBaseWorkoutId(workout.id) ? 'Personalizado' : 'Customizado'}
                           </Badge>
                         )}
                       </CardTitle>
@@ -244,16 +258,14 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      {customWorkoutManager.isCustomWorkout(workout.id) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteConfirm(workout)}
-                          title="Excluir treino"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteConfirm(workout)}
+                        title="Excluir treino"
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>

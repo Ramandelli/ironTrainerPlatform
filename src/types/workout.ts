@@ -25,6 +25,9 @@ export interface WorkoutDay {
   exercises: Exercise[];
   aerobic?: AerobicExercise;
   abdominal?: Exercise[];
+  // Internal properties for management
+  _isDeleted?: boolean;
+  _originalId?: string;
 }
 
 export interface AerobicExercise {
