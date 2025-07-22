@@ -160,6 +160,21 @@ class StorageManager {
     }
   }
 
+  // Reset all workout data
+  async resetAllData(): Promise<void> {
+    try {
+      await Promise.all([
+        this.clearCurrentSession(),
+        this.clearTimerState(),
+        Preferences.remove({ key: this.WORKOUT_HISTORY_KEY }),
+        Preferences.remove({ key: this.WORKOUT_STATS_KEY })
+      ]);
+    } catch (error) {
+      console.error('Failed to reset all data:', error);
+      throw error;
+    }
+  }
+
   // Generic methods for custom data storage
   async setItem(key: string, value: string): Promise<void> {
     try {
