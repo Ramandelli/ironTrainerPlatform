@@ -16,7 +16,7 @@ interface StatisticsProps {
 export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month'>('week');
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -37,6 +37,10 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
   };
 
   const periodStats = React.useMemo(() => {
+    if (selectedPeriod === 'all') {
+      return calculateWeeklyStats(history);
+    }
+    
     const daysBack = selectedPeriod === 'week' ? 7 : 30;
     const periodStart = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
     const periodHistory = history.filter(session => session.startTime >= periodStart);
@@ -76,6 +80,40 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
       .sort((a, b) => b.totalVolume - a.totalVolume)
       .slice(0, 5);
   }, [history]);
+
+  // Cardio statistics
+  const cardioStats = React.useMemo(() => {
+    const calculateCardioTime = (sessions: WorkoutSession[]) => {
+      let esteiraTotalTime = 0;
+      let bicicletaTotalTime = 0;
+      
+      sessions.forEach(session => {
+        if (session.aerobic && session.aerobic.completed) {
+          // Por enquanto usa o tempo planejado, mas futuramente podemos adicionar
+          // um campo "actualDuration" no aerobic para registrar o tempo real
+          const timeSpent = session.aerobic.duration;
+            
+          if (session.aerobic.type === 'esteira') {
+            esteiraTotalTime += timeSpent;
+          } else if (session.aerobic.type === 'bicicleta') {
+            bicicletaTotalTime += timeSpent;
+          }
+        }
+      });
+      
+      return { esteiraTotalTime, bicicletaTotalTime };
+    };
+    
+    if (selectedPeriod === 'all') {
+      return calculateCardioTime(history);
+    }
+    
+    const daysBack = selectedPeriod === 'week' ? 7 : 30;
+    const periodStart = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
+    const periodHistory = history.filter(session => session.startTime >= periodStart);
+    
+    return calculateCardioTime(periodHistory);
+  }, [history, selectedPeriod]);
 
   // Advanced statistics
   const advancedStats = React.useMemo(() => {
@@ -196,6 +234,13 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
           >
             Último Mês
           </Button>
+          <Button
+            variant={selectedPeriod === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedPeriod('all')}
+          >
+            Geral
+          </Button>
         </div>
 
         {/* Overview Stats */}
@@ -223,7 +268,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
                 {periodStats.weeklyVolume.toFixed(0)}kg
               </div>
               <div className="text-sm text-muted-foreground">
-                Volume {selectedPeriod === 'week' ? 'semanal' : 'mensal'}
+                Volume {selectedPeriod === 'week' ? 'semanal' : selectedPeriod === 'month' ? 'mensal' : 'total'}
               </div>
             </CardContent>
           </Card>
@@ -301,6 +346,44 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Cardio Stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-iron-orange" />
+              Estatísticas de Cardio
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <div className="text-lg font-bold text-foreground">
+                  {cardioStats.esteiraTotalTime}min
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Esteira {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
+                </div>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <div className="text-lg font-bold text-foreground">
+                  {cardioStats.bicicletaTotalTime}min
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Bicicleta {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
+                </div>
+              </div>
+            </div>
+            <div className="text-center p-3 bg-primary/10 rounded-lg">
+              <div className="text-xl font-bold text-primary">
+                {cardioStats.esteiraTotalTime + cardioStats.bicicletaTotalTime}min
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total de Cardio {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(geral)'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Personal Records */}
         <Card>
