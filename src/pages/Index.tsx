@@ -74,6 +74,12 @@ const Index = () => {
     }
   };
 
+  const handleViewWorkout = (workoutDayId: string) => {
+    // Sempre vai para modo visualização, independente se é hoje ou não
+    setViewingWorkoutId(workoutDayId);
+    setCurrentView('workout-view');
+  };
+
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: any) => {
     completeSet(exerciseId, setIndex, setData);
     
@@ -610,7 +616,7 @@ const Index = () => {
               <WorkoutCard
                 key={workoutDay.id}
                 workoutDay={workoutDay}
-                onStartWorkout={() => handleStartWorkout(workoutDay.id)}
+                onStartWorkout={() => handleViewWorkout(workoutDay.id)} // Usar handleViewWorkout aqui
                 isToday={false} // Sempre false aqui para mostrar "Visualizar Treino"
                 averageTime={stats?.averageTime}
               />
