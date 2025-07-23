@@ -289,11 +289,14 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
 
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-xs font-medium text-iron-orange mb-1">
-                Mais Frequente
+              <div className="flex items-center justify-center mb-2">
+                <TrendingUp className="w-4 h-4 text-iron-orange" />
               </div>
-              <div className="text-xs font-bold text-foreground truncate">
-                {advancedStats.mostFrequentExercise || 'N/A'}
+              <div className="text-lg font-bold text-foreground">
+                {history.reduce((total, session) => total + session.totalVolume, 0).toFixed(0)}kg
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Total de peso
               </div>
             </CardContent>
           </Card>
@@ -413,30 +416,45 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {history.slice(0, 5).map((session) => (
-              <div key={session.id} className="flex justify-between items-center">
-                <div>
-                  <div className="text-sm font-medium text-foreground">
-                    {new Date(session.date).toLocaleDateString('pt-BR', { 
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'short'
-                    })}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {session.exercises.length} exercícios
+            {history.slice(0, 5).map((session) => {
+              const workoutDate = new Date(session.date).toLocaleDateString('pt-BR', { 
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              });
+              const workoutTime = session.endTime ? Math.round((session.endTime - session.startTime) / 60000) : 0;
+              
+              return (
+                <div key={session.id} className="space-y-2 p-3 border border-border rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-foreground">
+                        {workoutDate} - {session.exercises[0]?.name ? 
+                          `${session.exercises[0].name.split(' ')[0]} e mais ${session.exercises.length - 1}` : 
+                          `${session.exercises.length} exercícios`}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Tempo: {workoutTime}min • Volume: {session.totalVolume.toFixed(0)}kg
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // TODO: Implementar visualização detalhada do treino
+                        toast({
+                          title: "Em desenvolvimento",
+                          description: "Visualização detalhada em breve!",
+                        });
+                      }}
+                      className="ml-2"
+                    >
+                      Ver
+                    </Button>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-iron-orange">
-                    {session.totalVolume.toFixed(0)}kg
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {session.endTime ? Math.round((session.endTime - session.startTime) / 60000) : 0}min
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {history.length === 0 && (
               <p className="text-center text-muted-foreground py-4">
                 Nenhum treino realizado ainda.

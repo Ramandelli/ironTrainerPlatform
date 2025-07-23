@@ -611,7 +611,7 @@ const Index = () => {
                 key={workoutDay.id}
                 workoutDay={workoutDay}
                 onStartWorkout={() => handleStartWorkout(workoutDay.id)}
-                isToday={workoutDay.id === todayWorkoutId}
+                isToday={false} // Sempre false aqui para mostrar "Visualizar Treino"
                 averageTime={stats?.averageTime}
               />
             ))}
