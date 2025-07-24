@@ -49,8 +49,17 @@ const Index = () => {
   }, []);
 
   const checkRestDay = async () => {
-    const shouldRest = await restDayManager.shouldShowRestDay();
-    setIsRestDay(shouldRest);
+    const todayWorkoutId = getTodayWorkoutId();
+    
+    // Só é dia de descanso se:
+    // 1. For fim de semana (sábado/domingo) OU
+    // 2. For marcado manualmente como descanso E não for fim de semana
+    if (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday') {
+      setIsRestDay(true);
+    } else {
+      const isManualRest = await restDayManager.isTodayRestDay();
+      setIsRestDay(isManualRest);
+    }
   };
 
   const loadWorkouts = async () => {
@@ -620,12 +629,12 @@ const Index = () => {
             <CardContent className="p-6 text-center">
               <div className="text-4xl mb-2">🏖️</div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                {restDayManager.isWeekend() ? 'Fim de Semana' : 'Dia de Descanso'}
+                {getTodayWorkoutId() === 'saturday' || getTodayWorkoutId() === 'sunday' ? 'Fim de Semana' : 'Dia de Descanso'}
               </h3>
               <p className="text-muted-foreground mb-4">
                 Aproveite para recuperar as energias!
               </p>
-              {!restDayManager.isWeekend() && (
+              {getTodayWorkoutId() !== 'saturday' && getTodayWorkoutId() !== 'sunday' && (
                 <Button 
                   variant="outline" 
                   onClick={handleToggleRestDay}
