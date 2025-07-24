@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { WorkoutSession, Exercise, SetData, TimerState } from '../types/workout';
 import { storage } from '../utils/storage';
+import { customWorkoutManager } from '../utils/customWorkouts';
 import { 
   createWorkoutSession, 
   calculateTotalVolume, 
@@ -103,7 +104,9 @@ export const useWorkoutSession = () => {
         return;
       }
 
-      const workoutDay = WORKOUT_PLAN.find(day => day.id === workoutDayId);
+      // Get updated workout plan from customWorkoutManager
+      const allWorkouts = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
+      const workoutDay = allWorkouts.find(day => day.id === workoutDayId);
       if (!workoutDay) throw new Error('Workout day not found');
 
       const session = createWorkoutSession(workoutDayId, workoutDay.exercises);
@@ -111,6 +114,18 @@ export const useWorkoutSession = () => {
       // If aerobic is "antes", add it to session
       if (workoutDay.aerobic?.timing === 'antes') {
         session.aerobic = { ...workoutDay.aerobic };
+      }
+      
+      // Add abdominal exercises if present
+      if (workoutDay.abdominal) {
+        session.abdominal = workoutDay.abdominal.map(exercise => ({
+          ...exercise,
+          setData: Array(exercise.sets).fill(null).map(() => ({
+            weight: 0,
+            reps: 0,
+            completed: false
+          }))
+        }));
       }
       
       setCurrentSession(session);

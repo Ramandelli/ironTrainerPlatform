@@ -14,6 +14,7 @@ import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { storage } from '../utils/storage';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { customWorkoutManager } from '../utils/customWorkouts';
+import { restDayManager } from '../utils/restDays';
 import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
 import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
@@ -35,6 +36,7 @@ const Index = () => {
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
+  const [isRestDay, setIsRestDay] = useState(false);
   const [currentView, setCurrentView] = useState<'home' | 'workout' | 'workout-view' | 'statistics' | 'management'>('home');
   const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null);
   const [showAerobicTimer, setShowAerobicTimer] = useState(false);
@@ -43,7 +45,13 @@ const Index = () => {
   useEffect(() => {
     loadStats();
     loadWorkouts();
+    checkRestDay();
   }, []);
+
+  const checkRestDay = async () => {
+    const shouldRest = await restDayManager.shouldShowRestDay();
+    setIsRestDay(shouldRest);
+  };
 
   const loadWorkouts = async () => {
     try {
@@ -72,7 +80,6 @@ const Index = () => {
 
   const todayWorkoutId = getTodayWorkoutId();
   const todayWorkout = workoutPlan.find(day => day.id === todayWorkoutId);
-  const isRestDay = !todayWorkout;
 
   const handleStartWorkout = (workoutDayId: string) => {
     const isToday = workoutDayId === todayWorkoutId;
@@ -150,6 +157,20 @@ const Index = () => {
 
   const handleBackToHome = () => {
     setCurrentView('home');
+    checkRestDay(); // Recheck rest day when returning home
+  };
+
+  const handleToggleRestDay = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const isCurrentlyRest = await restDayManager.isTodayRestDay();
+    
+    if (isCurrentlyRest) {
+      await restDayManager.removeRestDay(today);
+    } else {
+      await restDayManager.setRestDay(today);
+    }
+    
+    await checkRestDay();
   };
 
   if (isLoading) {
@@ -598,18 +619,39 @@ const Index = () => {
           <Card className="mb-6 border-border">
             <CardContent className="p-6 text-center">
               <div className="text-4xl mb-2">🏖️</div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Dia de Descanso</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {restDayManager.isWeekend() ? 'Fim de Semana' : 'Dia de Descanso'}
+              </h3>
+              <p className="text-muted-foreground mb-4">
                 Aproveite para recuperar as energias!
               </p>
+              {!restDayManager.isWeekend() && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleToggleRestDay}
+                  className="mt-2"
+                >
+                  Cancelar Descanso
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-iron-orange" />
-              Treino de Hoje
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-iron-orange" />
+                Treino de Hoje
+              </h2>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleToggleRestDay}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Marcar Descanso
+              </Button>
+            </div>
             {todayWorkout && (
               <WorkoutCard
                 workoutDay={todayWorkout}

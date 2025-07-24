@@ -71,6 +71,11 @@ class StorageManager {
     }
   }
 
+  // Save completed workout to history (alias for saveToHistory)
+  async saveWorkoutToHistory(session: WorkoutSession): Promise<void> {
+    return this.saveToHistory(session);
+  }
+
   // Save completed workout to history
   async saveToHistory(session: WorkoutSession): Promise<void> {
     try {
