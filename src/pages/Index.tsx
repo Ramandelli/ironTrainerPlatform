@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { WorkoutDay } from '../types/workout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -12,6 +13,7 @@ import { Management } from './Management';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { storage } from '../utils/storage';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
+import { customWorkoutManager } from '../utils/customWorkouts';
 import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
 import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
@@ -32,6 +34,7 @@ const Index = () => {
   } = useWorkoutSession();
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
   const [currentView, setCurrentView] = useState<'home' | 'workout' | 'workout-view' | 'statistics' | 'management'>('home');
   const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null);
   const [showAerobicTimer, setShowAerobicTimer] = useState(false);
@@ -39,7 +42,17 @@ const Index = () => {
 
   useEffect(() => {
     loadStats();
+    loadWorkouts();
   }, []);
+
+  const loadWorkouts = async () => {
+    try {
+      const allWorkouts = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
+      setWorkoutPlan(allWorkouts);
+    } catch (error) {
+      console.error('Failed to load workouts:', error);
+    }
+  };
 
   useEffect(() => {
     // Switch to workout view if there's an active session
@@ -58,7 +71,7 @@ const Index = () => {
   };
 
   const todayWorkoutId = getTodayWorkoutId();
-  const todayWorkout = WORKOUT_PLAN.find(day => day.id === todayWorkoutId);
+  const todayWorkout = workoutPlan.find(day => day.id === todayWorkoutId);
   const isRestDay = !todayWorkout;
 
   const handleStartWorkout = (workoutDayId: string) => {
@@ -153,7 +166,7 @@ const Index = () => {
 
   // Workout View Mode (apenas visualização)
   if (currentView === 'workout-view' && viewingWorkoutId) {
-    const workoutDay = WORKOUT_PLAN.find(day => day.id === viewingWorkoutId);
+    const workoutDay = workoutPlan.find(day => day.id === viewingWorkoutId);
     
     if (!workoutDay) {
       setCurrentView('home');
@@ -311,7 +324,7 @@ const Index = () => {
   const getWorkoutPhase = () => {
     if (!currentSession) return 'none';
     
-    const workoutDay = WORKOUT_PLAN.find(day => day.id === currentSession.workoutDayId);
+    const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
     if (!workoutDay) return 'none';
 
     // Check if we should show aerobic first (before exercises)
@@ -341,7 +354,7 @@ const Index = () => {
 
   // Active Workout View
   if (currentView === 'workout' && currentSession) {
-    const workoutDay = WORKOUT_PLAN.find(day => day.id === currentSession.workoutDayId);
+    const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
     const currentTime = calculateWorkoutTime(currentSession.startTime);
     const completedExercises = currentSession.exercises.filter(e => e.completed).length;
     const nextExercise = getNextExercise(currentSession.exercises);
@@ -529,7 +542,10 @@ const Index = () => {
 
   // Management View
   if (currentView === 'management') {
-    return <Management onBack={handleBackToHome} />;
+    return <Management onBack={() => { 
+      handleBackToHome(); 
+      loadWorkouts(); // Recarrega os treinos quando volta da tela de gerenciamento
+    }} />;
   }
 
   // Home View
@@ -612,7 +628,7 @@ const Index = () => {
             Todos os Treinos
           </h2>
           <div className="space-y-4">
-            {WORKOUT_PLAN.map((workoutDay) => (
+            {workoutPlan.map((workoutDay) => (
               <WorkoutCard
                 key={workoutDay.id}
                 workoutDay={workoutDay}
