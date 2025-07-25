@@ -55,6 +55,20 @@ const Index = () => {
     }
   }, [currentView]);
 
+  // Função para encontrar o treino do dia considerando personalizados
+  const findTodaysWorkout = () => {
+    const todayId = getTodayWorkoutId();
+  
+     // 1. Primeiro busca por ID exato (para treinos padrão)
+     const exactMatch = workoutPlan.find(day => day.id === todayId);
+     if (exactMatch) return exactMatch;
+  
+     // 2. Busca por treinos personalizados para o dia atual
+     return workoutPlan.find(day => 
+       customWorkoutManager.getBaseWorkoutId(day.id) === todayId
+    );
+  };
+
   const checkRestDay = async () => {
     const todayWorkoutId = getTodayWorkoutId();
     
@@ -95,7 +109,7 @@ const Index = () => {
   };
 
   const todayWorkoutId = getTodayWorkoutId();
-  const todayWorkout = workoutPlan.find(day => day.id === todayWorkoutId);
+  const todayWorkout = findTodaysWorkout();
 
   const handleStartWorkout = (workoutDayId: string) => {
     const isToday = workoutDayId === todayWorkoutId;
