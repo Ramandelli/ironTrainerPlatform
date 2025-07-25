@@ -217,7 +217,7 @@ export const useWorkoutSession = () => {
       const finishedSession: WorkoutSession = {
         ...currentSession,
         endTime: Date.now(),
-        date: new Date().toISOString(), // Usar data atual quando finalizar
+        date: new Date().toISOString().split('T')[0],
         totalVolume: calculateTotalVolume(currentSession.exercises),
         notes,
         completed: true

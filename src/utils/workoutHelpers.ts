@@ -90,11 +90,12 @@ export const calculatePersonalRecords = (history: WorkoutSession[]): Record<stri
     session.exercises.forEach(exercise => {
       exercise.setData.forEach(set => {
         if (set.completed) {
-          const key = exercise.id;
-          const currentRecord = records[key];
+          // Usar o nome do exercício em vez do ID
+          const key = exercise.name;
           
-          if (!currentRecord || set.weight > currentRecord.weight || 
-              (set.weight === currentRecord.weight && set.reps > currentRecord.reps)) {
+          if (!records[key] || 
+              set.weight > records[key].weight || 
+              (set.weight === records[key].weight && set.reps > records[key].reps)) {
             records[key] = {
               weight: set.weight,
               reps: set.reps,
@@ -108,6 +109,7 @@ export const calculatePersonalRecords = (history: WorkoutSession[]): Record<stri
   
   return records;
 };
+
 
 export const calculateWeeklyStats = (history: WorkoutSession[]): { averageTime: number; weeklyVolume: number } => {
   const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
