@@ -132,9 +132,11 @@ export const calculateWeeklyStats = (history: WorkoutSession[]): { averageTime: 
 };
 
 export const isWorkoutCompletedToday = (history: WorkoutSession[], workoutDayId: string): boolean => {
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  
   return history.some(session => 
-    session.date === today && 
+    session.date === todayStr && 
     session.workoutDayId === workoutDayId && 
     session.completed
   );

@@ -395,7 +395,8 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
           </CardHeader>
           <CardContent className="space-y-3">
             {Object.entries(personalRecords).length > 0 ? (
-              Object.entries(personalRecords).slice(0, 5).map(([exercise, record]) => (
+              Object.entries(personalRecords).sort((a, b) => b[1].weight - a[1].weight)
+                 .slice(0, 5).map(([exercise, record]) => (
                 <div key={exercise} className="flex justify-between items-center">
                   <span className="text-sm font-medium text-foreground">{exercise}</span>
                   <div className="text-right">

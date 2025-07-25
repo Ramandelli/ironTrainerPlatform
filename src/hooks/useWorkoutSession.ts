@@ -211,20 +211,27 @@ export const useWorkoutSession = () => {
   }, [currentSession]);
 
   const finishWorkout = useCallback(async (notes?: string) => {
-    if (!currentSession) return;
+  if (!currentSession) return;
 
-    try {
-      const finishedSession: WorkoutSession = {
-        ...currentSession,
-        endTime: Date.now(),
-        date: new Date().toISOString().split('T')[0],
-        totalVolume: calculateTotalVolume(currentSession.exercises),
-        notes,
-        completed: true
-      };
+  try {
+    // CORREÇÃO: Obter data correta no formato yyyy-MM-dd
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const date = `${year}-${month}-${day}`;
 
-      // Save to history
-      await storage.saveToHistory(finishedSession);
+    const finishedSession: WorkoutSession = {
+      ...currentSession,
+      endTime: Date.now(),
+      date, // Usar data formatada corretamente
+      totalVolume: calculateTotalVolume(currentSession.exercises),
+      notes,
+      completed: true
+    };
+
+    // Só salva se o treino foi realmente completado
+    await storage.saveToHistory(finishedSession);
       
       // Update stats
       const history = await storage.loadWorkoutHistory();
