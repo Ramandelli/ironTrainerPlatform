@@ -48,6 +48,13 @@ const Index = () => {
     checkRestDay();
   }, []);
 
+  // Recarregar treinos quando voltar da tela de gestão
+  useEffect(() => {
+    if (currentView === 'home') {
+      loadWorkouts();
+    }
+  }, [currentView]);
+
   const checkRestDay = async () => {
     const todayWorkoutId = getTodayWorkoutId();
     

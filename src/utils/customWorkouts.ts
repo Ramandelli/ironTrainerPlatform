@@ -122,6 +122,7 @@ class CustomWorkoutManager {
       const customWorkoutIds = new Set();
       const deletedDefaultIds = new Set();
       const allWorkouts: WorkoutDay[] = [];
+      const overriddenDefaultIds = new Set();
 
       // Process custom workouts and track deleted defaults
       customWorkouts.forEach(workout => {
@@ -132,16 +133,23 @@ class CustomWorkoutManager {
         }
         
         allWorkouts.push(workout);
-        // Track if this custom workout overrides a default one
+        
+        // Check if this is a custom workout that overrides a default one
+        // This happens when editing a default workout - it creates a custom version
+        // and we need to track which default workout it replaces
         const baseId = this.getBaseWorkoutId(workout.id);
         if (baseId) {
-          customWorkoutIds.add(baseId);
+          overriddenDefaultIds.add(baseId);
         }
+        
+        customWorkoutIds.add(workout.id);
       });
 
       // Add default workouts only if they haven't been overridden or deleted
       defaultWorkouts.forEach(workout => {
-        if (!customWorkoutIds.has(workout.id) && !deletedDefaultIds.has(workout.id)) {
+        if (!customWorkoutIds.has(workout.id) && 
+            !deletedDefaultIds.has(workout.id) &&
+            !overriddenDefaultIds.has(workout.id)) {
           allWorkouts.push(workout);
         }
       });
