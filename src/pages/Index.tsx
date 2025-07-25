@@ -112,17 +112,21 @@ const Index = () => {
   const todayWorkout = findTodaysWorkout();
 
   const handleStartWorkout = (workoutDayId: string) => {
-    const isToday = workoutDayId === todayWorkoutId;
-    
-    if (isToday) {
-      startWorkout(workoutDayId);
-      setCurrentView('workout');
-    } else {
+   // Verifica se é um treino de hoje por:
+   // 1. O ID é igual ao todayWorkoutId (treino padrão)
+   // 2. O ID base do treino personalizado é igual ao todayWorkoutId
+   const baseId = customWorkoutManager.getBaseWorkoutId(workoutDayId);
+   const isToday = workoutDayId === todayWorkoutId || baseId === todayWorkoutId;
+  
+   if (isToday) {
+     startWorkout(workoutDayId);
+     setCurrentView('workout');
+   } else {
       // Modo visualização para treinos de outros dias
       setViewingWorkoutId(workoutDayId);
       setCurrentView('workout-view');
-    }
-  };
+   }
+ };
 
   const handleViewWorkout = (workoutDayId: string) => {
     // Sempre vai para modo visualização, independente se é hoje ou não

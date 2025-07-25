@@ -67,7 +67,7 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     onSave({
       ...(workout?.id && { id: workout.id }),
       name: formData.name.trim(),
-      day: selectedDay?.label || formData.day,
+      day: formData.day.toLowerCase(),
       exercises: formData.exercises,
       abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
       aerobic: formData.aerobic
