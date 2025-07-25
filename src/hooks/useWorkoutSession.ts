@@ -214,58 +214,62 @@ export const useWorkoutSession = () => {
   if (!currentSession) return;
 
   try {
-    // Obter data atual correta (fuso horário local)
+    // Obter data atual CORRETA (formato brasileiro)
     const now = new Date();
-    const timezoneOffset = now.getTimezoneOffset() * 60000; // offset em milissegundos
-    const localDate = new Date(now.getTime() - timezoneOffset);
-    const date = localDate.toISOString().split('T')[0];
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const date = `${day}/${month}/${year}`;
 
     const finishedSession: WorkoutSession = {
       ...currentSession,
       endTime: Date.now(),
-      date, // Data formatada corretamente
+      date,
       totalVolume: calculateTotalVolume(currentSession.exercises),
       notes,
       completed: true
     };
 
-    // Só salva se o treino foi realmente completado
+    await storage.cleanInvalidSessions();
     await storage.saveToHistory(finishedSession);
       
       // Update stats
       const history = await storage.loadWorkoutHistory();
-      const { averageTime, weeklyVolume } = calculateWeeklyStats([...history, finishedSession]);
-      const personalRecords = calculatePersonalRecords([...history, finishedSession]);
+      const { averageTime, weeklyVolume } = calculateWeeklyStats(history);
+      const personalRecords = calculatePersonalRecords(history);
       
-      await storage.updateStats({
-        totalWorkouts: history.length + 1,
-        averageTime,
-        weeklyVolume,
-        personalRecords
-      });
+       await storage.updateStats({
+      totalWorkouts: history.length,
+      averageTime,
+      weeklyVolume,
+      personalRecords
+    });
 
       // Clear current session
       await storage.clearCurrentSession();
       await storage.clearTimerState();
       
       setCurrentSession(null);
-      setTimerState(null);
+      setTimerState(null)
 
-      const workoutTime = calculateWorkoutTime(finishedSession.startTime, finishedSession.endTime);
+      const workoutTime = calculateWorkoutTime(finishedSession.startTime, finishedSession.endTime);      
       
       toast({
-        title: "Treino finalizado! 🎉",
-        description: `Duração: ${workoutTime}min | Volume: ${finishedSession.totalVolume}kg`,
-      });
-    } catch (error) {
-      console.error('Failed to finish workout:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível finalizar o treino.",
-        variant: "destructive"
-      });
-    }
-  }, [currentSession, toast]);
+      title: "Treino finalizado! 🎉",
+      description: `Duração: ${workoutTime}min | Volume: ${finishedSession.totalVolume}kg`,
+    });
+    
+    return finishedSession;
+  } catch (error) {
+    console.error('Failed to finish workout:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível finalizar o treino.",
+      variant: "destructive"
+    });
+  }
+}, [currentSession, toast]);
+
 
   const cancelWorkout = useCallback(async () => {
     try {

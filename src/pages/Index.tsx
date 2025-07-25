@@ -158,12 +158,17 @@ const Index = () => {
     }
   };
 
-  const handleFinishWorkout = () => {
-    finishWorkout();
-    setCurrentView('home');
-    setShowAerobicTimer(false);
-    setAbdominalCompleted(false);
-  };
+  const handleFinishWorkout = async () => {
+  await finishWorkout();
+  setCurrentView('home');
+  setShowAerobicTimer(false);
+  setAbdominalCompleted(false);
+  
+  // Forçar atualização imediata das estatísticas
+  await loadStats();
+  await loadWorkouts();
+};
+
 
   const handleCompleteAerobic = () => {
     completeAerobic();

@@ -96,11 +96,23 @@ class StorageManager {
   // Save completed workout to history
 async saveToHistory(session: WorkoutSession): Promise<void> {
   try {
-    // Só salva treinos completados
+    // Não salvar se não estiver completado
     if (!session.completed) return;
 
     const history = await this.loadWorkoutHistory();
-    history.push(session);
+    
+    // Verificar se já existe um treino com o mesmo ID no mesmo dia
+    const existingIndex = history.findIndex(s => 
+      s.id === session.id && s.date === session.date
+    );
+    
+    if (existingIndex >= 0) {
+      // Substituir treino existente
+      history[existingIndex] = session;
+    } else {
+      // Adicionar novo treino
+      history.push(session);
+    }
     
     // Manter apenas últimos 100 treinos
     if (history.length > 100) {
