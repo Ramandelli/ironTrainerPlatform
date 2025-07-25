@@ -185,11 +185,18 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
     }
 
     // Workout type distribution
-  const workoutDistribution: Record<string, number> = {};
-history.forEach(session => {
-  try {
-      // Usar a data diretamente (formato ISO)
-      const sessionDate = new Date(session.date);
+const workoutDistribution: Record<string, number> = {};
+  history.forEach(session => {
+    try {
+      // Converter a data ISO para objeto Date
+      const [year, month, day] = session.date.split('-');
+      const sessionDate = new Date(
+        parseInt(year),
+        parseInt(month) - 1, // Mês começa em 0 no JavaScript
+        parseInt(day)
+      );
+      
+      // Obter o dia da semana (0=domingo, 1=segunda, etc)
       const dayIndex = sessionDate.getDay();
       const days = [
         'domingo', 
@@ -210,8 +217,7 @@ history.forEach(session => {
     }
   });
 
-
-    return {
+  return {
       averageWorkoutTime,
       totalSets,
       totalReps,
@@ -434,19 +440,25 @@ history.forEach(session => {
     Object.entries(personalRecords)
       .sort((a, b) => b[1].weight - a[1].weight)
       .slice(0, 5)
-      .map(([exercise, record]) => (
-        <div key={exercise} className="flex justify-between items-center">
-          <span className="text-sm font-medium text-foreground">{exercise}</span>
-          <div className="text-right">
-            <div className="text-sm font-bold text-iron-orange">
-              {record.weight}kg × {record.reps}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {record.date} {/* Usar a data diretamente */}
+      .map(([exercise, record]) => {
+        // Formatar a data para DD/MM/AAAA
+        const [year, month, day] = record.date.split('-');
+        const formattedDate = `${day}/${month}/${year}`;
+        
+        return (
+          <div key={exercise} className="flex justify-between items-center">
+            <span className="text-sm font-medium text-foreground">{exercise}</span>
+            <div className="text-right">
+              <div className="text-sm font-bold text-iron-orange">
+                {record.weight}kg × {record.reps}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {formattedDate}
+              </div>
             </div>
           </div>
-        </div>
-      ))
+        );
+      })
   ) : (
     <p className="text-center text-muted-foreground py-4">
       Complete alguns treinos para ver seus recordes!
