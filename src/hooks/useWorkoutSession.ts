@@ -214,13 +214,11 @@ export const useWorkoutSession = () => {
   if (!currentSession) return;
 
   try {
-    // CORREÇÃO: Obter data correta no formato yyyy-MM-dd
+    // Obter data atual correta (fuso horário local)
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const date = `${year}-${month}-${day}`;
-
+    const timezoneOffset = now.getTimezoneOffset() * 60000; // offset em milissegundos
+    const localDate = new Date(now.getTime() - timezoneOffset);
+    const date = localDate.toISOString().split('T')[0];
 
     const finishedSession: WorkoutSession = {
       ...currentSession,
@@ -229,7 +227,6 @@ export const useWorkoutSession = () => {
       totalVolume: calculateTotalVolume(currentSession.exercises),
       notes,
       completed: true
-
     };
 
     // Só salva se o treino foi realmente completado

@@ -186,18 +186,30 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
 
     // Workout type distribution
     const workoutDistribution: Record<string, number> = {};
-    history.forEach(session => {
-      const sessionDate = new Date(session.date);
-      // Usar getDay() para obter dia da semana (0=domingo, 1=segunda, etc)
-      const dayIndex = sessionDate.getDay();
-      const days = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 
-                 'quinta-feira', 'sexta-feira', 'sábado'];
+history.forEach(session => {
+  try {
+    // Converter a string de data para objeto Date
+    const sessionDate = new Date(session.date + 'T12:00:00'); // Adicionar horário para evitar problemas de fuso
+    const dayOfWeek = sessionDate.getDay();
     
-      if (dayIndex >= 0 && dayIndex < days.length) {
-          const dayName = days[dayIndex];
-          workoutDistribution[dayName] = (workoutDistribution[dayName] || 0) + 1;
-      }
-    });
+    const days = [
+      'domingo', 
+      'segunda-feira', 
+      'terça-feira', 
+      'quarta-feira', 
+      'quinta-feira', 
+      'sexta-feira', 
+      'sábado'
+    ];
+    
+    if (dayOfWeek >= 0 && dayOfWeek < days.length) {
+      const dayName = days[dayOfWeek];
+      workoutDistribution[dayName] = (workoutDistribution[dayName] || 0) + 1;
+    }
+  } catch (e) {
+    console.error('Erro ao processar data:', session.date, e);
+  }
+});
 
     return {
       averageWorkoutTime,

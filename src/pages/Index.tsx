@@ -54,6 +54,7 @@ const Index = () => {
       loadWorkouts();
     }
   }, [currentView]);
+  
 
   // Função para encontrar o treino do dia considerando personalizados
   const findTodaysWorkout = () => {
@@ -101,12 +102,16 @@ const Index = () => {
 
   const loadStats = async () => {
     try {
+      // Limpar sessões inválidas antes de carregar
+      await storage.cleanInvalidSessions();
+    
       const loadedStats = await storage.loadStats();
       setStats(loadedStats);
     } catch (error) {
       console.error('Failed to load stats:', error);
     }
   };
+
 
   const todayWorkoutId = getTodayWorkoutId();
   const todayWorkout = findTodaysWorkout();
