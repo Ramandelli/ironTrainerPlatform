@@ -185,31 +185,31 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
     }
 
     // Workout type distribution
-    const workoutDistribution: Record<string, number> = {};
+  const workoutDistribution: Record<string, number> = {};
 history.forEach(session => {
   try {
-    // Converter a string de data para objeto Date
-    const sessionDate = new Date(session.date + 'T12:00:00'); // Adicionar horário para evitar problemas de fuso
-    const dayOfWeek = sessionDate.getDay();
-    
-    const days = [
-      'domingo', 
-      'segunda-feira', 
-      'terça-feira', 
-      'quarta-feira', 
-      'quinta-feira', 
-      'sexta-feira', 
-      'sábado'
-    ];
-    
-    if (dayOfWeek >= 0 && dayOfWeek < days.length) {
-      const dayName = days[dayOfWeek];
-      workoutDistribution[dayName] = (workoutDistribution[dayName] || 0) + 1;
+      // Usar a data diretamente (formato ISO)
+      const sessionDate = new Date(session.date);
+      const dayIndex = sessionDate.getDay();
+      const days = [
+        'domingo', 
+        'segunda-feira', 
+        'terça-feira', 
+        'quarta-feira', 
+        'quinta-feira', 
+        'sexta-feira', 
+        'sábado'
+      ];
+      
+      if (dayIndex >= 0 && dayIndex < days.length) {
+        const dayName = days[dayIndex];
+        workoutDistribution[dayName] = (workoutDistribution[dayName] || 0) + 1;
+      }
+    } catch (e) {
+      console.error('Erro ao processar data:', session.date, e);
     }
-  } catch (e) {
-    console.error('Erro ao processar data:', session.date, e);
-  }
-});
+  });
+
 
     return {
       averageWorkoutTime,
@@ -538,51 +538,40 @@ history.forEach(session => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {history.slice(0, 5).map((session) => {
-              const workoutDate = new Date(session.date).toLocaleDateString('pt-BR', { 
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-              });
-              const workoutTime = session.endTime ? Math.round((session.endTime - session.startTime) / 60000) : 0;
+  {history.slice(0, 5).map((session) => {
+    // Corrigir a formatação da data
+    const [day, month, year] = session.date.split('/');
+    const formattedDate = new Date(`${year}-${month}-${day}`);
+    
+    const workoutDate = formattedDate.toLocaleDateString('pt-BR', { 
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+              const workoutTime = session.endTime 
+      ? Math.round((session.endTime - session.startTime) / 60000)
+      : 0;
               
               return (
-                <div key={session.id} className="space-y-2 p-3 border border-border rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-foreground">
-                        {workoutDate} - {session.exercises[0]?.name ? 
-                          `${session.exercises[0].name.split(' ')[0]} e mais ${session.exercises.length - 1}` : 
-                          `${session.exercises.length} exercícios`}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Tempo: {workoutTime}min • Volume: {session.totalVolume.toFixed(0)}kg
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        // TODO: Implementar visualização detalhada do treino
-                        toast({
-                          title: "Em desenvolvimento",
-                          description: "Visualização detalhada em breve!",
-                        });
-                      }}
-                      className="ml-2"
-                    >
-                      Ver
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-            {history.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">
-                Nenhum treino realizado ainda.
-              </p>
-            )}
-          </CardContent>
+      <div key={session.id} className="space-y-2 p-3 border border-border rounded-lg">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="text-sm font-medium text-foreground">
+              {workoutDate} - {/* Data formatada corretamente */}
+              {session.exercises[0]?.name ? 
+                `${session.exercises[0].name.split(' ')[0]} e mais ${session.exercises.length - 1}` : 
+                `${session.exercises.length} exercícios`}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Tempo: {workoutTime}min • Volume: {session.totalVolume.toFixed(0)}kg
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</CardContent>
+
         </Card>
 
         {/* Reset Data Section */}
