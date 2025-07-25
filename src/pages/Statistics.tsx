@@ -20,8 +20,24 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadData();
-  }, []);
+     const loadData = async () => {
+    try {
+      // Limpar sessões inválidas antes de carregar
+      await storage.cleanInvalidSessions();
+      
+      const [loadedStats, workoutHistory] = await Promise.all([
+        storage.loadStats(),
+        storage.loadWorkoutHistory()
+      ]);
+      setStats(loadedStats);
+      setHistory(workoutHistory);
+    } catch (error) {
+      console.error('Failed to load statistics:', error);
+    }
+  };
+
+  loadData();
+}, []);
 
   const loadData = async () => {
     try {
@@ -171,8 +187,16 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
     // Workout type distribution
     const workoutDistribution: Record<string, number> = {};
     history.forEach(session => {
-      const day = new Date(session.date).toLocaleDateString('pt-BR', { weekday: 'long' });
-      workoutDistribution[day] = (workoutDistribution[day] || 0) + 1;
+      const sessionDate = new Date(session.date);
+      // Usar getDay() para obter dia da semana (0=domingo, 1=segunda, etc)
+      const dayIndex = sessionDate.getDay();
+      const days = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 
+                 'quinta-feira', 'sexta-feira', 'sábado'];
+    
+      if (dayIndex >= 0 && dayIndex < days.length) {
+          const dayName = days[dayIndex];
+          workoutDistribution[dayName] = (workoutDistribution[dayName] || 0) + 1;
+      }
     });
 
     return {

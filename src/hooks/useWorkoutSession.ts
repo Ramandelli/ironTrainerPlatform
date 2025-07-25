@@ -215,19 +215,21 @@ export const useWorkoutSession = () => {
 
   try {
     // CORREÇÃO: Obter data correta no formato yyyy-MM-dd
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
     const date = `${year}-${month}-${day}`;
+
 
     const finishedSession: WorkoutSession = {
       ...currentSession,
       endTime: Date.now(),
-      date, // Usar data formatada corretamente
+      date, // Data formatada corretamente
       totalVolume: calculateTotalVolume(currentSession.exercises),
       notes,
       completed: true
+
     };
 
     // Só salva se o treino foi realmente completado

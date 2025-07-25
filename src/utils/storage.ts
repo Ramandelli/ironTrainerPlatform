@@ -71,30 +71,50 @@ class StorageManager {
     }
   }
 
+  async cleanInvalidSessions(): Promise<void> {
+    try {
+      const history = await this.loadWorkoutHistory();
+      // Manter apenas sessões completadas e com data válida
+      const validHistory = history.filter(session => 
+        session.completed && session.date && session.endTime
+      );
+    
+      await Preferences.set({
+        key: this.WORKOUT_HISTORY_KEY,
+        value: JSON.stringify(validHistory)
+      });
+    } catch (error) {
+      console.error('Failed to clean invalid sessions:', error);
+    }
+  }
+
   // Save completed workout to history (alias for saveToHistory)
   async saveWorkoutToHistory(session: WorkoutSession): Promise<void> {
     return this.saveToHistory(session);
   }
 
   // Save completed workout to history
-  async saveToHistory(session: WorkoutSession): Promise<void> {
-    try {
-      const history = await this.loadWorkoutHistory();
-      history.push(session);
-      
-      // Keep only last 100 workouts to avoid storage bloat
-      if (history.length > 100) {
-        history.splice(0, history.length - 100);
-      }
+async saveToHistory(session: WorkoutSession): Promise<void> {
+  try {
+    // Só salva treinos completados
+    if (!session.completed) return;
 
-      await Preferences.set({
-        key: this.WORKOUT_HISTORY_KEY,
-        value: JSON.stringify(history)
-      });
-    } catch (error) {
-      console.error('Failed to save to history:', error);
+    const history = await this.loadWorkoutHistory();
+    history.push(session);
+    
+    // Manter apenas últimos 100 treinos
+    if (history.length > 100) {
+      history.splice(0, history.length - 100);
     }
+
+    await Preferences.set({
+      key: this.WORKOUT_HISTORY_KEY,
+      value: JSON.stringify(history)
+    });
+  } catch (error) {
+    console.error('Failed to save to history:', error);
   }
+}
 
   // Load workout history
   async loadWorkoutHistory(): Promise<WorkoutSession[]> {
