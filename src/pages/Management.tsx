@@ -89,30 +89,47 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
   };
 
   const handleSaveWorkout = async (workoutData: Omit<WorkoutDay, 'id'> & { id?: string }) => {
-    try {
-      const workout: WorkoutDay = {
-        ...workoutData,
-        id: workoutData.id || `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      };
+      try {
+          const workout: WorkoutDay = {
+                ...workoutData,
+                      id: workoutData.id || getWorkoutId(workoutData.day) // Use a função abaixo
+                          };
 
-      await customWorkoutManager.saveWorkout(workout);
-      await loadWorkouts();
-      setShowWorkoutForm(false);
-      setEditingWorkout(null);
-      
-      toast({
-        title: editingWorkout ? "Treino atualizado!" : "Treino criado!",
-        description: `${workout.name} foi ${editingWorkout ? 'atualizado' : 'criado'} com sucesso.`,
-      });
-    } catch (error) {
-      console.error('Failed to save workout:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar o treino.",
-        variant: "destructive"
-      });
-    }
-  };
+                              await customWorkoutManager.saveWorkout(workout);
+                                  await loadWorkouts();
+                                      setShowWorkoutForm(false);
+                                          setEditingWorkout(null);
+                                              
+                                                  toast({
+                                                        title: editingWorkout ? "Treino atualizado!" : "Treino criado!",
+                                                              description: `${workout.name} foi ${editingWorkout ? 'atualizado' : 'criado'} com sucesso.`,
+                                                                  });
+                                                                    } catch (error) {
+                                                                        console.error('Failed to save workout:', error);
+                                                                            toast({
+                                                                                  title: "Erro",
+                                                                                        description: "Não foi possível salvar o treino.",
+                                                                                              variant: "destructive"
+                                                                                                  });
+                                                                                                    }
+                                                                                                    };
+
+                                                                                                    // Função auxiliar para gerar ID
+                                                                                                    const getWorkoutId = (day: string) => {
+                                                                                                      const dayMap: Record<string, string> = {
+                                                                                                          'Segunda-feira': 'monday',
+                                                                                                              'Terça-feira': 'tuesday',
+                                                                                                                  'Quarta-feira': 'wednesday',
+                                                                                                                      'Quinta-feira': 'thursday',
+                                                                                                                          'Sexta-feira': 'friday',
+                                                                                                                              'Sábado': 'saturday',
+                                                                                                                                  'Domingo': 'sunday'
+                                                                                                                                    };
+                                                                                                                                      
+                                                                                                                                        const baseId = dayMap[day] || day.toLowerCase();
+                                                                                                                                          return `custom_${baseId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                                                                                                                                          };
+  }
 
   const handleDeleteWorkout = async (workout: WorkoutDay) => {
     try {

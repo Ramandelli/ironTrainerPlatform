@@ -58,21 +58,46 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
   const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; type: 'main' | 'abdominal' } | null>(null);
   const [showAerobicForm, setShowAerobicForm] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim() || !formData.day) return;
 
-    const selectedDay = DAYS.find(d => d.value === formData.day);
-    
-    onSave({
-      ...(workout?.id && { id: workout.id }),
-      name: formData.name.trim(),
-      day: formData.day.toLowerCase(),
-      exercises: formData.exercises,
-      abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
-      aerobic: formData.aerobic
-    });
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!formData.name.trim() || !formData.day) return;
+
+  // Encontrar o dia selecionado com a label em português
+  const selectedDay = DAYS.find(d => d.value === formData.day);
+  const dayLabel = selectedDay ? selectedDay.label : formData.day;
+  
+  onSave({
+    ...(workout?.id && { id: workout.id }),
+    name: formData.name.trim(),
+    day: dayLabel, // Salvar a label em português
+    exercises: formData.exercises,
+    abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
+    aerobic: formData.aerobic
+  });
+};
+
+// Adicione esta função para gerar o ID correto
+const getWorkoutId = () => {
+  if (editingWorkout) return editingWorkout.id;
+  
+  // Converter o valor do dia para o ID padrão
+  const dayValue = formData.day;
+  const dayMap: Record<string, string> = {
+    'Segunda-feira': 'monday',
+    'Terça-feira': 'tuesday',
+    'Quarta-feira': 'wednesday',
+    'Quinta-feira': 'thursday',
+    'Sexta-feira': 'friday',
+    'Sábado': 'saturday',
+    'Domingo': 'sunday'
   };
+  
+  const baseId = dayMap[dayValue] || dayValue.toLowerCase();
+  return `custom_${baseId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+    
+  
 
   const addExercise = (exerciseData: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>, isAbdominal = false) => {
     const newExercise: Exercise = {
