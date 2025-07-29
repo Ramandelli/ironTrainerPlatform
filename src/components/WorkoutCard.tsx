@@ -10,13 +10,15 @@ interface WorkoutCardProps {
   onStartWorkout: () => void;
   isToday?: boolean;
   averageTime?: number;
+  isCompleted?: boolean;
 }
 
 export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   workoutDay,
   onStartWorkout,
   isToday = false,
-  averageTime
+  averageTime,
+  isCompleted = false
 }) => {
   const totalExercises = workoutDay.exercises.length + (workoutDay.abdominal?.length || 0);
   const hasAerobic = !!workoutDay.aerobic;
@@ -81,13 +83,23 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
           </div>
         </div>
 
-        <Button 
-          variant={isToday ? "workout" : "exercise"}
-          className="w-full"
-          onClick={onStartWorkout}
-        >
-          {isToday ? "Iniciar Treino de Hoje" : "Visualizar Treino"}
-        </Button>
+        {isToday && isCompleted ? (
+          <Button 
+            variant="success" 
+            className="w-full"
+            disabled
+          >
+            TREINO DO DIA FINALIZADO ✅
+          </Button>
+        ) : (
+          <Button 
+            variant={isToday ? "workout" : "exercise"}
+            className="w-full"
+            onClick={onStartWorkout}
+          >
+            {isToday ? "Iniciar Treino de Hoje" : "Visualizar Treino"}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

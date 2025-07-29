@@ -21,25 +21,22 @@ export const useWorkoutSession = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Load session on mount
   useEffect(() => {
     loadSession();
   }, []);
 
-  // Auto-save session whenever it changes
   useEffect(() => {
     if (currentSession) {
       saveSession();
     }
   }, [currentSession]);
 
-  // Auto-backup every 30 seconds during active workout
   useEffect(() => {
     if (!currentSession) return;
 
     const interval = setInterval(async () => {
       await storage.createBackup();
-    }, 30000); // 30 seconds
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [currentSession]);
@@ -47,8 +44,6 @@ export const useWorkoutSession = () => {
   const loadSession = async () => {
     try {
       setIsLoading(true);
-      
-      // Load current session
       const savedSession = await storage.loadCurrentSession();
       if (savedSession) {
         setCurrentSession(savedSession);
@@ -58,7 +53,6 @@ export const useWorkoutSession = () => {
         });
       }
 
-      // Load timer state
       const savedTimer = await storage.loadTimerState();
       if (savedTimer) {
         setTimerState(savedTimer);
@@ -79,12 +73,10 @@ export const useWorkoutSession = () => {
     if (!currentSession) return;
     
     try {
-      // Update total volume
       const updatedSession = {
         ...currentSession,
         totalVolume: calculateTotalVolume(currentSession.exercises)
       };
-      
       await storage.saveCurrentSession(updatedSession);
     } catch (error) {
       console.error('Failed to save session:', error);
@@ -93,7 +85,6 @@ export const useWorkoutSession = () => {
 
   const startWorkout = useCallback(async (workoutDayId: string) => {
     try {
-      // Check if workout was already completed today
       const history = await storage.loadWorkoutHistory();
       if (isWorkoutCompletedToday(history, workoutDayId)) {
         toast({
@@ -104,19 +95,16 @@ export const useWorkoutSession = () => {
         return;
       }
 
-      // Get updated workout plan from customWorkoutManager
       const allWorkouts = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
       const workoutDay = allWorkouts.find(day => day.id === workoutDayId);
       if (!workoutDay) throw new Error('Workout day not found');
 
       const session = createWorkoutSession(workoutDayId, workoutDay.exercises);
       
-      // If aerobic is "antes", add it to session
       if (workoutDay.aerobic?.timing === 'antes') {
         session.aerobic = { ...workoutDay.aerobic };
       }
       
-      // Add abdominal exercises if present
       if (workoutDay.abdominal) {
         session.abdominal = workoutDay.abdominal.map(exercise => ({
           ...exercise,
@@ -194,83 +182,83 @@ export const useWorkoutSession = () => {
     await storage.clearTimerState();
   }, []);
 
-  const completeAerobic = useCallback(async () => {
-    if (!currentSession) return;
+  const completeAerobic = useCallback(async (actualMinutes?: number) => {
+    if (!currentSession || !currentSession.aerobic) return;
 
     try {
-      const workoutDay = WORKOUT_PLAN.find(day => day.id === currentSession.workoutDayId);
-      if (workoutDay?.aerobic) {
-        setCurrentSession(prev => prev ? { 
-          ...prev, 
-          aerobic: { ...workoutDay.aerobic!, completed: true } 
-        } : null);
-      }
+      setCurrentSession(prev => {
+        if (!prev || !prev.aerobic) return prev;
+        
+        return {
+          ...prev,
+          aerobic: {
+            ...prev.aerobic,
+            completed: actualMinutes !== undefined,
+            actualDuration: actualMinutes
+          }
+        };
+      });
     } catch (error) {
       console.error('Failed to complete aerobic:', error);
     }
   }, [currentSession]);
 
   const finishWorkout = useCallback(async (notes?: string) => {
-  if (!currentSession) return;
+    if (!currentSession) return;
 
-  try {
-    // Obter data atual CORRETA (formato brasileiro)
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const date = `${year}-${month}-${day}`; // Formato ISO
+    try {
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const year = today.getFullYear();
+      const date = `${day}/${month}/${year}`;
 
+      const finishedSession: WorkoutSession = {
+        ...currentSession,
+        endTime: Date.now(),
+        date,
+        totalVolume: calculateTotalVolume(currentSession.exercises),
+        notes,
+        completed: true
+      };
 
-    const finishedSession: WorkoutSession = {
-      ...currentSession,
-      endTime: Date.now(),
-      date,
-      totalVolume: calculateTotalVolume(currentSession.exercises),
-      notes,
-      completed: true
-    };
-
-    await storage.cleanInvalidSessions();
-    await storage.saveToHistory(finishedSession);
+      await storage.cleanInvalidSessions();
+      await storage.saveToHistory(finishedSession);
       
-      // Update stats
       const history = await storage.loadWorkoutHistory();
       const { averageTime, weeklyVolume } = calculateWeeklyStats(history);
       const personalRecords = calculatePersonalRecords(history);
       
-       await storage.updateStats({
-      totalWorkouts: history.length,
-      averageTime,
-      weeklyVolume,
-      personalRecords
-    });
+      await storage.updateStats({
+        totalWorkouts: history.length,
+        averageTime,
+        weeklyVolume,
+        personalRecords
+      });
 
-      // Clear current session
       await storage.clearCurrentSession();
       await storage.clearTimerState();
       
       setCurrentSession(null);
-      setTimerState(null)
+      setTimerState(null);
 
       const workoutTime = calculateWorkoutTime(finishedSession.startTime, finishedSession.endTime);      
       
       toast({
-      title: "Treino finalizado! 🎉",
-      description: `Duração: ${workoutTime}min | Volume: ${finishedSession.totalVolume}kg`,
-    });
-    
-    return finishedSession;
-  } catch (error) {
-    console.error('Failed to finish workout:', error);
-    toast({
-      title: "Erro",
-      description: "Não foi possível finalizar o treino.",
-      variant: "destructive"
-    });
-  }
-}, [currentSession, toast]);
-
+        title: "Treino finalizado! 🎉",
+        description: `Duração: ${workoutTime}min | Volume: ${finishedSession.totalVolume}kg`,
+      });
+      
+      return finishedSession;
+    } catch (error) {
+      console.error('Failed to finish workout:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível finalizar o treino.",
+        variant: "destructive"
+      });
+    }
+  }, [currentSession, toast]);
 
   const cancelWorkout = useCallback(async () => {
     try {

@@ -25,14 +25,14 @@ export interface WorkoutDay {
   exercises: Exercise[];
   aerobic?: AerobicExercise;
   abdominal?: Exercise[];
-  // Internal properties for management
   _isDeleted?: boolean;
   _originalId?: string;
 }
 
 export interface AerobicExercise {
-  type: 'esteira' | 'bicicleta';
-  duration: number; // in minutes
+  type: 'esteira' | 'bicicleta' | 'transport' | 'rowing';
+  duration: number;
+  actualDuration?: number;
   intensity: 'leve' | 'moderada' | 'intensa';
   timing: 'antes' | 'depois';
   completed: boolean;
@@ -54,7 +54,7 @@ export interface WorkoutSession {
 
 export interface WorkoutStats {
   totalWorkouts: number;
-  averageTime: number; // in minutes
+  averageTime: number;
   weeklyVolume: number;
   personalRecords: Record<string, { weight: number; reps: number; date: string }>;
 }

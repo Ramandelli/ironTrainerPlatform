@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
-import { Play, Pause, Square, Clock } from 'lucide-react';
+import { Play, Pause, Square, Clock, Check, X } from 'lucide-react';
 
 interface AerobicTimerProps {
   duration: number; // in minutes
   type: string;
-  onComplete: () => void;
+  onComplete: (actualMinutes?: number) => void;
   onCancel: () => void;
 }
 
@@ -19,17 +19,17 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
 }) => {
   const [timeLeft, setTimeLeft] = useState(duration * 60); // convert to seconds
   const [isRunning, setIsRunning] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [completedTime, setCompletedTime] = useState<number | null>(null);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: number | null = null;
     
     if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
+      interval = window.setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
-            setIsCompleted(true);
             setIsRunning(false);
+            setCompletedTime(duration);
             return 0;
           }
           return prev - 1;
@@ -37,8 +37,12 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
       }, 1000);
     }
 
-    return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+    return () => {
+      if (interval !== null) {
+        clearInterval(interval);
+      }
+    };
+  }, [isRunning, timeLeft, duration]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -48,33 +52,49 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
 
   const handlePlay = () => setIsRunning(true);
   const handlePause = () => setIsRunning(false);
+  
   const handleStop = () => {
     setIsRunning(false);
-    setTimeLeft(duration * 60);
-    setIsCompleted(false);
+    const minutesDone = Math.ceil((duration * 60 - timeLeft) / 60);
+    setCompletedTime(minutesDone);
   };
 
-  const progress = ((duration * 60 - timeLeft) / (duration * 60)) * 100;
-
-  if (isCompleted) {
+  if (completedTime !== null) {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-sm animate-scale-in">
           <CardHeader className="text-center pb-3">
             <CardTitle className="text-xl text-green-500">
-              ✅ Aeróbico Concluído!
+              Cardio Concluído!
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <div className="text-lg font-semibold">
-              {type} - {duration} minutos
+              {type} - {completedTime} minutos
             </div>
             <div className="text-sm text-muted-foreground">
-              Parabéns! Você completou o exercício aeróbico.
+              {completedTime >= duration 
+                ? "Parabéns! Você completou o exercício."
+                : "Bom trabalho! Você fez " + completedTime + " minutos."}
             </div>
-            <Button onClick={onComplete} className="w-full">
-              Continuar
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => onComplete(completedTime)} 
+                variant="success"
+                className="flex-1"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Salvar
+              </Button>
+              <Button 
+                onClick={() => setCompletedTime(null)}
+                variant="outline"
+                className="flex-1"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -91,25 +111,25 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Exercise Info */}
           <div className="text-center">
             <div className="text-lg font-semibold text-foreground capitalize">
               {type}
             </div>
             <div className="text-sm text-muted-foreground">
-              {duration} minutos
+              {duration} minutos planejados
             </div>
           </div>
 
-          {/* Timer Display */}
           <div className="text-center">
             <div className="text-4xl font-bold text-foreground mb-2">
               {formatTime(timeLeft)}
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress 
+              value={((duration * 60 - timeLeft) / (duration * 60)) * 100} 
+              className="h-2" 
+            />
           </div>
 
-          {/* Controls */}
           <div className="flex justify-center gap-3">
             {!isRunning ? (
               <Button onClick={handlePlay} variant="default" size="lg">
@@ -129,13 +149,13 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
             </Button>
           </div>
 
-          {/* Cancel Button */}
           <Button 
             onClick={onCancel} 
-            variant="ghost" 
-            className="w-full text-muted-foreground"
+            variant="destructive" 
+            className="w-full"
           >
-            Cancelar Aeróbico
+            <X className="w-5 h-5 mr-2" />
+            Pular Cardio
           </Button>
         </CardContent>
       </Card>

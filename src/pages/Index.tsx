@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WorkoutDay } from '../types/workout';
+import { WorkoutDay,WorkoutSession } from '../types/workout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -18,6 +18,8 @@ import { restDayManager } from '../utils/restDays';
 import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
 import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
+
+
 
 const Index = () => {
   const {
@@ -41,12 +43,14 @@ const Index = () => {
   const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null);
   const [showAerobicTimer, setShowAerobicTimer] = useState(false);
   const [abdominalCompleted, setAbdominalCompleted] = useState(false);
+  const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
 
-  useEffect(() => {
-    loadStats();
-    loadWorkouts();
-    checkRestDay();
-  }, []);
+ useEffect(() => {
+  loadStats();
+  loadWorkouts();
+  checkRestDay();
+  loadHistory(); // Adicione esta linha
+}, []);
 
   // Recarregar treinos quando voltar da tela de gestão
   useEffect(() => {
@@ -55,6 +59,17 @@ const Index = () => {
     }
   }, [currentView]);
   
+  const [history, setHistory] = useState<WorkoutSession[]>([]);
+
+// Adicione esta função
+const loadHistory = async () => {
+  try {
+    const historyData = await storage.loadWorkoutHistory();
+    setWorkoutHistory(historyData);
+  } catch (error) {
+    console.error('Failed to load history:', error);
+  }
+};
   
 
   const findTodaysWorkout = () => {
@@ -74,6 +89,20 @@ const Index = () => {
     }
     return false;
   });
+};
+
+const isTodayWorkoutCompleted = (workoutDayId: string) => {
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const year = today.getFullYear();
+  const todayFormatted = `${day}/${month}/${year}`;
+  
+  return workoutHistory.some(session => 
+    session.workoutDayId === workoutDayId && 
+    session.completed && 
+    session.date === todayFormatted
+  );
 };
 
   const checkRestDay = async () => {
@@ -173,18 +202,17 @@ const Index = () => {
   // Forçar atualização imediata das estatísticas
   await loadStats();
   await loadWorkouts();
+  await loadHistory();
 };
 
 
-  const handleCompleteAerobic = () => {
-    completeAerobic();
-    setShowAerobicTimer(false);
-    handleFinishWorkout();
+  const handleCompleteAerobic = (actualMinutes?: number) => {
+  completeAerobic(actualMinutes);
+  setShowAerobicTimer(false);
   };
 
   const handleSkipAerobic = () => {
-    setShowAerobicTimer(false);
-    handleFinishWorkout();
+  setShowAerobicTimer(false);
   };
 
   const handleCompleteAbdominals = () => {
@@ -442,7 +470,7 @@ const Index = () => {
           duration={hasAerobic.duration}
           type={hasAerobic.type}
           onComplete={handleCompleteAerobic}
-          onCancel={handleSkipAerobic}
+          onCancel={handleSkipAerobic} 
         />
       );
     }
@@ -502,8 +530,8 @@ const Index = () => {
               <AerobicTimer 
                 duration={workoutDay.aerobic.duration}
                 type={workoutDay.aerobic.type}
-                onComplete={() => completeAerobic()}
-                onCancel={() => completeAerobic()}
+                onComplete={handleCompleteAerobic}
+                onCancel={handleSkipAerobic}
               />
             </div>
           )}
@@ -563,31 +591,34 @@ const Index = () => {
 
           {/* Aerobic After Phase */}
           {workoutPhase === 'aerobic-after' && workoutDay?.aerobic && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Finalize com Cardio</h2>
-                <p className="text-muted-foreground">
-                  {workoutDay.aerobic.type} - {workoutDay.aerobic.duration} minutos
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Button 
-                  variant="workout" 
-                  className="flex-1" 
-                  onClick={() => setShowAerobicTimer(true)}
-                >
-                  Iniciar Cardio 🏃
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1" 
-                  onClick={handleSkipAerobic}
-                >
-                  Pular Cardio
-                </Button>
-              </div>
-            </div>
-          )}
+  <div className="space-y-6">
+    <div className="text-center">
+      <h2 className="text-2xl font-bold mb-2">Finalize com Cardio</h2>
+      <p className="text-muted-foreground">
+        {workoutDay.aerobic.type} - {workoutDay.aerobic.duration} minutos
+      </p>
+    </div>
+    <div className="flex gap-3">
+      <Button 
+        variant="workout" 
+        className="flex-1" 
+        onClick={() => setShowAerobicTimer(true)}
+      >
+        Iniciar Cardio 🏃
+      </Button>
+      <Button 
+        variant="outline" 
+        className="flex-1" 
+        onClick={() => {
+          // Marca como completado com 0 minutos (pulado)
+          handleCompleteAerobic(0);
+        }}
+      >
+        Pular Cardio
+      </Button>
+    </div>
+  </div>
+)}
 
           {/* Workout Finished */}
           {workoutPhase === 'finished' && (
@@ -708,6 +739,7 @@ const Index = () => {
                 onStartWorkout={() => handleStartWorkout(todayWorkout.id)}
                 isToday={true}
                 averageTime={stats?.averageTime}
+                 isCompleted={isTodayWorkoutCompleted(todayWorkout.id)}
               />
             )}
           </div>
