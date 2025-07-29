@@ -58,24 +58,23 @@ const Index = () => {
   
 
   const findTodaysWorkout = () => {
-      const todayId = getTodayWorkoutId();
-        
-          // 1. Busca por ID exato (treinos padrão)
-            const exactMatch = workoutPlan.find(day => day.id === todayId);
-              if (exactMatch) return exactMatch;
-                
-                  // 2. Busca por treinos personalizados para o dia atual
-                    return workoutPlan.find(day => {
-                        // Extrair o base ID do custom ID
-                            const customIdParts = day.id.split('_');
-                                if (customIdParts.length >= 2) {
-                                      const baseId = customIdParts[1];
-                                            return baseId === todayId;
-                                                }
-                                                    return false;
-                                                      });
-                                                      };
-  }
+  const todayId = getTodayWorkoutId();
+  
+  // 1. Busca por ID exato (treinos padrão)
+  const exactMatch = workoutPlan.find(day => day.id === todayId);
+  if (exactMatch) return exactMatch;
+  
+  // 2. Busca por treinos personalizados para o dia atual
+  return workoutPlan.find(day => {
+    // Extrair o base ID do custom ID
+    const customIdParts = day.id.split('_');
+    if (customIdParts.length >= 2) {
+      const baseId = customIdParts[1];
+      return baseId === todayId;
+    }
+    return false;
+  });
+};
 
   const checkRestDay = async () => {
     const todayWorkoutId = getTodayWorkoutId();
