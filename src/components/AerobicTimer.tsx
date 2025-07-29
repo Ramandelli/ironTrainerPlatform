@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
-import { Play, Pause, Square, Clock, Check, X } from 'lucide-react';
+import { Play, Pause, Square, Clock } from 'lucide-react';
 
 interface AerobicTimerProps {
   duration: number; // in minutes
   type: string;
-  onComplete: (actualMinutes?: number) => void;
+  onComplete: (actualMinutes: number) => void;
   onCancel: () => void;
 }
 
@@ -29,7 +29,8 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
         setTimeLeft(prev => {
           if (prev <= 1) {
             setIsRunning(false);
-            setCompletedTime(duration);
+            const minutesDone = Math.ceil((duration * 60) / 60);
+            setCompletedTime(minutesDone);
             return 0;
           }
           return prev - 1;
@@ -60,6 +61,11 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
   };
 
   if (completedTime !== null) {
+    // Completa automaticamente quando o tempo é definido
+    useEffect(() => {
+      onComplete(completedTime);
+    }, [completedTime, onComplete]);
+    
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-sm animate-scale-in">
@@ -76,24 +82,6 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
               {completedTime >= duration 
                 ? "Parabéns! Você completou o exercício."
                 : "Bom trabalho! Você fez " + completedTime + " minutos."}
-            </div>
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => onComplete(completedTime)} 
-                variant="success"
-                className="flex-1"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Salvar
-              </Button>
-              <Button 
-                onClick={() => setCompletedTime(null)}
-                variant="outline"
-                className="flex-1"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Voltar
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -154,8 +142,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
             variant="destructive" 
             className="w-full"
           >
-            <X className="w-5 h-5 mr-2" />
-            Pular Cardio
+            Cancelar
           </Button>
         </CardContent>
       </Card>

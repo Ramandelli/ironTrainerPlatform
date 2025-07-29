@@ -182,26 +182,27 @@ export const useWorkoutSession = () => {
     await storage.clearTimerState();
   }, []);
 
-  const completeAerobic = useCallback(async (actualMinutes?: number) => {
-    if (!currentSession || !currentSession.aerobic) return;
+  // No useWorkoutSession.ts
+const completeAerobic = useCallback(async (actualMinutes: number) => {
+  if (!currentSession || !currentSession.aerobic) return;
 
-    try {
-      setCurrentSession(prev => {
-        if (!prev || !prev.aerobic) return prev;
-        
-        return {
-          ...prev,
-          aerobic: {
-            ...prev.aerobic,
-            completed: actualMinutes !== undefined,
-            actualDuration: actualMinutes
-          }
-        };
-      });
-    } catch (error) {
-      console.error('Failed to complete aerobic:', error);
-    }
-  }, [currentSession]);
+  try {
+    setCurrentSession(prev => {
+      if (!prev || !prev.aerobic) return prev;
+      
+      return {
+        ...prev,
+        aerobic: {
+          ...prev.aerobic,
+          completed: actualMinutes > 0,
+          actualDuration: actualMinutes
+        }
+      };
+    });
+  } catch (error) {
+    console.error('Failed to complete aerobic:', error);
+  }
+}, [currentSession]);
 
   const finishWorkout = useCallback(async (notes?: string) => {
     if (!currentSession) return;
