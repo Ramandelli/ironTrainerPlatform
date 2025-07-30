@@ -58,44 +58,37 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
   const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; type: 'main' | 'abdominal' } | null>(null);
   const [showAerobicForm, setShowAerobicForm] = useState(false);
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.day) return;
 
-// Remova a função getWorkoutId existente e substitua pelo seguinte:
-const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!formData.name.trim() || !formData.day) return;
+    const dayMap: Record<string, string> = {
+      'monday': 'Segunda-feira',
+      'tuesday': 'Terça-feira',
+      'wednesday': 'Quarta-feira',
+      'thursday': 'Quinta-feira',
+      'friday': 'Sexta-feira',
+      'saturday': 'Sábado',
+      'sunday': 'Domingo'
+    };
 
-  // Encontrar o dia selecionado com a label em português
-  const selectedDay = DAYS.find(d => d.value === formData.day);
-  const dayLabel = selectedDay ? selectedDay.label : formData.day;
-  
-  // Gerar ID baseado no dia
-   const dayMap: Record<string, string> = {
-    'monday': 'Segunda-feira',
-    'tuesday': 'Terça-feira',
-    'wednesday': 'Quarta-feira',
-    'thursday': 'Quinta-feira',
-    'friday': 'Sexta-feira',
-    'saturday': 'Sábado',
-    'sunday': 'Domingo'
+    const dayValue = formData.day.toLowerCase();
+    const dayLabel = dayMap[dayValue] || formData.day;
+    
+    // Gerar ID baseado no dia
+    const baseId = dayValue.replace(/\s+/g, '_').toLowerCase();
+    const newId = workout?.id || `custom_${baseId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    onSave({
+      ...(workout?.id && { id: workout.id }),
+      id: newId,
+      name: formData.name.trim(),
+      day: dayLabel,
+      exercises: formData.exercises,
+      abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
+      aerobic: formData.aerobic
+    });
   };
-
-  const dayValue = formData.day.toLowerCase();
-  const dayLabel = dayMap[dayValue] || formData.day;
-  
-  const baseId = dayMap[dayLabel] || formData.day.toLowerCase();
-  const newId = workout?.id || `custom_${baseId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
-  onSave({
-    ...(workout?.id && { id: workout.id }),
-    id: newId,
-    name: formData.name.trim(),
-    day: dayLabel,
-    exercises: formData.exercises,
-    abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
-    aerobic: formData.aerobic
-  });
-};    
-  
 
   const addExercise = (exerciseData: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>, isAbdominal = false) => {
     const newExercise: Exercise = {
