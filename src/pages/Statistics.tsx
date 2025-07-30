@@ -459,11 +459,11 @@ const workoutDistribution: Record<string, number> = {};
     );
   })
 }
-  ) : (
+  
     <p className="text-center text-muted-foreground py-4">
       Complete alguns treinos para ver seus recordes!
     </p>
-  )
+  
 </CardContent>
         </Card>
 
