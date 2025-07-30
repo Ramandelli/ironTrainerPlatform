@@ -436,29 +436,29 @@ const workoutDistribution: Record<string, number> = {};
             </CardTitle>
           </CardHeader>
 <CardContent className="space-y-3">
-  {Object.entries(personalRecords).length > 0 ? (
-    Object.entries(personalRecords)
-      .sort((a, b) => b[1].weight - a[1].weight)
-      .slice(0, 5)
-      .map(([exercise, record]) => {
-        // Formatar a data para DD/MM/AAAA
-        const [year, month, day] = record.date.split('-');
-        const formattedDate = `${day}/${month}/${year}`;
-        
-        return (
-          <div key={exercise} className="flex justify-between items-center">
-            <span className="text-sm font-medium text-foreground">{exercise}</span>
-            <div className="text-right">
-              <div className="text-sm font-bold text-iron-orange">
-                {record.weight}kg × {record.reps}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {formattedDate}
-              </div>
-            </div>
+  {Object.entries(personalRecords)
+  .sort((a, b) => b[1].weight - a[1].weight)
+  .slice(0, 5)
+  .map(([exercise, record]) => {
+    // Corrigir a formatação da data
+    const [day, month, year] = record.date.split('/');
+    const formattedDate = `${day}/${month}/${year}`;
+    
+    return (
+      <div key={exercise} className="flex justify-between items-center">
+        <span className="text-sm font-medium text-foreground">{exercise}</span>
+        <div className="text-right">
+          <div className="text-sm font-bold text-iron-orange">
+            {record.weight}kg × {record.reps}
           </div>
-        );
-      })
+          <div className="text-xs text-muted-foreground">
+            {formattedDate}
+          </div>
+        </div>
+      </div>
+    );
+  })
+}
   ) : (
     <p className="text-center text-muted-foreground py-4">
       Complete alguns treinos para ver seus recordes!
