@@ -43,9 +43,6 @@ const Index = () => {
   const [showAerobicTimer, setShowAerobicTimer] = useState(false);
   const [abdominalCompleted, setAbdominalCompleted] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
-  // Adicione esses novos estados
- const [aerobicPhase, setAerobicPhase] = useState<'not-started' | 'in-progress' | 'completed'>('not-started');
- const [setAerobicTiming] = useState<'before' | 'after' | null>(null);
  const [aerobicContext, setAerobicContext] = useState<'before' | 'after' | null>(null);
 
  useEffect(() => {
@@ -472,27 +469,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
     const shouldShowAerobicOption = allMainExercisesCompleted && (!hasAbdominals || abdominalCompleted) && hasAerobic && hasAerobic.timing === 'depois';
     const workoutPhase = getWorkoutPhase();
 
-    // Show Aerobic Timer
-   {showAerobicTimer && workoutDay?.aerobic && (
-  <AerobicTimer
-    duration={workoutDay.aerobic.duration}
-    type={workoutDay.aerobic.type}
-    onComplete={(actualMinutes) => {
-      completeAerobic(actualMinutes);
-      setShowAerobicTimer(false);
-      
-      if (aerobicContext === 'before') {
-        // Não faz nada, o fluxo continua automaticamente
-      } else if (aerobicContext === 'after') {
-        handleFinishWorkout();
-      }
-    }}
-    onCancel={() => {
-      setShowAerobicTimer(false);
-    }}
-  />
-)}
-
     return (
       <div className="min-h-screen bg-background">
         {/* Timer Overlay */}
@@ -534,71 +510,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
         {/* Content based on workout phase */}
         <div className="max-w-md mx-auto p-4 space-y-4 pb-24">
           {/* Aerobic Before Phase */}
-          
-{workoutPhase === 'aerobic-before' && workoutDay?.aerobic && (
-  <div className="space-y-6">
-    <div className="text-center">
-      <h2 className="text-2xl font-bold mb-2">Cardio - {workoutDay.aerobic.type}</h2>
-      <p className="text-muted-foreground">
-        {workoutDay.aerobic.duration} minutos • {workoutDay.aerobic.intensity}
-      </p>
-    </div>
-    
-    <div className="flex gap-3">
-      <Button 
-        variant="workout" 
-        className="flex-1" 
-        onClick={() => {
-          setAerobicContext('before');
-          setShowAerobicTimer(true);
-        }}
-      >
-        Iniciar Cardio
-      </Button>
-      <Button 
-        variant="outline" 
-        className="flex-1" 
-        onClick={() => {
-          completeAerobic(0);
-          // Avança diretamente para os exercícios
-          setAerobicContext(null);
-        }}
-      >
-        Pular Cardio
-      </Button>
-    </div>
-  </div>
-)}
-    
-    {aerobicPhase === 'in-progress' && (
-      <AerobicTimer 
-        duration={workoutDay.aerobic.duration}
-        type={workoutDay.aerobic.type}
-        onComplete={(actualMinutes) => {
-          completeAerobic(actualMinutes);
-          setAerobicPhase('completed');
-        }}
-        onCancel={() => {
-          // Cancelar durante o timer
-          setAerobicPhase('not-started');
-        }}
-      />
-    )}
-    
-    {aerobicPhase === 'completed' && (
-      <div className="text-center p-4 bg-green-100 rounded-lg">
-        <p className="text-green-700 font-medium">Cardio concluído! ✅</p>
-        <Button 
-          className="mt-2 w-full" 
-          onClick={() => {
-            // Continuar para os exercícios
-            setAerobicPhase('not-started');
-          }}
-        >
-          Continuar para os exercícios
-        </Button>
-      </div>
-    )}
   </div>
 )}
 
@@ -655,8 +566,41 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
             </div>
           )}
 
-          {/* Aerobic After Phase */}
-          
+{workoutPhase === 'aerobic-before' && workoutDay?.aerobic && (
+  <div className="space-y-6">
+    <div className="text-center">
+      <h2 className="text-2xl font-bold mb-2">Cardio - {workoutDay.aerobic.type}</h2>
+      <p className="text-muted-foreground">
+        {workoutDay.aerobic.duration} minutos • {workoutDay.aerobic.intensity}
+      </p>
+    </div>
+    
+    <div className="flex gap-3">
+      <Button 
+        variant="workout" 
+        className="flex-1" 
+        onClick={() => {
+          setAerobicContext('before');
+          setShowAerobicTimer(true);
+        }}
+      >
+        Iniciar Cardio
+      </Button>
+      <Button 
+        variant="outline" 
+        className="flex-1" 
+        onClick={() => {
+          completeAerobic(0);
+          setAerobicContext(null);
+        }}
+      >
+        Pular Cardio
+      </Button>
+    </div>
+  </div>
+)}
+
+
 {workoutPhase === 'aerobic-after' && workoutDay?.aerobic && (
   <div className="space-y-6">
     <div className="text-center">
@@ -690,6 +634,26 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
     </div>
   </div>
 )}
+
+
+{showAerobicTimer && workoutDay?.aerobic && (
+  <AerobicTimer
+    duration={workoutDay.aerobic.duration}
+    type={workoutDay.aerobic.type}
+    onComplete={(actualMinutes) => {
+      completeAerobic(actualMinutes);
+      setShowAerobicTimer(false);
+      
+      if (aerobicContext === 'after') {
+        handleFinishWorkout();
+      }
+    }}
+    onCancel={() => {
+      setShowAerobicTimer(false);
+    }}
+  />
+)}
+          
     
     {aerobicPhase === 'in-progress' && (
       <AerobicTimer 
