@@ -69,15 +69,18 @@ const handleSubmit = (e: React.FormEvent) => {
   const dayLabel = selectedDay ? selectedDay.label : formData.day;
   
   // Gerar ID baseado no dia
-  const dayMap: Record<string, string> = {
-    'Segunda-feira': 'monday',
-    'Terça-feira': 'tuesday',
-    'Quarta-feira': 'wednesday',
-    'Quinta-feira': 'thursday',
-    'Sexta-feira': 'friday',
-    'Sábado': 'saturday',
-    'Domingo': 'sunday'
+   const dayMap: Record<string, string> = {
+    'monday': 'Segunda-feira',
+    'tuesday': 'Terça-feira',
+    'wednesday': 'Quarta-feira',
+    'thursday': 'Quinta-feira',
+    'friday': 'Sexta-feira',
+    'saturday': 'Sábado',
+    'sunday': 'Domingo'
   };
+
+  const dayValue = formData.day.toLowerCase();
+  const dayLabel = dayMap[dayValue] || formData.day;
   
   const baseId = dayMap[dayLabel] || formData.day.toLowerCase();
   const newId = workout?.id || `custom_${baseId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
