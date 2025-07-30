@@ -101,8 +101,13 @@ export const useWorkoutSession = () => {
 
       const session = createWorkoutSession(workoutDayId, workoutDay.exercises);
       
-      if (workoutDay.aerobic?.timing === 'antes') {
-        session.aerobic = { ...workoutDay.aerobic };
+      // Inicializa o cardio apenas com dados básicos
+      if (workoutDay.aerobic) {
+        session.aerobic = {
+          ...workoutDay.aerobic,
+          completed: false,
+          actualDuration: 0
+        };
       }
       
       if (workoutDay.abdominal) {
@@ -182,27 +187,47 @@ export const useWorkoutSession = () => {
     await storage.clearTimerState();
   }, []);
 
-  // No useWorkoutSession.ts
-const completeAerobic = useCallback(async (actualMinutes: number) => {
-  if (!currentSession || !currentSession.aerobic) return;
+  const completeAerobic = useCallback(async (actualMinutes: number) => {
+    if (!currentSession || !currentSession.aerobic) return;
 
-  try {
-    setCurrentSession(prev => {
-      if (!prev || !prev.aerobic) return prev;
-      
-      return {
-        ...prev,
-        aerobic: {
-          ...prev.aerobic,
-          completed: actualMinutes > 0,
-          actualDuration: actualMinutes
-        }
-      };
-    });
-  } catch (error) {
-    console.error('Failed to complete aerobic:', error);
-  }
-}, [currentSession]);
+    try {
+      setCurrentSession(prev => {
+        if (!prev || !prev.aerobic) return prev;
+        
+        return {
+          ...prev,
+          aerobic: {
+            ...prev.aerobic,
+            completed: actualMinutes > 0,
+            actualDuration: actualMinutes
+          }
+        };
+      });
+    } catch (error) {
+      console.error('Failed to complete aerobic:', error);
+    }
+  }, [currentSession]);
+
+  const skipAerobic = useCallback(async () => {
+    if (!currentSession || !currentSession.aerobic) return;
+
+    try {
+      setCurrentSession(prev => {
+        if (!prev || !prev.aerobic) return prev;
+        
+        return {
+          ...prev,
+          aerobic: {
+            ...prev.aerobic,
+            completed: false,
+            actualDuration: 0
+          }
+        };
+      });
+    } catch (error) {
+      console.error('Failed to skip aerobic:', error);
+    }
+  }, [currentSession]);
 
   const finishWorkout = useCallback(async (notes?: string) => {
     if (!currentSession) return;
@@ -288,6 +313,7 @@ const completeAerobic = useCallback(async (actualMinutes: number) => {
     stopTimer,
     finishWorkout,
     cancelWorkout,
-    completeAerobic
+    completeAerobic,
+    skipAerobic // Nova função para pular o cardio
   };
 };

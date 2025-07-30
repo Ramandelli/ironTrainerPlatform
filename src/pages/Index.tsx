@@ -30,8 +30,9 @@ const Index = () => {
     stopTimer,
     finishWorkout,
     cancelWorkout,
-    completeAerobic
-  } = useWorkoutSession();
+    completeAerobic,
+    skipAerobic // ADICIONADO: Nova função para pular cardio
+  } = useWorkoutSession(); // ATUALIZADO: Adicionado skipAerobic
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
@@ -198,10 +199,7 @@ const Index = () => {
     setShowAerobicTimer(false);
   };
 
-  const handleSkipAerobic = () => {
-    setShowAerobicTimer(false);
-  };
-
+  // ATUALIZADO: Removida a função handleSkipAerobic antiga
   const handleCompleteAbdominals = () => {
     setAbdominalCompleted(true);
   };
@@ -494,11 +492,13 @@ const Index = () => {
                 >
                   Iniciar Cardio
                 </Button>
+                
+                {/* ATUALIZADO: Usando skipAerobic em vez de completeAerobic */}
                 <Button 
                   variant="outline" 
                   className="flex-1" 
                   onClick={() => {
-                    completeAerobic(0);
+                    skipAerobic(); // ALTERADO: Usando a nova função
                     setAerobicContext(null);
                   }}
                 >
@@ -579,11 +579,13 @@ const Index = () => {
                 >
                   Iniciar Cardio 🏃
                 </Button>
+                
+                {/* ATUALIZADO: Usando skipAerobic em vez de completeAerobic */}
                 <Button 
                   variant="outline" 
                   className="flex-1" 
                   onClick={() => {
-                    completeAerobic(0);
+                    skipAerobic(); // ALTERADO: Usando a nova função
                     handleFinishWorkout();
                   }}
                 >
@@ -598,7 +600,7 @@ const Index = () => {
               duration={workoutDay.aerobic.duration}
               type={workoutDay.aerobic.type}
               onComplete={(actualMinutes) => {
-                completeAerobic(actualMinutes);
+                handleCompleteAerobic(actualMinutes);
                 setShowAerobicTimer(false);
                 
                 if (aerobicContext === 'after') {
