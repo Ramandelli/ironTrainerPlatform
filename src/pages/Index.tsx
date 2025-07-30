@@ -236,31 +236,45 @@ const Index = () => {
   };
 
   const getWorkoutPhase = () => {
-    if (!currentSession) return 'none';
-    
-    const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
-    if (!workoutDay) return 'none';
+  if (!currentSession) return 'none';
+  
+  const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
+  if (!workoutDay) return 'none';
 
-    if (workoutDay.aerobic?.timing === 'antes' && !currentSession.aerobic?.completed) {
-      return 'aerobic-before';
-    }
+  // Verificar se o cardio inicial foi pulado ou não está mais pendente
+  const isAerobicBeforePending = 
+    workoutDay.aerobic?.timing === 'antes' && 
+    currentSession.aerobic && 
+    !currentSession.aerobic.completed &&
+    !currentSession.aerobic.skipped; // Considerar o novo campo "skipped"
 
-    const allExercisesCompleted = currentSession.exercises.every(ex => ex.completed);
-    
-    if (!allExercisesCompleted) {
-      return 'exercises';
-    }
+  if (isAerobicBeforePending) {
+    return 'aerobic-before';
+  }
 
-    if (workoutDay.abdominal && !abdominalCompleted) {
-      return 'abdominal';
-    }
+  const allExercisesCompleted = currentSession.exercises.every(ex => ex.completed);
+  
+  if (!allExercisesCompleted) {
+    return 'exercises';
+  }
 
-    if (workoutDay.aerobic?.timing === 'depois' && !currentSession.aerobic?.completed) {
-      return 'aerobic-after';
-    }
+  if (workoutDay.abdominal && !abdominalCompleted) {
+    return 'abdominal';
+  }
 
-    return 'finished';
-  };
+  // Verificar se o cardio final foi pulado ou não está mais pendente
+  const isAerobicAfterPending = 
+    workoutDay.aerobic?.timing === 'depois' && 
+    currentSession.aerobic && 
+    !currentSession.aerobic.completed &&
+    !currentSession.aerobic.skipped; // Considerar o novo campo "skipped"
+
+  if (isAerobicAfterPending) {
+    return 'aerobic-after';
+  }
+
+  return 'finished';
+};
 
   if (isLoading) {
     return (
@@ -482,28 +496,31 @@ const Index = () => {
               </div>
               
               <div className="flex gap-3">
-                <Button 
-                  variant="workout" 
-                  className="flex-1" 
-                  onClick={() => {
-                    setAerobicContext('before');
-                    setShowAerobicTimer(true);
-                  }}
-                >
-                  Iniciar Cardio
-                </Button>
+  <Button 
+    variant="workout" 
+    className="flex-1" 
+    onClick={() => {
+      setAerobicContext('before');
+      setShowAerobicTimer(true);
+    }}
+  >
+    Iniciar Cardio
+  </Button>
                 
                 {/* ATUALIZADO: Usando skipAerobic em vez de completeAerobic */}
                 <Button 
-                  variant="outline" 
-                  className="flex-1" 
-                  onClick={() => {
-                    skipAerobic(); // ALTERADO: Usando a nova função
-                    setAerobicContext(null);
-                  }}
-                >
-                  Pular Cardio
-                </Button>
+    variant="outline" 
+    className="flex-1" 
+    onClick={async () => {
+      await skipAerobic(); // Usar await para garantir execução
+      setAerobicContext(null);
+      
+      // Forçar recálculo imediato da fase do treino
+      setCurrentSession(prev => ({ ...prev! }));
+    }}
+  >
+    Pular Cardio
+  </Button>
               </div>
             </div>
           )}

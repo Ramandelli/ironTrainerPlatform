@@ -27,8 +27,8 @@ export const calculateTotalVolume = (exercises: Exercise[]): number => {
 };
 
 export const calculateWorkoutTime = (startTime: number, endTime?: number): number => {
-  const end = endTime || Date.now();
-  return Math.round((end - startTime) / 1000 / 60); // minutes
+  if (!endTime) return 0;
+  return Math.round((endTime - startTime) / 60000); // Converter para minutos
 };
 
 export const getTodayWorkoutId = (): string => {
@@ -113,8 +113,14 @@ export const calculatePersonalRecords = (history: WorkoutSession[]): Record<stri
 
 export const calculateWeeklyStats = (history: WorkoutSession[]): { averageTime: number; weeklyVolume: number } => {
   const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-  const thisWeek = history.filter(session => new Date(session.date).getTime() > oneWeekAgo);
   
+  // Filtrar sessões da última semana
+  const thisWeek = history.filter(session => {
+    const [day, month, year] = session.date.split('/');
+    const sessionDate = new Date(`${year}-${month}-${day}`).getTime();
+    return sessionDate > oneWeekAgo;
+  });
+
   if (thisWeek.length === 0) {
     return { averageTime: 0, weeklyVolume: 0 };
   }
@@ -133,7 +139,10 @@ export const calculateWeeklyStats = (history: WorkoutSession[]): { averageTime: 
 
 export const isWorkoutCompletedToday = (history: WorkoutSession[], workoutDayId: string): boolean => {
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const year = today.getFullYear();
+  const todayStr = `${day}/${month}/${year}`;
   
   return history.some(session => 
     session.date === todayStr && 
