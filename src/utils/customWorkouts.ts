@@ -15,6 +15,7 @@ class CustomWorkoutManager {
     }
   }
 
+  
   // Save custom workouts to storage
   async saveCustomWorkouts(workouts: WorkoutDay[]): Promise<void> {
     try {
@@ -221,6 +222,7 @@ class CustomWorkoutManager {
       throw error;
     }
   }
+  
 
   // Import workouts from JSON
   async importWorkouts(jsonData: string): Promise<void> {
@@ -264,3 +266,11 @@ class CustomWorkoutManager {
 }
 
 export const customWorkoutManager = new CustomWorkoutManager();
+
+getWorkoutByDay: (dayName: string, workouts: WorkoutDay[]) => {
+    return workouts.find(workout => 
+      workout.day.toLowerCase() === dayName.toLowerCase() && 
+      customWorkoutManager.isCustomWorkout(workout.id)
+    );
+  }
+

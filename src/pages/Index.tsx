@@ -77,21 +77,31 @@ const loadHistory = async () => {
 
   const findTodaysWorkout = () => {
   const todayId = getTodayWorkoutId();
+  const todayLabel = getTodayLabel();
   
   // 1. Busca por ID exato (treinos padrão)
   const exactMatch = workoutPlan.find(day => day.id === todayId);
   if (exactMatch) return exactMatch;
   
   // 2. Busca por treinos personalizados para o dia atual
-  return workoutPlan.find(day => {
-    // Extrair o base ID do custom ID
-    const customIdParts = day.id.split('_');
-    if (customIdParts.length >= 2) {
-      const baseId = customIdParts[1];
-      return baseId === todayId;
-    }
-    return false;
-  });
+  return workoutPlan.find(day => 
+    day.day.toLowerCase() === todayLabel.toLowerCase() && 
+    customWorkoutManager.isCustomWorkout(day.id)
+  );
+};
+
+const getTodayLabel = () => {
+  const todayId = getTodayWorkoutId();
+  const dayMap: Record<string, string> = {
+    'monday': 'Segunda-feira',
+    'tuesday': 'Terça-feira',
+    'wednesday': 'Quarta-feira',
+    'thursday': 'Quinta-feira',
+    'friday': 'Sexta-feira',
+    'saturday': 'Sábado',
+    'sunday': 'Domingo'
+  };
+  return dayMap[todayId] || todayId;
 };
 
 const isTodayWorkoutCompleted = (workoutDayId: string) => {
@@ -154,22 +164,21 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
   const todayWorkoutId = getTodayWorkoutId();
   const todayWorkout = findTodaysWorkout();
 
-  const handleStartWorkout = (workoutDayId: string) => {
-   // Verifica se é um treino de hoje por:
-   // 1. O ID é igual ao todayWorkoutId (treino padrão)
-   // 2. O ID base do treino personalizado é igual ao todayWorkoutId
-   const baseId = customWorkoutManager.getBaseWorkoutId(workoutDayId);
-   const isToday = workoutDayId === todayWorkoutId || baseId === todayWorkoutId;
+ const handleStartWorkout = (workoutDayId: string) => {
+  const workoutDay = workoutPlan.find(day => day.id === workoutDayId);
+  if (!workoutDay) return;
   
-   if (isToday) {
-     startWorkout(workoutDayId);
-     setCurrentView('workout');
-   } else {
-      // Modo visualização para treinos de outros dias
-      setViewingWorkoutId(workoutDayId);
-      setCurrentView('workout-view');
-   }
- };
+  const todayLabel = getTodayLabel();
+  const isToday = workoutDay.day.toLowerCase() === todayLabel.toLowerCase();
+  
+  if (isToday) {
+    startWorkout(workoutDayId);
+    setCurrentView('workout');
+  } else {
+    setViewingWorkoutId(workoutDayId);
+    setCurrentView('workout-view');
+  }
+};
 
   const handleViewWorkout = (workoutDayId: string) => {
     // Sempre vai para modo visualização, independente se é hoje ou não
