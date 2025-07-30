@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { WorkoutDay,WorkoutSession } from '../types/workout';
+import { WorkoutDay, WorkoutSession } from '../types/workout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
 import { Skeleton } from '../components/ui/skeleton';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { ExerciseCard } from '../components/ExerciseCard';
@@ -18,8 +17,6 @@ import { restDayManager } from '../utils/restDays';
 import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
 import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
-
-
 
 const Index = () => {
   const {
@@ -44,76 +41,74 @@ const Index = () => {
   const [showAerobicTimer, setShowAerobicTimer] = useState(false);
   const [abdominalCompleted, setAbdominalCompleted] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
-  // Adicione esses novos estados
- const [aerobicPhase, setAerobicPhase] = useState<'not-started' | 'in-progress' | 'completed'>('not-started');
- const [aerobicTiming, setAerobicTiming] = useState<'before' | 'after' | null>(null);
+  const [aerobicContext, setAerobicContext] = useState<'before' | 'after' | null>(null);
 
- useEffect(() => {
-  loadStats();
-  loadWorkouts();
-  checkRestDay();
-  loadHistory(); // Adicione esta linha
-}, []);
+  useEffect(() => {
+    loadStats();
+    loadWorkouts();
+    checkRestDay();
+    loadHistory();
+  }, []);
 
-  // Recarregar treinos quando voltar da tela de gestão
   useEffect(() => {
     if (currentView === 'home') {
       loadWorkouts();
     }
   }, [currentView]);
-  
-  const [history, setHistory] = useState<WorkoutSession[]>([]);
 
-// Adicione esta função
-const loadHistory = async () => {
-  try {
-    const historyData = await storage.loadWorkoutHistory();
-    setWorkoutHistory(historyData);
-  } catch (error) {
-    console.error('Failed to load history:', error);
-  }
-};
-  
+  const loadHistory = async () => {
+    try {
+      const historyData = await storage.loadWorkoutHistory();
+      setWorkoutHistory(historyData);
+    } catch (error) {
+      console.error('Failed to load history:', error);
+    }
+  };
 
   const findTodaysWorkout = () => {
-  const todayId = getTodayWorkoutId();
-  
-  // 1. Busca por ID exato (treinos padrão)
-  const exactMatch = workoutPlan.find(day => day.id === todayId);
-  if (exactMatch) return exactMatch;
-  
-  // 2. Busca por treinos personalizados para o dia atual
-  return workoutPlan.find(day => {
-    // Extrair o base ID do custom ID
-    const customIdParts = day.id.split('_');
-    if (customIdParts.length >= 2) {
-      const baseId = customIdParts[1];
-      return baseId === todayId;
-    }
-    return false;
-  });
-};
+    const todayId = getTodayWorkoutId();
+    const todayLabel = getTodayLabel();
+    
+    const exactMatch = workoutPlan.find(day => day.id === todayId);
+    if (exactMatch) return exactMatch;
+    
+    return workoutPlan.find(day => 
+      day.day.toLowerCase() === todayLabel.toLowerCase() && 
+      customWorkoutManager.isCustomWorkout(day.id)
+    );
+  };
 
-const isTodayWorkoutCompleted = (workoutDayId: string) => {
-  const today = new Date();
-  const day = String(today.getDate()).padStart(2, '0');
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const year = today.getFullYear();
-  const todayFormatted = `${day}/${month}/${year}`;
-  
-  return workoutHistory.some(session => 
-    session.workoutDayId === workoutDayId && 
-    session.completed && 
-    session.date === todayFormatted
-  );
-};
+  const getTodayLabel = () => {
+    const todayId = getTodayWorkoutId();
+    const dayMap: Record<string, string> = {
+      'monday': 'Segunda-feira',
+      'tuesday': 'Terça-feira',
+      'wednesday': 'Quarta-feira',
+      'thursday': 'Quinta-feira',
+      'friday': 'Sexta-feira',
+      'saturday': 'Sábado',
+      'sunday': 'Domingo'
+    };
+    return dayMap[todayId] || todayId;
+  };
+
+  const isTodayWorkoutCompleted = (workoutDayId: string) => {
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const todayFormatted = `${day}/${month}/${year}`;
+    
+    return workoutHistory.some(session => 
+      session.workoutDayId === workoutDayId && 
+      session.completed && 
+      session.date === todayFormatted
+    );
+  };
 
   const checkRestDay = async () => {
     const todayWorkoutId = getTodayWorkoutId();
     
-    // Só é dia de descanso se:
-    // 1. For fim de semana (sábado/domingo) OU
-    // 2. For marcado manualmente como descanso E não for fim de semana
     if (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday') {
       setIsRestDay(true);
     } else {
@@ -132,7 +127,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
   };
 
   useEffect(() => {
-    // Switch to workout view if there's an active session
     if (currentSession && currentView === 'home') {
       setCurrentView('workout');
     }
@@ -140,9 +134,7 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
 
   const loadStats = async () => {
     try {
-      // Limpar sessões inválidas antes de carregar
       await storage.cleanInvalidSessions();
-    
       const loadedStats = await storage.loadStats();
       setStats(loadedStats);
     } catch (error) {
@@ -150,29 +142,26 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
     }
   };
 
-
   const todayWorkoutId = getTodayWorkoutId();
   const todayWorkout = findTodaysWorkout();
 
   const handleStartWorkout = (workoutDayId: string) => {
-   // Verifica se é um treino de hoje por:
-   // 1. O ID é igual ao todayWorkoutId (treino padrão)
-   // 2. O ID base do treino personalizado é igual ao todayWorkoutId
-   const baseId = customWorkoutManager.getBaseWorkoutId(workoutDayId);
-   const isToday = workoutDayId === todayWorkoutId || baseId === todayWorkoutId;
-  
-   if (isToday) {
-     startWorkout(workoutDayId);
-     setCurrentView('workout');
-   } else {
-      // Modo visualização para treinos de outros dias
+    const workoutDay = workoutPlan.find(day => day.id === workoutDayId);
+    if (!workoutDay) return;
+    
+    const todayLabel = getTodayLabel();
+    const isToday = workoutDay.day.toLowerCase() === todayLabel.toLowerCase();
+    
+    if (isToday) {
+      startWorkout(workoutDayId);
+      setCurrentView('workout');
+    } else {
       setViewingWorkoutId(workoutDayId);
       setCurrentView('workout-view');
-   }
- };
+    }
+  };
 
   const handleViewWorkout = (workoutDayId: string) => {
-    // Sempre vai para modo visualização, independente se é hoje ou não
     setViewingWorkoutId(workoutDayId);
     setCurrentView('workout-view');
   };
@@ -180,7 +169,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: any) => {
     completeSet(exerciseId, setIndex, setData);
     
-    // Start rest timer between sets (90 seconds)
     if (setIndex < (currentSession?.exercises.find(e => e.id === exerciseId)?.sets || 0) - 1) {
       startRestTimer(90, 'rest-between-sets', exerciseId, setIndex);
     }
@@ -189,7 +177,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
   const handleExerciseComplete = (exerciseId: string) => {
     completeExercise(exerciseId);
     
-    // Start rest timer between exercises (2 minutes)
     const nextExercise = getNextExercise(currentSession?.exercises || []);
     if (nextExercise) {
       startRestTimer(120, 'rest-between-exercises');
@@ -197,25 +184,22 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
   };
 
   const handleFinishWorkout = async () => {
-  await finishWorkout();
-  setCurrentView('home');
-  setShowAerobicTimer(false);
-  setAbdominalCompleted(false);
-  
-  // Forçar atualização imediata das estatísticas
-  await loadStats();
-  await loadWorkouts();
-  await loadHistory();
-};
-
+    await finishWorkout();
+    setCurrentView('home');
+    setShowAerobicTimer(false);
+    setAbdominalCompleted(false);
+    await loadStats();
+    await loadWorkouts();
+    await loadHistory();
+  };
 
   const handleCompleteAerobic = (actualMinutes?: number) => {
-  completeAerobic(actualMinutes);
-  setShowAerobicTimer(false);
+    completeAerobic(actualMinutes);
+    setShowAerobicTimer(false);
   };
 
   const handleSkipAerobic = () => {
-  setShowAerobicTimer(false);
+    setShowAerobicTimer(false);
   };
 
   const handleCompleteAbdominals = () => {
@@ -227,7 +211,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
     setCurrentView('home');
   };
 
-  // Navigation handlers
   const handleNavigateToStatistics = () => {
     setCurrentView('statistics');
   };
@@ -238,7 +221,7 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
 
   const handleBackToHome = () => {
     setCurrentView('home');
-    checkRestDay(); // Recheck rest day when returning home
+    checkRestDay();
   };
 
   const handleToggleRestDay = async () => {
@@ -254,6 +237,33 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
     await checkRestDay();
   };
 
+  const getWorkoutPhase = () => {
+    if (!currentSession) return 'none';
+    
+    const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
+    if (!workoutDay) return 'none';
+
+    if (workoutDay.aerobic?.timing === 'antes' && !currentSession.aerobic?.completed) {
+      return 'aerobic-before';
+    }
+
+    const allExercisesCompleted = currentSession.exercises.every(ex => ex.completed);
+    
+    if (!allExercisesCompleted) {
+      return 'exercises';
+    }
+
+    if (workoutDay.abdominal && !abdominalCompleted) {
+      return 'abdominal';
+    }
+
+    if (workoutDay.aerobic?.timing === 'depois' && !currentSession.aerobic?.completed) {
+      return 'aerobic-after';
+    }
+
+    return 'finished';
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -266,7 +276,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
     );
   }
 
-  // Workout View Mode (apenas visualização)
   if (currentView === 'workout-view' && viewingWorkoutId) {
     const workoutDay = workoutPlan.find(day => day.id === viewingWorkoutId);
     
@@ -277,7 +286,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
 
     return (
       <div className="min-h-screen bg-background">
-        {/* Header */}
         <div className="sticky top-0 bg-background/95 backdrop-blur-lg border-b border-border z-40">
           <div className="max-w-md mx-auto p-4">
             <div className="flex items-center justify-between">
@@ -292,9 +300,7 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
           </div>
         </div>
 
-        {/* Exercise List - Read Only */}
         <div className="max-w-md mx-auto p-4 space-y-4 pb-24">
-          {/* Aerobic Exercise */}
           {workoutDay.aerobic && (
             <Card className="border-border">
               <CardHeader className="pb-3">
@@ -322,7 +328,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
             </Card>
           )}
 
-          {/* Main Exercises */}
           {workoutDay.exercises.map((exercise) => (
             <Card key={exercise.id} className="border-border">
               <CardHeader className="pb-3">
@@ -352,7 +357,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
             </Card>
           ))}
 
-          {/* Abdominal Exercises */}
           {workoutDay.abdominal && workoutDay.abdominal.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-foreground">Exercícios Abdominais</h2>
@@ -382,7 +386,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
           )}
         </div>
 
-        {/* Bottom Navigation - Always visible in view mode */}
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border">
           <div className="max-w-md mx-auto p-4">
             <div className="flex justify-around">
@@ -422,64 +425,20 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
     );
   }
 
-  const getWorkoutPhase = () => {
-  if (!currentSession) return 'none';
-  
-  const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
-  if (!workoutDay) return 'none';
-
-  // Check if we should show aerobic first (before exercises)
-  if (workoutDay.aerobic?.timing === 'antes' && !currentSession.aerobic?.completed) {
-    return 'aerobic-before';
-  }
-
-  // Check if all main exercises are completed
-  const allExercisesCompleted = currentSession.exercises.every(ex => ex.completed);
-  
-  if (!allExercisesCompleted) {
-    return 'exercises';
-  }
-
-  // Check if there are abdominals and they're not completed
-  if (workoutDay.abdominal && !abdominalCompleted) {
-    return 'abdominal';
-  }
-
-  // Check if we should show aerobic after
-  if (workoutDay.aerobic?.timing === 'depois' && !currentSession.aerobic?.completed) {
-    return 'aerobic-after';
-  }
-
-  return 'finished';
-};
-
-  // Active Workout View
   if (currentView === 'workout' && currentSession) {
     const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
     const currentTime = calculateWorkoutTime(currentSession.startTime);
     const completedExercises = currentSession.exercises.filter(e => e.completed).length;
     const nextExercise = getNextExercise(currentSession.exercises);
-    const allMainExercisesCompleted = completedExercises === currentSession.exercises.length;
-    const hasAbdominals = workoutDay?.abdominal && workoutDay.abdominal.length > 0;
-    const hasAerobic = workoutDay?.aerobic;
-    const shouldShowAerobicOption = allMainExercisesCompleted && (!hasAbdominals || abdominalCompleted) && hasAerobic && hasAerobic.timing === 'depois';
     const workoutPhase = getWorkoutPhase();
 
-    // Show Aerobic Timer
-    if (showAerobicTimer && hasAerobic) {
-      return (
-        <AerobicTimer
-          duration={hasAerobic.duration}
-          type={hasAerobic.type}
-          onComplete={handleCompleteAerobic}
-          onCancel={handleSkipAerobic} 
-        />
-      );
+    if (!workoutDay) {
+      setCurrentView('home');
+      return null;
     }
 
     return (
       <div className="min-h-screen bg-background">
-        {/* Timer Overlay */}
         {timerState && (
           <Timer
             initialTime={timerState.timeLeft}
@@ -491,12 +450,11 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
           />
         )}
 
-        {/* Header */}
         <div className="sticky top-0 bg-background/95 backdrop-blur-lg border-b border-border z-40">
           <div className="max-w-md mx-auto p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-lg font-bold text-foreground">{workoutDay?.name}</h1>
+                <h1 className="text-lg font-bold text-foreground">{workoutDay.name}</h1>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
@@ -515,77 +473,41 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
           </div>
         </div>
 
-        {/* Content based on workout phase */}
         <div className="max-w-md mx-auto p-4 space-y-4 pb-24">
-          {/* Aerobic Before Phase */}
-         
-{workoutPhase === 'aerobic-before' && workoutDay?.aerobic && (
-  <div className="space-y-6">
-    <div className="text-center">
-      <h2 className="text-2xl font-bold mb-2">Cardio - {workoutDay.aerobic.type}</h2>
-      <p className="text-muted-foreground">
-        {workoutDay.aerobic.duration} minutos • {workoutDay.aerobic.intensity}
-      </p>
-    </div>
-    
-    {aerobicPhase === 'not-started' && (
-      <div className="flex gap-3">
-        <Button 
-          variant="workout" 
-          className="flex-1" 
-          onClick={() => {
-            setAerobicTiming('before');
-            setAerobicPhase('in-progress');
-          }}
-        >
-          Iniciar Cardio
-        </Button>
-        <Button 
-          variant="outline" 
-          className="flex-1" 
-          onClick={() => {
-            // Pular cardio no início
-            completeAerobic(0);
-          }}
-        >
-          Pular Cardio
-        </Button>
-      </div>
-    )}
-    
-    {aerobicPhase === 'in-progress' && (
-      <AerobicTimer 
-        duration={workoutDay.aerobic.duration}
-        type={workoutDay.aerobic.type}
-        onComplete={(actualMinutes) => {
-          completeAerobic(actualMinutes);
-          setAerobicPhase('completed');
-        }}
-        onCancel={() => {
-          // Cancelar durante o timer
-          setAerobicPhase('not-started');
-        }}
-      />
-    )}
-    
-    {aerobicPhase === 'completed' && (
-      <div className="text-center p-4 bg-green-100 rounded-lg">
-        <p className="text-green-700 font-medium">Cardio concluído! ✅</p>
-        <Button 
-          className="mt-2 w-full" 
-          onClick={() => {
-            // Continuar para os exercícios
-            setAerobicPhase('not-started');
-          }}
-        >
-          Continuar para os exercícios
-        </Button>
-      </div>
-    )}
-  </div>
-)}
+          {workoutPhase === 'aerobic-before' && workoutDay.aerobic && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold mb-2">Cardio - {workoutDay.aerobic.type}</h2>
+                <p className="text-muted-foreground">
+                  {workoutDay.aerobic.duration} minutos • {workoutDay.aerobic.intensity}
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button 
+                  variant="workout" 
+                  className="flex-1" 
+                  onClick={() => {
+                    setAerobicContext('before');
+                    setShowAerobicTimer(true);
+                  }}
+                >
+                  Iniciar Cardio
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => {
+                    completeAerobic(0);
+                    setAerobicContext(null);
+                  }}
+                >
+                  Pular Cardio
+                </Button>
+              </div>
+            </div>
+          )}
 
-          {/* Main Exercises Phase */}
           {workoutPhase === 'exercises' && currentSession.exercises.map((exercise) => (
             <ExerciseCard
               key={exercise.id}
@@ -597,8 +519,7 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
             />
           ))}
 
-          {/* Abdominal Exercises Phase */}
-          {workoutPhase === 'abdominal' && hasAbdominals && workoutDay?.abdominal && (
+          {workoutPhase === 'abdominal' && workoutDay.abdominal && workoutDay.abdominal.length > 0 && (
             <div className="space-y-4 mt-8">
               <div className="text-center">
                 <h2 className="text-xl font-bold text-foreground mb-2">Exercícios Abdominais</h2>
@@ -638,73 +559,58 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
             </div>
           )}
 
-          {/* Aerobic After Phase */}
-      
-{workoutPhase === 'aerobic-after' && workoutDay?.aerobic && (
-  <div className="space-y-6">
-    <div className="text-center">
-      <h2 className="text-2xl font-bold mb-2">Finalize com Cardio</h2>
-      <p className="text-muted-foreground">
-        {workoutDay.aerobic.type} - {workoutDay.aerobic.duration} minutos
-      </p>
-    </div>
-    
-    {aerobicPhase === 'not-started' && (
-      <div className="flex gap-3">
-        <Button 
-          variant="workout" 
-          className="flex-1" 
-          onClick={() => {
-            setAerobicTiming('after');
-            setAerobicPhase('in-progress');
-          }}
-        >
-          Iniciar Cardio 🏃
-        </Button>
-        <Button 
-          variant="outline" 
-          className="flex-1" 
-          onClick={() => {
-            // Pular cardio no fim
-            completeAerobic(0);
-            handleFinishWorkout();
-          }}
-        >
-          Pular Cardio
-        </Button>
-      </div>
-    )}
-    
-    {aerobicPhase === 'in-progress' && (
-      <AerobicTimer 
-        duration={workoutDay.aerobic.duration}
-        type={workoutDay.aerobic.type}
-        onComplete={(actualMinutes) => {
-          completeAerobic(actualMinutes);
-          setAerobicPhase('completed');
-        }}
-        onCancel={() => {
-          // Cancelar durante o timer
-          setAerobicPhase('not-started');
-        }}
-      />
-    )}
-    
-    {aerobicPhase === 'completed' && (
-      <div className="text-center p-4 bg-green-100 rounded-lg">
-        <p className="text-green-700 font-medium">Cardio concluído! ✅</p>
-        <Button 
-          className="mt-2 w-full" 
-          onClick={handleFinishWorkout}
-        >
-          Finalizar Treino
-        </Button>
-      </div>
-    )}
-  </div>
-)}
+          {workoutPhase === 'aerobic-after' && workoutDay.aerobic && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold mb-2">Finalize com Cardio</h2>
+                <p className="text-muted-foreground">
+                  {workoutDay.aerobic.type} - {workoutDay.aerobic.duration} minutos
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button 
+                  variant="workout" 
+                  className="flex-1" 
+                  onClick={() => {
+                    setAerobicContext('after');
+                    setShowAerobicTimer(true);
+                  }}
+                >
+                  Iniciar Cardio 🏃
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => {
+                    completeAerobic(0);
+                    handleFinishWorkout();
+                  }}
+                >
+                  Pular Cardio
+                </Button>
+              </div>
+            </div>
+          )}
 
-          {/* Workout Finished */}
+          {showAerobicTimer && workoutDay.aerobic && (
+            <AerobicTimer
+              duration={workoutDay.aerobic.duration}
+              type={workoutDay.aerobic.type}
+              onComplete={(actualMinutes) => {
+                completeAerobic(actualMinutes);
+                setShowAerobicTimer(false);
+                
+                if (aerobicContext === 'after') {
+                  handleFinishWorkout();
+                }
+              }}
+              onCancel={() => {
+                setShowAerobicTimer(false);
+              }}
+            />
+          )}
+
           {workoutPhase === 'finished' && (
             <div className="text-center space-y-4">
               <div className="text-4xl mb-4">🎉</div>
@@ -716,28 +622,23 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
             </div>
           )}
         </div>
-
       </div>
     );
   }
 
-  // Statistics View
   if (currentView === 'statistics') {
     return <Statistics onBack={handleBackToHome} />;
   }
 
-  // Management View
   if (currentView === 'management') {
     return <Management onBack={() => { 
       handleBackToHome(); 
-      loadWorkouts(); // Recarrega os treinos quando volta da tela de gerenciamento
+      loadWorkouts();
     }} />;
   }
 
-  // Home View
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="max-w-md mx-auto p-4">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -748,7 +649,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
           </p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <Card className="border-border">
             <CardContent className="p-4 text-center">
@@ -779,7 +679,6 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
           </Card>
         </div>
 
-        {/* Today's Workout */}
         {isRestDay ? (
           <Card className="mb-6 border-border">
             <CardContent className="p-6 text-center">
@@ -823,13 +722,12 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
                 onStartWorkout={() => handleStartWorkout(todayWorkout.id)}
                 isToday={true}
                 averageTime={stats?.averageTime}
-                 isCompleted={isTodayWorkoutCompleted(todayWorkout.id)}
+                isCompleted={isTodayWorkoutCompleted(todayWorkout.id)}
               />
             )}
           </div>
         )}
 
-        {/* Other Workouts */}
         <div>
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-iron-orange" />
@@ -840,15 +738,14 @@ const isTodayWorkoutCompleted = (workoutDayId: string) => {
               <WorkoutCard
                 key={workoutDay.id}
                 workoutDay={workoutDay}
-                onStartWorkout={() => handleViewWorkout(workoutDay.id)} // Usar handleViewWorkout aqui
-                isToday={false} // Sempre false aqui para mostrar "Visualizar Treino"
+                onStartWorkout={() => handleViewWorkout(workoutDay.id)}
+                isToday={false}
                 averageTime={stats?.averageTime}
               />
             ))}
           </div>
         </div>
 
-        {/* Bottom Navigation - Always visible on home */}
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border">
           <div className="max-w-md mx-auto p-4">
             <div className="flex justify-around">
