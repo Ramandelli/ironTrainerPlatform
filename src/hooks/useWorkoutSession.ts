@@ -40,34 +40,7 @@ export const useWorkoutSession = () => {
 
     return () => clearInterval(interval);
   }, [currentSession]);
-
-  const skipAerobic = useCallback(async () => {
-  if (!currentSession || !currentSession.aerobic) return;
-
-  try {
-    setCurrentSession(prev => {
-      if (!prev || !prev.aerobic) return prev;
-      
-      return {
-        ...prev,
-        aerobic: {
-          ...prev.aerobic,
-          completed: false,
-          skipped: true, // Novo campo para marcar que foi pulado
-          actualDuration: 0
-        }
-      };
-    });
-    
-    // Forçar salvamento imediato
-    await saveSession();
-    
-  } catch (error) {
-    console.error('Failed to skip aerobic:', error);
-  }
-}, [currentSession, saveSession]);
-
-  const loadSession = async () => {
+const loadSession = async () => {
     try {
       setIsLoading(true);
       const savedSession = await storage.loadCurrentSession();
