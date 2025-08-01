@@ -27,7 +27,8 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
         setSecondsLeft(prev => prev - 1);
       }, 1000);
     } else if (secondsLeft === 0) {
-      onComplete(duration);
+      const actualMinutes = (duration * 60 - secondsLeft) / 60;
+      onComplete(actualMinutes);
     }
     
     return () => {
@@ -48,10 +49,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
             <Clock className="w-6 h-6 text-iron-orange" />
             {type}
           </h2>
-          <Button variant="ghost" size="icon" onClick={() => {
-            onComplete(0); // Passa 0 minutos ao cancelar
-            onCancel();
-          }}>
+          <Button variant="ghost" size="icon" onClick={onCancel}>
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -79,7 +77,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
             variant="success" 
             className="flex-1"
             onClick={() => {
-              const actualMinutes = duration - (secondsLeft / 60);
+              const actualMinutes = (duration * 60 - secondsLeft) / 60;
               onComplete(actualMinutes);
             }}
           >

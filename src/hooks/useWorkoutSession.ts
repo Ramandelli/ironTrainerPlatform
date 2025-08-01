@@ -197,15 +197,23 @@ const loadSession = async () => {
           ...prev,
           aerobic: {
             ...prev.aerobic,
-            completed: actualMinutes > 0,
+            completed: true,
             actualDuration: actualMinutes
           }
         };
       });
+      
+      const minutes = Math.floor(actualMinutes);
+      const seconds = Math.round((actualMinutes - minutes) * 60);
+      
+      toast({
+        title: "Cardio concluído! 🎯",
+        description: `Tempo realizado: ${minutes}:${seconds.toString().padStart(2, '0')}`,
+      });
     } catch (error) {
       console.error('Failed to complete aerobic:', error);
     }
-  }, [currentSession]);
+  }, [currentSession, toast]);
 
   const skipAerobic = useCallback(async () => {
     if (!currentSession || !currentSession.aerobic) return;
@@ -219,14 +227,20 @@ const loadSession = async () => {
           aerobic: {
             ...prev.aerobic,
             completed: false,
+            skipped: true,
             actualDuration: 0
           }
         };
       });
+      
+      toast({
+        title: "Cardio pulado",
+        description: "Prosseguindo para o próximo estágio.",
+      });
     } catch (error) {
       console.error('Failed to skip aerobic:', error);
     }
-  }, [currentSession]);
+  }, [currentSession, toast]);
 
   const finishWorkout = useCallback(async (notes?: string) => {
     if (!currentSession) return;

@@ -19,6 +19,15 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
   const { toast } = useToast();
 
+  // Função para converter segundos em formato HH:MM:SS
+  const formatTime = (totalSeconds: number): string => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   useEffect(() => {
      const loadData = async () => {
     try {
@@ -100,24 +109,23 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
   // Cardio statistics
   const cardioStats = React.useMemo(() => {
     const calculateCardioTime = (sessions: WorkoutSession[]) => {
-      let esteiraTotalTime = 0;
-      let bicicletaTotalTime = 0;
+      let esteiraTotalSeconds = 0;
+      let bicicletaTotalSeconds = 0;
       
       sessions.forEach(session => {
-        if (session.aerobic && session.aerobic.completed) {
-          // Por enquanto usa o tempo planejado, mas futuramente podemos adicionar
-          // um campo "actualDuration" no aerobic para registrar o tempo real
-          const timeSpent = session.aerobic.duration;
+        if (session.aerobic && session.aerobic.completed && session.aerobic.actualDuration !== undefined) {
+          // Usar o tempo real (actualDuration) em minutos, converter para segundos
+          const timeSpentSeconds = Math.round(session.aerobic.actualDuration * 60);
             
           if (session.aerobic.type === 'esteira') {
-            esteiraTotalTime += timeSpent;
+            esteiraTotalSeconds += timeSpentSeconds;
           } else if (session.aerobic.type === 'bicicleta') {
-            bicicletaTotalTime += timeSpent;
+            bicicletaTotalSeconds += timeSpentSeconds;
           }
         }
       });
       
-      return { esteiraTotalTime, bicicletaTotalTime };
+      return { esteiraTotalSeconds, bicicletaTotalSeconds };
     };
     
     if (selectedPeriod === 'all') {
@@ -402,7 +410,7 @@ const workoutDistribution: Record<string, number> = {};
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-muted/50 rounded-lg">
                 <div className="text-lg font-bold text-foreground">
-                  {cardioStats.esteiraTotalTime}min
+                  {formatTime(cardioStats.esteiraTotalSeconds)}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Esteira {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
@@ -410,7 +418,7 @@ const workoutDistribution: Record<string, number> = {};
               </div>
               <div className="text-center p-3 bg-muted/50 rounded-lg">
                 <div className="text-lg font-bold text-foreground">
-                  {cardioStats.bicicletaTotalTime}min
+                  {formatTime(cardioStats.bicicletaTotalSeconds)}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Bicicleta {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
@@ -419,7 +427,7 @@ const workoutDistribution: Record<string, number> = {};
             </div>
             <div className="text-center p-3 bg-primary/10 rounded-lg">
               <div className="text-xl font-bold text-primary">
-                {cardioStats.esteiraTotalTime + cardioStats.bicicletaTotalTime}min
+                {formatTime(cardioStats.esteiraTotalSeconds + cardioStats.bicicletaTotalSeconds)}
               </div>
               <div className="text-sm text-muted-foreground">
                 Total de Cardio {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(geral)'}

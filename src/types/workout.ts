@@ -36,6 +36,7 @@ export interface AerobicExercise {
   intensity: 'leve' | 'moderada' | 'intensa';
   timing: 'antes' | 'depois';
   completed: boolean;
+  skipped?: boolean;
 }
 
 export interface WorkoutSession {

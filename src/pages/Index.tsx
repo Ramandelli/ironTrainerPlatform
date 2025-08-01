@@ -507,16 +507,12 @@ const Index = () => {
     Iniciar Cardio
   </Button>
                 
-                {/* ATUALIZADO: Usando skipAerobic em vez de completeAerobic */}
                 <Button 
     variant="outline" 
     className="flex-1" 
     onClick={async () => {
-      await skipAerobic(); // Usar await para garantir execução
+      await skipAerobic();
       setAerobicContext(null);
-      
-      // Forçar recálculo imediato da fase do treino
-      setCurrentSession(prev => ({ ...prev! }));
     }}
   >
     Pular Cardio
