@@ -11,9 +11,10 @@ import { useToast } from '../hooks/use-toast';
 
 interface StatisticsProps {
   onBack: () => void;
+  onDataReset?: () => void;
 }
 
-export const Statistics: React.FC<StatisticsProps> = ({ onBack }) => {
+export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) => {
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
@@ -241,18 +242,24 @@ const workoutDistribution: Record<string, number> = {};
       setStats(null);
       setHistory([]);
       await loadData();
+      
+      // Notificar a tela inicial sobre o reset
+      if (onDataReset) {
+        onDataReset();
+      }
+      
       toast({
-      title: "Dados resetados",
-      description: "Todo o histórico de treinos foi removido com sucesso.",
-    });
-  } catch (error) {
-    toast({
-      title: "Erro",
-      description: "Falha ao resetar os dados. Tente novamente.",
-      variant: "destructive",
-    });
-  }
-};
+        title: "Dados resetados",
+        description: "Todo o histórico de treinos foi removido com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao resetar os dados. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">

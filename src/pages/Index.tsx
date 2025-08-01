@@ -213,6 +213,14 @@ const Index = () => {
     setCurrentView('statistics');
   };
 
+  const handleDataReset = async () => {
+    // Recarregar todos os dados após reset
+    await loadStats();
+    await loadWorkouts();
+    await loadHistory();
+    await checkRestDay();
+  };
+
   const handleNavigateToManagement = () => {
     setCurrentView('management');
   };
@@ -642,7 +650,7 @@ const Index = () => {
   }
 
   if (currentView === 'statistics') {
-    return <Statistics onBack={handleBackToHome} />;
+    return <Statistics onBack={handleBackToHome} onDataReset={handleDataReset} />;
   }
 
   if (currentView === 'management') {
