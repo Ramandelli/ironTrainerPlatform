@@ -45,7 +45,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className={`gap-4 text-sm ${averageTime && averageTime > 0 ? 'grid grid-cols-2' : 'flex'}`}>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Dumbbell className="w-4 h-4" />
             <span>{totalExercises} exercícios</span>
