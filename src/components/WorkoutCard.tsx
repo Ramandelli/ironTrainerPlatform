@@ -50,7 +50,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
             <Dumbbell className="w-4 h-4" />
             <span>{totalExercises} exercícios</span>
           </div>
-          {averageTime && (
+          {averageTime && averageTime > 0 && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock className="w-4 h-4" />
               <span>~{averageTime}min</span>
