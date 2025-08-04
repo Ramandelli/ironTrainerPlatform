@@ -45,6 +45,11 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
 
   const progress = ((duration * 60 - secondsLeft) / (duration * 60)) * 100;
 
+  const handleFinish = () => {
+    setIsActive(false);
+    setShowDistanceInput(true);
+  };
+
   const handleComplete = () => {
     const actualMinutes = (duration * 60 - secondsLeft) / 60;
     const distanceNum = distance ? parseFloat(distance) : undefined;
@@ -121,7 +126,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
             <Button 
               variant="success" 
               className="flex-1"
-              onClick={() => setShowDistanceInput(true)}
+              onClick={handleFinish}
             >
               Finalizar
             </Button>

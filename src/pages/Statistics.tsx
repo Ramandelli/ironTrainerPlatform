@@ -112,21 +112,26 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
     const calculateCardioTime = (sessions: WorkoutSession[]) => {
       let esteiraTotalSeconds = 0;
       let bicicletaTotalSeconds = 0;
+      let esteiraTotalDistance = 0;
+      let bicicletaTotalDistance = 0;
       
       sessions.forEach(session => {
         if (session.aerobic && session.aerobic.completed && session.aerobic.actualDuration !== undefined) {
           // Usar o tempo real (actualDuration) em minutos, converter para segundos
           const timeSpentSeconds = Math.round(session.aerobic.actualDuration * 60);
+          const distance = session.aerobic.distance || 0;
             
           if (session.aerobic.type === 'esteira') {
             esteiraTotalSeconds += timeSpentSeconds;
+            esteiraTotalDistance += distance;
           } else if (session.aerobic.type === 'bicicleta') {
             bicicletaTotalSeconds += timeSpentSeconds;
+            bicicletaTotalDistance += distance;
           }
         }
       });
       
-      return { esteiraTotalSeconds, bicicletaTotalSeconds };
+      return { esteiraTotalSeconds, bicicletaTotalSeconds, esteiraTotalDistance, bicicletaTotalDistance };
     };
     
     if (selectedPeriod === 'all') {
@@ -420,7 +425,10 @@ const workoutDistribution: Record<string, number> = {};
                   {formatTime(cardioStats.esteiraTotalSeconds)}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Esteira {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
+                  Esteira - Tempo {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {cardioStats.esteiraTotalDistance.toFixed(1)} km
                 </div>
               </div>
               <div className="text-center p-3 bg-muted/50 rounded-lg">
@@ -428,16 +436,29 @@ const workoutDistribution: Record<string, number> = {};
                   {formatTime(cardioStats.bicicletaTotalSeconds)}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Bicicleta {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
+                  Bicicleta - Tempo {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {cardioStats.bicicletaTotalDistance.toFixed(1)} km
                 </div>
               </div>
             </div>
-            <div className="text-center p-3 bg-primary/10 rounded-lg">
-              <div className="text-xl font-bold text-primary">
-                {formatTime(cardioStats.esteiraTotalSeconds + cardioStats.bicicletaTotalSeconds)}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-3 bg-primary/10 rounded-lg">
+                <div className="text-xl font-bold text-primary">
+                  {formatTime(cardioStats.esteiraTotalSeconds + cardioStats.bicicletaTotalSeconds)}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total de Tempo
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                Total de Cardio {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(geral)'}
+              <div className="text-center p-3 bg-primary/10 rounded-lg">
+                <div className="text-xl font-bold text-primary">
+                  {(cardioStats.esteiraTotalDistance + cardioStats.bicicletaTotalDistance).toFixed(1)} km
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total de Distância
+                </div>
               </div>
             </div>
           </CardContent>
