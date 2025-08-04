@@ -43,6 +43,18 @@ const Index = () => {
   const [abdominalCompleted, setAbdominalCompleted] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
   const [aerobicContext, setAerobicContext] = useState<'before' | 'after' | null>(null);
+  const [currentTime, setCurrentTime] = useState(0); // Moved to top level
+
+  // Update workout timer in real-time when in workout mode
+  useEffect(() => {
+    if (currentView === 'workout' && currentSession) {
+      const interval = setInterval(() => {
+        setCurrentTime(calculateWorkoutTime(currentSession.startTime));
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [currentView, currentSession]);
 
   useEffect(() => {
     loadStats();
@@ -447,19 +459,9 @@ const Index = () => {
 
   if (currentView === 'workout' && currentSession) {
     const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
-    const [currentTime, setCurrentTime] = useState(calculateWorkoutTime(currentSession.startTime));
     const completedExercises = currentSession.exercises.filter(e => e.completed).length;
     const nextExercise = getNextExercise(currentSession.exercises);
     const workoutPhase = getWorkoutPhase();
-
-    // Atualizar o contador de tempo em tempo real
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setCurrentTime(calculateWorkoutTime(currentSession.startTime));
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }, [currentSession.startTime]);
 
     if (!workoutDay) {
       setCurrentView('home');
