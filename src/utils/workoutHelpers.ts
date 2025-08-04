@@ -27,8 +27,8 @@ export const calculateTotalVolume = (exercises: Exercise[]): number => {
 };
 
 export const calculateWorkoutTime = (startTime: number, endTime?: number): number => {
-  if (!endTime) return 0;
-  return Math.round((endTime - startTime) / 60000); // Converter para minutos
+  const end = endTime || Date.now(); // Se não há endTime, usar tempo atual
+  return Math.round((end - startTime) / 60000); // Converter para minutos
 };
 
 export const getTodayWorkoutId = (): string => {

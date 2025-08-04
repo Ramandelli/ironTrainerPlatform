@@ -33,6 +33,7 @@ export interface AerobicExercise {
   type: 'esteira' | 'bicicleta' | 'transport' | 'rowing';
   duration: number;
   actualDuration?: number;
+  distance?: number; // Nova propriedade para distância em km
   intensity: 'leve' | 'moderada' | 'intensa';
   timing: 'antes' | 'depois';
   completed: boolean;

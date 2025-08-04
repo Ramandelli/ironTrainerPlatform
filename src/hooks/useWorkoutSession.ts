@@ -186,7 +186,7 @@ const loadSession = async () => {
     await storage.clearTimerState();
   }, []);
 
-  const completeAerobic = useCallback(async (actualMinutes: number) => {
+  const completeAerobic = useCallback(async (actualMinutes: number, distance?: number) => {
     if (!currentSession || !currentSession.aerobic) return;
 
     try {
@@ -198,7 +198,8 @@ const loadSession = async () => {
           aerobic: {
             ...prev.aerobic,
             completed: true,
-            actualDuration: actualMinutes
+            actualDuration: actualMinutes,
+            distance: distance
           }
         };
       });
@@ -206,9 +207,11 @@ const loadSession = async () => {
       const minutes = Math.floor(actualMinutes);
       const seconds = Math.round((actualMinutes - minutes) * 60);
       
+      const distanceText = distance ? ` • ${distance}km` : '';
+      
       toast({
         title: "Cardio concluído! 🎯",
-        description: `Tempo realizado: ${minutes}:${seconds.toString().padStart(2, '0')}`,
+        description: `Tempo realizado: ${minutes}:${seconds.toString().padStart(2, '0')}${distanceText}`,
       });
     } catch (error) {
       console.error('Failed to complete aerobic:', error);

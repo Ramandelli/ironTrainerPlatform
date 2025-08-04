@@ -194,8 +194,8 @@ const Index = () => {
     await loadHistory();
   };
 
-  const handleCompleteAerobic = (actualMinutes?: number) => {
-    completeAerobic(actualMinutes);
+  const handleCompleteAerobic = (actualMinutes?: number, distance?: number) => {
+    completeAerobic(actualMinutes, distance);
     setShowAerobicTimer(false);
   };
 
@@ -447,10 +447,19 @@ const Index = () => {
 
   if (currentView === 'workout' && currentSession) {
     const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
-    const currentTime = calculateWorkoutTime(currentSession.startTime);
+    const [currentTime, setCurrentTime] = useState(calculateWorkoutTime(currentSession.startTime));
     const completedExercises = currentSession.exercises.filter(e => e.completed).length;
     const nextExercise = getNextExercise(currentSession.exercises);
     const workoutPhase = getWorkoutPhase();
+
+    // Atualizar o contador de tempo em tempo real
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCurrentTime(calculateWorkoutTime(currentSession.startTime));
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }, [currentSession.startTime]);
 
     if (!workoutDay) {
       setCurrentView('home');
@@ -601,13 +610,11 @@ const Index = () => {
                   Iniciar Cardio 🏃
                 </Button>
                 
-                {/* ATUALIZADO: Usando skipAerobic em vez de completeAerobic */}
                 <Button 
                   variant="outline" 
                   className="flex-1" 
-                  onClick={() => {
-                    skipAerobic(); // ALTERADO: Usando a nova função
-                    handleFinishWorkout();
+                  onClick={async () => {
+                    await skipAerobic();
                   }}
                 >
                   Pular Cardio
@@ -620,13 +627,10 @@ const Index = () => {
             <AerobicTimer
               duration={workoutDay.aerobic.duration}
               type={workoutDay.aerobic.type}
-              onComplete={(actualMinutes) => {
-                handleCompleteAerobic(actualMinutes);
+              onComplete={(actualMinutes, distance) => {
+                handleCompleteAerobic(actualMinutes, distance);
                 setShowAerobicTimer(false);
-                
-                if (aerobicContext === 'after') {
-                  handleFinishWorkout();
-                }
+                setAerobicContext(null);
               }}
               onCancel={() => {
                 setShowAerobicTimer(false);
