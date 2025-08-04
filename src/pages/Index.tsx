@@ -121,10 +121,19 @@ const Index = () => {
 
   const checkRestDay = async () => {
     const todayWorkoutId = getTodayWorkoutId();
+    const todaysWorkout = findTodaysWorkout();
     
+    // Se existe treino programado para hoje, não é dia de folga
+    if (todaysWorkout) {
+      setIsRestDay(false);
+      return;
+    }
+    
+    // Se não existe treino e é fim de semana, é dia de folga
     if (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday') {
       setIsRestDay(true);
     } else {
+      // Se não é fim de semana, verificar se foi marcado manualmente como folga
       const isManualRest = await restDayManager.isTodayRestDay();
       setIsRestDay(isManualRest);
     }
@@ -134,6 +143,8 @@ const Index = () => {
     try {
       const allWorkouts = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
       setWorkoutPlan(allWorkouts);
+      // Reavaliar se hoje é dia de descanso após carregar os treinos
+      await checkRestDay();
     } catch (error) {
       console.error('Failed to load workouts:', error);
     }
