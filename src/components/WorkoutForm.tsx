@@ -361,15 +361,6 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                 </Card>
               )}
             </div>
-
-            <div className="flex gap-3">
-              <Button type="submit" className="flex-1">
-                {workout ? 'Salvar Alterações' : 'Criar Treino'}
-              </Button>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancelar
-              </Button>
-            </div>
           </form>
         </CardContent>
       </Card>
@@ -488,6 +479,16 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
             onCancel={() => setShowAbdominalForm(false)}
           />
         )}
+      </div>
+
+      {/* Submit Buttons */}
+      <div className="flex gap-3">
+        <Button onClick={handleSubmit} className="flex-1">
+          {workout ? 'Salvar Alterações' : 'Criar Treino'}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
       </div>
 
       {/* Edit Exercise Modal */}
