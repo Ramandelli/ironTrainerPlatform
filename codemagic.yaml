@@ -3,20 +3,20 @@ workflows:
     name: iOS Capacitor Build
     max_build_duration: 30
     environment:
-      node: 20.11.1
-      xcode: latest
+      node: 20.11.1         # Força versão do Node.js >=20
+      xcode: latest         # Usa a última versão do Xcode no Codemagic
       vars:
         APP_ID: "br.projeto.irontracker"
     scripts:
-      - name: Instalar dependências
+      - name: Instalar dependências Node
         script: |
           npm install
-      - name: Gerar build web
-        script: |
           npm run build
-      - name: Sincronizar Capacitor
-        script: |
           npx cap sync ios
+      - name: Instalar CocoaPods
+        script: |
+          cd ios
+          pod install
       - name: Criar archive iOS
         script: |
           cd ios
