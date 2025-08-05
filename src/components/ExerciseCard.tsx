@@ -77,11 +77,23 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </Badge>
           )}
         </div>
-        {exercise.targetReps && (
-          <p className="text-sm text-muted-foreground">
-            Meta: {exercise.targetReps} repetições
-          </p>
-        )}
+        <div className="space-y-1">
+          {exercise.targetReps && (
+            <p className="text-sm text-muted-foreground">
+              Meta: {exercise.targetReps} repetições
+            </p>
+          )}
+          {exercise.suggestedWeight && (
+            <p className="text-sm text-muted-foreground">
+              Carga sugerida: {exercise.suggestedWeight}kg
+            </p>
+          )}
+          {exercise.notes && (
+            <p className="text-sm text-muted-foreground">
+              Observações: {exercise.notes}
+            </p>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
