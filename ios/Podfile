@@ -1,5 +1,7 @@
 platform :ios, '13.0'
 
+project 'App.xcodeproj'
+
 target 'App' do
   use_frameworks!
   use_modular_headers!
