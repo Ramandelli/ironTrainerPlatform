@@ -44,9 +44,28 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
   onSave,
   onCancel
 }) => {
+  // Mapear o dia da semana para o valor correto do select
+  const mapDayToSelectValue = (dayName: string) => {
+    const dayMapping: Record<string, string> = {
+      'Segunda-feira': 'monday',
+      'Segunda': 'monday',
+      'Terça-feira': 'tuesday', 
+      'Terça': 'tuesday',
+      'Quarta-feira': 'wednesday',
+      'Quarta': 'wednesday',
+      'Quinta-feira': 'thursday',
+      'Quinta': 'thursday',
+      'Sexta-feira': 'friday',
+      'Sexta': 'friday',
+      'Sábado': 'saturday',
+      'Domingo': 'sunday'
+    };
+    return dayMapping[dayName] || dayName.toLowerCase();
+  };
+
   const [formData, setFormData] = useState({
     name: workout?.name || '',
-    day: workout?.day || '',
+    day: workout?.day ? mapDayToSelectValue(workout.day) : '',
     exercises: workout?.exercises || [],
     abdominal: workout?.abdominal || [],
     aerobic: workout?.aerobic || null
