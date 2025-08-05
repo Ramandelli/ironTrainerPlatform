@@ -1,0 +1,28 @@
+workflows:
+  ios-capacitor:
+    name: iOS Capacitor Build
+    max_build_duration: 30
+    environment:
+      vars:
+        APP_ID: "br.projeto.irontracker"
+      node: 18
+      xcode: latest
+    scripts:
+      - name: Instalar dependências
+        script: |
+          npm install
+      - name: Gerar build web
+        script: |
+          npm run build
+      - name: Sincronizar Capacitor
+        script: |
+          npx cap sync ios
+      - name: Criar archive iOS
+        script: |
+          cd ios
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath $CM_BUILD_DIR/build/App.xcarchive archive
+      - name: Exportar IPA
+        script: |
+          xcodebuild -exportArchive -archivePath $CM_BUILD_DIR/build/App.xcarchive -exportOptionsPlist $CM_BUILD_DIR/ExportOptions.plist -exportPath $CM_BUILD_DIR/build/ipa
+    artifacts:
+      - build/ipa/*.ipa
