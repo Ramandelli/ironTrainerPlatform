@@ -19,7 +19,7 @@ workflows:
           pod install
       - name: Criar archive iOS
         script: |
-          cd ios
+          cd ios/App/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath $CM_BUILD_DIR/build/App.xcarchive archive
       - name: Exportar IPA
         script: |
