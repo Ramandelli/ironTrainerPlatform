@@ -15,7 +15,7 @@ workflows:
           npx cap sync ios
       - name: Instalar CocoaPods
         script: |
-          cd ios
+          cd ios/App
           pod install
       - name: Criar archive iOS
         script: |
