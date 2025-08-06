@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { ExerciseCard } from '../components/ExerciseCard';
+import { AbdominalTimer } from '../components/AbdominalTimer';
 import { Timer } from '../components/Timer';
 import { AerobicTimer } from '../components/AerobicTimer';
 import { Statistics } from './Statistics';
@@ -569,36 +570,36 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground mb-4">Complete os exercícios abdominais para finalizar</p>
               </div>
               
-              {workoutDay.abdominal.map((exercise) => (
-                <Card key={exercise.id} className="border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Dumbbell className="w-4 h-4 text-iron-orange" />
-                      {exercise.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Séries:</span>
-                        <span>{exercise.sets}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Repetições/Tempo:</span>
-                        <span>{exercise.targetReps}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {currentSession.abdominal?.map((exercise) => (
+                exercise.isTimeBased ? (
+                  <AbdominalTimer
+                    key={exercise.id}
+                    exercise={exercise}
+                    onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
+                    onExerciseComplete={() => handleExerciseComplete(exercise.id)}
+                    isActive={!exercise.completed}
+                  />
+                ) : (
+                  <ExerciseCard
+                    key={exercise.id}
+                    exercise={exercise}
+                    onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
+                    onExerciseComplete={() => handleExerciseComplete(exercise.id)}
+                    onStartRest={(setIndex) => startRestTimer(60, 'rest-between-sets', exercise.id, setIndex)}
+                    isActive={!exercise.completed}
+                  />
+                )
+              )) || []}
               
-              <Button 
-                variant="success" 
-                className="w-full" 
-                onClick={handleCompleteAbdominals}
-              >
-                Concluir Abdominais ✅
-              </Button>
+              {currentSession.abdominal?.every(ex => ex.completed) && (
+                <Button 
+                  variant="success" 
+                  className="w-full" 
+                  onClick={handleCompleteAbdominals}
+                >
+                  Concluir Abdominais ✅
+                </Button>
+              )}
             </div>
           )}
 

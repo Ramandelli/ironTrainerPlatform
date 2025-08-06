@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { ExerciseForm } from './ExerciseForm';
+import { AbdominalForm } from './AbdominalForm';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { Plus, Edit, Trash2, GripVertical, X } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types/workout';
@@ -474,7 +475,7 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
         ))}
 
         {showAbdominalForm && (
-          <ExerciseForm
+          <AbdominalForm
             onSave={(exerciseData) => addExercise(exerciseData, true)}
             onCancel={() => setShowAbdominalForm(false)}
           />
@@ -495,11 +496,19 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
       {editingExercise && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-lg">
-            <ExerciseForm
-              exercise={editingExercise.exercise}
-              onSave={updateExercise}
-              onCancel={() => setEditingExercise(null)}
-            />
+            {editingExercise.type === 'abdominal' ? (
+              <AbdominalForm
+                exercise={editingExercise.exercise}
+                onSave={updateExercise}
+                onCancel={() => setEditingExercise(null)}
+              />
+            ) : (
+              <ExerciseForm
+                exercise={editingExercise.exercise}
+                onSave={updateExercise}
+                onCancel={() => setEditingExercise(null)}
+              />
+            )}
           </div>
         </div>
       )}

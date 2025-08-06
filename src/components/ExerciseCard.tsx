@@ -27,12 +27,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   });
 
   const handleSetComplete = () => {
-    const weight = parseFloat(currentSetInputs.weight);
+    const weight = parseFloat(currentSetInputs.weight) || 0;
     const reps = parseInt(currentSetInputs.reps);
     
-    if (weight > 0 && reps > 0) {
+    if (reps > 0) {
       const setData: SetData = {
-        weight,
+        weight: weight > 0 ? weight : undefined,
         reps,
         completed: true,
         restStartTime: Date.now()
@@ -51,9 +51,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   };
 
   const canCompleteSet = () => {
-    const weight = parseFloat(currentSetInputs.weight);
     const reps = parseInt(currentSetInputs.reps);
-    return weight > 0 && reps > 0 && exercise.currentSet < exercise.sets;
+    return reps > 0 && exercise.currentSet < exercise.sets;
   };
 
   const completedSets = exercise.setData.filter(set => set.completed).length;
@@ -126,21 +125,25 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 
                 {isCompleted ? (
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Weight className="w-4 h-4" />
-                      {setData.weight}kg
-                    </span>
+                    {setData.weight && (
+                      <span className="flex items-center gap-1">
+                        <Weight className="w-4 h-4" />
+                        {setData.weight}kg
+                      </span>
+                    )}
                     <span>{setData.reps} reps</span>
                   </div>
                 ) : isCurrentSet ? (
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      placeholder="Peso"
-                      value={currentSetInputs.weight}
-                      onChange={(e) => setCurrentSetInputs(prev => ({ ...prev, weight: e.target.value }))}
-                      className="w-20 h-8 text-sm"
-                    />
+                    {!exercise.isTimeBased && exercise.suggestedWeight && (
+                      <Input
+                        type="number"
+                        placeholder="Peso"
+                        value={currentSetInputs.weight}
+                        onChange={(e) => setCurrentSetInputs(prev => ({ ...prev, weight: e.target.value }))}
+                        className="w-20 h-8 text-sm"
+                      />
+                    )}
                     <Input
                       type="number"
                       placeholder="Reps"

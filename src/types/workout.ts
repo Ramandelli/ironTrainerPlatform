@@ -9,13 +9,21 @@ export interface Exercise {
   completed: boolean;
   currentSet: number;
   setData: SetData[];
+  // Propriedades específicas para abdominais por tempo
+  isTimeBased?: boolean;
+  timePerSet?: number; // tempo em segundos por série
+  isBilateral?: boolean; // se é exercício para ambos os lados
 }
 
 export interface SetData {
-  weight: number;
-  reps: number;
+  weight?: number;
+  reps?: number;
   completed: boolean;
   restStartTime?: number;
+  // Para exercícios por tempo
+  timeCompleted?: number; // tempo realizado em segundos
+  leftSideCompleted?: boolean; // para exercícios bilaterais
+  rightSideCompleted?: boolean; // para exercícios bilaterais
 }
 
 export interface WorkoutDay {
