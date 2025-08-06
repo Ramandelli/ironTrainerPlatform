@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
-import { CheckCircle, Circle, Timer, Weight, RotateCcw } from 'lucide-react';
-import { Exercise, SetData } from '../types/workout';
+import { CheckCircle, Circle, Timer, Weight, RotateCcw, Zap } from 'lucide-react';
+import { Exercise, SetData, DropsetData } from '../types/workout';
+import { DropsetInput } from './DropsetInput';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -25,12 +26,24 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     weight: '',
     reps: ''
   });
+  const [showDropsetInput, setShowDropsetInput] = useState(false);
+
+  const [mainSetData, setMainSetData] = useState<{ weight: number; reps: number } | null>(null);
 
   const handleSetComplete = () => {
     const weight = parseFloat(currentSetInputs.weight) || 0;
     const reps = parseInt(currentSetInputs.reps);
     
     if (reps > 0) {
+      // Se é a última série e tem dropset, salvar dados e mostrar input de dropset
+      const isLastSet = exercise.currentSet === exercise.sets - 1;
+      if (isLastSet && exercise.hasDropset) {
+        setMainSetData({ weight, reps });
+        setShowDropsetInput(true);
+        setCurrentSetInputs({ weight: '', reps: '' });
+        return;
+      }
+
       const setData: SetData = {
         weight: weight > 0 ? weight : undefined,
         reps,
@@ -50,6 +63,35 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     }
   };
 
+  const handleDropsetComplete = (dropsetData: DropsetData[]) => {
+    if (!mainSetData) return;
+    
+    const setData: SetData = {
+      weight: mainSetData.weight > 0 ? mainSetData.weight : undefined,
+      reps: mainSetData.reps,
+      completed: true,
+      restStartTime: Date.now(),
+      dropsetData
+    };
+    
+    onSetComplete(exercise.currentSet, setData);
+    setShowDropsetInput(false);
+    setMainSetData(null);
+    setCurrentSetInputs({ weight: '', reps: '' });
+  };
+
+  const handleDropsetCancel = () => {
+    setShowDropsetInput(false);
+    setMainSetData(null);
+    // Restaurar os valores dos inputs
+    if (mainSetData) {
+      setCurrentSetInputs({ 
+        weight: mainSetData.weight.toString(), 
+        reps: mainSetData.reps.toString() 
+      });
+    }
+  };
+
   const canCompleteSet = () => {
     const reps = parseInt(currentSetInputs.reps);
     return reps > 0 && exercise.currentSet < exercise.sets;
@@ -58,13 +100,32 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const completedSets = exercise.setData.filter(set => set.completed).length;
   const allSetsCompleted = completedSets === exercise.sets;
 
+  // Se está mostrando o input de dropset, renderizar apenas ele
+  if (showDropsetInput) {
+    return (
+      <DropsetInput
+        onComplete={handleDropsetComplete}
+        onCancel={handleDropsetCancel}
+        exerciseName={exercise.name}
+      />
+    );
+  }
+
   return (
     <Card className={`${isActive ? 'border-iron-orange shadow-primary bg-card/80' : 'border-border'} transition-all duration-300`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-semibold text-foreground pr-2">
-            {exercise.name}
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg font-semibold text-foreground pr-2">
+              {exercise.name}
+            </CardTitle>
+            {exercise.hasDropset && (
+              <Badge variant="outline" className="bg-iron-orange/20 text-iron-orange border-iron-orange">
+                <Zap className="w-3 h-3 mr-1" />
+                Dropset
+              </Badge>
+            )}
+          </div>
           {exercise.completed ? (
             <Badge variant="outline" className="bg-success/20 text-success border-success">
               <CheckCircle className="w-3 h-3 mr-1" />
@@ -124,14 +185,24 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 </div>
                 
                 {isCompleted ? (
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    {setData.weight && (
-                      <span className="flex items-center gap-1">
-                        <Weight className="w-4 h-4" />
-                        {setData.weight}kg
-                      </span>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      {setData.weight && (
+                        <span className="flex items-center gap-1">
+                          <Weight className="w-4 h-4" />
+                          {setData.weight}kg
+                        </span>
+                      )}
+                      <span>{setData.reps} reps</span>
+                    </div>
+                    {setData.dropsetData && setData.dropsetData.length > 0 && (
+                      <div className="text-xs text-iron-orange">
+                        <span className="flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
+                          Dropsets: {setData.dropsetData.map(drop => `${drop.weight}kg×${drop.reps}`).join(', ')}
+                        </span>
+                      </div>
                     )}
-                    <span>{setData.reps} reps</span>
                   </div>
                 ) : isCurrentSet ? (
                   <div className="flex items-center gap-2">

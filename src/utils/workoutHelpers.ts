@@ -21,7 +21,17 @@ export const createWorkoutSession = (workoutDayId: string, exercises: Exercise[]
 export const calculateTotalVolume = (exercises: Exercise[]): number => {
   return exercises.reduce((total, exercise) => {
     return total + exercise.setData.reduce((exerciseTotal, set) => {
-      return exerciseTotal + (set.completed ? set.weight * set.reps : 0);
+      let setVolume = set.completed ? (set.weight || 0) * (set.reps || 0) : 0;
+      
+      // Adicionar volume dos dropsets
+      if (set.dropsetData && set.dropsetData.length > 0) {
+        const dropsetVolume = set.dropsetData.reduce((dropTotal, drop) => {
+          return dropTotal + drop.weight * drop.reps;
+        }, 0);
+        setVolume += dropsetVolume;
+      }
+      
+      return exerciseTotal + setVolume;
     }, 0);
   }, 0);
 };
@@ -94,13 +104,28 @@ export const calculatePersonalRecords = (history: WorkoutSession[]): Record<stri
           const key = exercise.name;
           
           if (!records[key] || 
-              set.weight > records[key].weight || 
-              (set.weight === records[key].weight && set.reps > records[key].reps)) {
+              (set.weight || 0) > records[key].weight || 
+              ((set.weight || 0) === records[key].weight && (set.reps || 0) > records[key].reps)) {
             records[key] = {
-              weight: set.weight,
-              reps: set.reps,
+              weight: set.weight || 0,
+              reps: set.reps || 0,
               date: session.date
             };
+          }
+          
+          // Verificar records nos dropsets também
+          if (set.dropsetData && set.dropsetData.length > 0) {
+            set.dropsetData.forEach(dropset => {
+              if (!records[key] || 
+                  dropset.weight > records[key].weight || 
+                  (dropset.weight === records[key].weight && dropset.reps > records[key].reps)) {
+                records[key] = {
+                  weight: dropset.weight,
+                  reps: dropset.reps,
+                  date: session.date
+                };
+              }
+            });
           }
         }
       });

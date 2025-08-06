@@ -4,6 +4,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Textarea } from './ui/textarea';
+import { Checkbox } from './ui/checkbox';
 import { X } from 'lucide-react';
 import { Exercise } from '../types/workout';
 
@@ -24,7 +25,8 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
     targetReps: exercise?.targetReps || '10',
     suggestedWeight: exercise?.suggestedWeight || 0,
     restTime: exercise?.restTime || 90,
-    notes: exercise?.notes || ''
+    notes: exercise?.notes || '',
+    hasDropset: exercise?.hasDropset || false
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,11 +39,12 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
       targetReps: formData.targetReps,
       suggestedWeight: formData.suggestedWeight || undefined,
       restTime: formData.restTime,
-      notes: formData.notes || undefined
+      notes: formData.notes || undefined,
+      hasDropset: formData.hasDropset
     });
   };
 
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -125,9 +128,20 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
               id="notes"
               value={formData.notes}
               onChange={(e) => handleChange('notes', e.target.value)}
-              placeholder="Dropset na última série, pegada pronada, etc..."
+              placeholder="Pegada pronada, técnica especial, etc..."
               rows={3}
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="hasDropset"
+              checked={formData.hasDropset}
+              onCheckedChange={(checked) => handleChange('hasDropset', checked)}
+            />
+            <Label htmlFor="hasDropset" className="text-sm font-medium">
+              Tem dropset na última série
+            </Label>
           </div>
 
           <div className="flex gap-3 pt-4">

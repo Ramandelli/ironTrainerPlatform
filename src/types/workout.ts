@@ -13,6 +13,8 @@ export interface Exercise {
   isTimeBased?: boolean;
   timePerSet?: number; // tempo em segundos por série
   isBilateral?: boolean; // se é exercício para ambos os lados
+  // Propriedades para dropset
+  hasDropset?: boolean; // se tem dropset na última série
 }
 
 export interface SetData {
@@ -24,6 +26,13 @@ export interface SetData {
   timeCompleted?: number; // tempo realizado em segundos
   leftSideCompleted?: boolean; // para exercícios bilaterais
   rightSideCompleted?: boolean; // para exercícios bilaterais
+  // Para dropsets
+  dropsetData?: DropsetData[];
+}
+
+export interface DropsetData {
+  weight: number;
+  reps: number;
 }
 
 export interface WorkoutDay {
