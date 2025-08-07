@@ -206,13 +206,15 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   </div>
                 ) : isCurrentSet ? (
                   <div className="flex items-center gap-2">
-                    {!exercise.isTimeBased && exercise.suggestedWeight && (
+                    {!exercise.isTimeBased && (
                       <Input
                         type="number"
                         placeholder="Peso"
                         value={currentSetInputs.weight}
                         onChange={(e) => setCurrentSetInputs(prev => ({ ...prev, weight: e.target.value }))}
                         className="w-20 h-8 text-sm"
+                        step="0.5"
+                        min="0"
                       />
                     )}
                     <Input
@@ -221,6 +223,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       value={currentSetInputs.reps}
                       onChange={(e) => setCurrentSetInputs(prev => ({ ...prev, reps: e.target.value }))}
                       className="w-20 h-8 text-sm"
+                      min="1"
                     />
                   </div>
                 ) : (
