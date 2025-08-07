@@ -215,7 +215,9 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
 
     // Workout type distribution
 const workoutDistribution: Record<string, number> = {};
+  console.log('Processing workout distribution for', history.length, 'sessions');
   history.forEach(session => {
+    console.log('Processing session:', session.date, session.id);
     try {
       // Converter a data ISO para objeto Date
       const [year, month, day] = session.date.split('-');
@@ -224,6 +226,8 @@ const workoutDistribution: Record<string, number> = {};
         parseInt(month) - 1, // Mês começa em 0 no JavaScript
         parseInt(day)
       );
+      
+      console.log('Session date parsed:', sessionDate, 'from', session.date);
       
       // Obter o dia da semana (0=domingo, 1=segunda, etc)
       const dayIndex = sessionDate.getDay();
@@ -240,11 +244,14 @@ const workoutDistribution: Record<string, number> = {};
       if (dayIndex >= 0 && dayIndex < days.length) {
         const dayName = days[dayIndex];
         workoutDistribution[dayName] = (workoutDistribution[dayName] || 0) + 1;
+        console.log('Added workout for', dayName, 'total:', workoutDistribution[dayName]);
       }
     } catch (e) {
       console.error('Erro ao processar data:', session.date, e);
     }
   });
+  
+  console.log('Final workoutDistribution:', workoutDistribution);
 
   return {
       averageWorkoutTime,
