@@ -93,9 +93,24 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
           if (set.completed) {
             exerciseData[exercise.name].maxWeight = Math.max(
               exerciseData[exercise.name].maxWeight,
-              set.weight
+              set.weight || 0
             );
-            exerciseData[exercise.name].totalVolume += set.weight * set.reps;
+            
+            // Volume da série principal
+            if (set.weight && set.reps) {
+              exerciseData[exercise.name].totalVolume += set.weight * set.reps;
+            }
+            
+            // Volume dos dropsets
+            if (set.dropsetData && set.dropsetData.length > 0) {
+              set.dropsetData.forEach(dropset => {
+                exerciseData[exercise.name].totalVolume += dropset.weight * dropset.reps;
+                exerciseData[exercise.name].maxWeight = Math.max(
+                  exerciseData[exercise.name].maxWeight,
+                  dropset.weight
+                );
+              });
+            }
           }
         });
       });
