@@ -29,9 +29,7 @@ const DAYS = [
 
 const AEROBIC_TYPES = [
   { value: 'esteira', label: 'Esteira' },
-  { value: 'bicicleta', label: 'Bicicleta' },
-  { value: 'transport', label: 'Transport' },
-  { value: 'rowing', label: 'Remo' }
+  { value: 'bicicleta', label: 'Bicicleta' }
 ];
 
 const INTENSITIES = [
@@ -77,6 +75,12 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
   const [editingExercise, setEditingExercise] = useState<{ exercise: Exercise; index: number; type: 'main' | 'abdominal' } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; type: 'main' | 'abdominal' } | null>(null);
   const [showAerobicForm, setShowAerobicForm] = useState(false);
+  const [aerobicDraft, setAerobicDraft] = useState<{
+    type?: 'esteira' | 'bicicleta';
+    duration?: string; // manter como string para validar vazio
+    intensity?: 'leve' | 'moderada' | 'intensa';
+    timing?: 'antes' | 'depois';
+  }>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,7 +245,10 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowAerobicForm(!showAerobicForm)}
+                  onClick={() => {
+                    setAerobicDraft({});
+                    setShowAerobicForm(true);
+                  }}
                 >
                   {formData.aerobic ? 'Editar' : 'Adicionar'} Aeróbico
                 </Button>
@@ -277,14 +284,11 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                       <div>
                         <Label>Tipo</Label>
                         <Select
-                          value={formData.aerobic?.type || ''}
-                          onValueChange={(value) => setFormData(prev => ({
-                            ...prev,
-                            aerobic: { ...prev.aerobic, type: value as any, completed: false }
-                          }))}
+                          value={aerobicDraft.type || ''}
+                          onValueChange={(value) => setAerobicDraft(prev => ({ ...prev, type: value as any }))}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Tipo" />
+                            <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
                             {AEROBIC_TYPES.map(type => (
@@ -299,13 +303,11 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                         <Label>Duração (min)</Label>
                         <Input
                           type="number"
-                          value={formData.aerobic?.duration || 10}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            aerobic: { ...prev.aerobic, duration: parseInt(e.target.value) || 10, completed: false }
-                          }))}
+                          placeholder="Ex: 20"
+                          value={aerobicDraft.duration || ''}
+                          onChange={(e) => setAerobicDraft(prev => ({ ...prev, duration: e.target.value }))}
                           min="1"
-                          max="60"
+                          max="180"
                         />
                       </div>
                     </div>
@@ -313,14 +315,11 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                       <div>
                         <Label>Intensidade</Label>
                         <Select
-                          value={formData.aerobic?.intensity || 'moderada'}
-                          onValueChange={(value) => setFormData(prev => ({
-                            ...prev,
-                            aerobic: { ...prev.aerobic, intensity: value as any, completed: false }
-                          }))}
+                          value={aerobicDraft.intensity || ''}
+                          onValueChange={(value) => setAerobicDraft(prev => ({ ...prev, intensity: value as any }))}
                         >
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
                             {INTENSITIES.map(intensity => (
@@ -334,14 +333,11 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                       <div>
                         <Label>Momento</Label>
                         <Select
-                          value={formData.aerobic?.timing || 'depois'}
-                          onValueChange={(value) => setFormData(prev => ({
-                            ...prev,
-                            aerobic: { ...prev.aerobic, timing: value as any, completed: false }
-                          }))}
+                          value={aerobicDraft.timing || ''}
+                          onValueChange={(value) => setAerobicDraft(prev => ({ ...prev, timing: value as any }))}
                         >
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="antes">Antes dos exercícios</SelectItem>
@@ -350,14 +346,39 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                         </Select>
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowAerobicForm(false)}
-                    >
-                      Fechar
-                    </Button>
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        className="flex-1"
+                        onClick={() => {
+                          if (!aerobicDraft.type || !aerobicDraft.duration || !aerobicDraft.intensity || !aerobicDraft.timing) return;
+                          setFormData(prev => ({
+                            ...prev,
+                            aerobic: {
+                              type: aerobicDraft.type as any,
+                              duration: parseInt(aerobicDraft.duration),
+                              intensity: aerobicDraft.intensity as any,
+                              timing: aerobicDraft.timing as any,
+                              completed: false
+                            }
+                          }));
+                          setShowAerobicForm(false);
+                          setAerobicDraft({});
+                        }}
+                        disabled={!aerobicDraft.type || !aerobicDraft.duration || !aerobicDraft.intensity || !aerobicDraft.timing}
+                      >
+                        Adicionar Exercício
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => { setShowAerobicForm(false); setAerobicDraft({}); }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}

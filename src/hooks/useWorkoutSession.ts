@@ -143,9 +143,14 @@ const loadSession = async () => {
       const updatedExercises = updateExerciseSet(currentSession.exercises, exerciseId, setIndex, setData);
       setCurrentSession(prev => prev ? { ...prev, exercises: updatedExercises } : null);
       
+      const parts: string[] = [];
+      if (typeof setData.weight === 'number') parts.push(`${setData.weight}kg`);
+      if (typeof setData.reps === 'number') parts.push(`${setData.reps} reps`);
+      if (typeof setData.timeCompleted === 'number') parts.push(`${setData.timeCompleted}s`);
+      
       toast({
         title: "Série completada! 💯",
-        description: `${setData.weight}kg x ${setData.reps} reps`,
+        description: parts.length > 0 ? parts.join(' × ') : undefined,
       });
     } catch (error) {
       console.error('Failed to complete set:', error);
@@ -244,6 +249,60 @@ const loadSession = async () => {
       console.error('Failed to skip aerobic:', error);
     }
   }, [currentSession, toast]);
+  
+  const completeAbdominalSet = useCallback(async (exerciseId: string, setIndex: number, setData: SetData) => {
+    if (!currentSession || !currentSession.abdominal) return;
+
+    try {
+      setCurrentSession(prev => {
+        if (!prev || !prev.abdominal) return prev;
+        const updated = prev.abdominal.map(ex => {
+          if (ex.id !== exerciseId) return ex;
+          const newSetData = [...ex.setData];
+          newSetData[setIndex] = { ...newSetData[setIndex], ...setData } as SetData;
+          const nextSet = Math.min(ex.currentSet + 1, ex.sets);
+          const isAllSetsCompleted = newSetData.filter(s => s?.completed).length >= ex.sets;
+          return {
+            ...ex,
+            setData: newSetData,
+            currentSet: isAllSetsCompleted ? ex.currentSet : nextSet,
+            completed: isAllSetsCompleted ? true : ex.completed,
+          };
+        });
+        return { ...prev, abdominal: updated };
+      });
+
+      const parts: string[] = [];
+      if (typeof setData.reps === 'number') parts.push(`${setData.reps} reps`);
+      if (typeof setData.timeCompleted === 'number') parts.push(`${setData.timeCompleted}s`);
+
+      toast({
+        title: "Série de abdominal completada! ⏱️",
+        description: parts.join(' × '),
+      });
+    } catch (error) {
+      console.error('Failed to complete abdominal set:', error);
+    }
+  }, [currentSession, toast]);
+
+  const completeAbdominalExercise = useCallback(async (exerciseId: string) => {
+    if (!currentSession || !currentSession.abdominal) return;
+
+    try {
+      setCurrentSession(prev => {
+        if (!prev || !prev.abdominal) return prev;
+        const updated = completeExercise(prev.abdominal, exerciseId);
+        return { ...prev, abdominal: updated };
+      });
+
+      toast({
+        title: "Abdominal concluído! ✅",
+        description: "Ótimo trabalho!",
+      });
+    } catch (error) {
+      console.error('Failed to complete abdominal exercise:', error);
+    }
+  }, [currentSession, toast]);
 
   const finishWorkout = useCallback(async (notes?: string) => {
     if (!currentSession) return;
@@ -337,6 +396,8 @@ const loadSession = async () => {
     finishWorkout,
     cancelWorkout,
     completeAerobic,
-    skipAerobic // Nova função para pular o cardio
+    skipAerobic, // Nova função para pular o cardio
+    completeAbdominalSet,
+    completeAbdominalExercise,
   };
 };

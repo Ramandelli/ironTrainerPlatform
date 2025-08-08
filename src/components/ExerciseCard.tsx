@@ -13,6 +13,7 @@ interface ExerciseCardProps {
   onExerciseComplete: () => void;
   onStartRest: (setIndex: number) => void;
   isActive?: boolean;
+  hideWeightInputs?: boolean;
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -20,7 +21,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onSetComplete,
   onExerciseComplete,
   onStartRest,
-  isActive = false
+  isActive = false,
+  hideWeightInputs = false
 }) => {
   const [currentSetInputs, setCurrentSetInputs] = useState<{ weight: string; reps: string }>({
     weight: '',
@@ -206,18 +208,18 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   </div>
                 ) : isCurrentSet ? (
                   <div className="flex items-center gap-2">
-                    {!exercise.isTimeBased && (
-                      <Input
-                        type="number"
-                        placeholder="Peso"
-                        value={currentSetInputs.weight}
-                        onChange={(e) => setCurrentSetInputs(prev => ({ ...prev, weight: e.target.value }))}
-                        className="w-20 h-8 text-sm"
-                        step="0.5"
-                        min="0"
-                      />
-                    )}
+                  {(!exercise.isTimeBased && !hideWeightInputs) && (
                     <Input
+                      type="number"
+                      placeholder="Peso"
+                      value={currentSetInputs.weight}
+                      onChange={(e) => setCurrentSetInputs(prev => ({ ...prev, weight: e.target.value }))}
+                      className="w-20 h-8 text-sm"
+                      step="0.5"
+                      min="0"
+                    />
+                  )}
+                  <Input
                       type="number"
                       placeholder="Reps"
                       value={currentSetInputs.reps}

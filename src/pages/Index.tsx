@@ -32,8 +32,10 @@ const Index = () => {
     finishWorkout,
     cancelWorkout,
     completeAerobic,
-    skipAerobic // ADICIONADO: Nova função para pular cardio
-  } = useWorkoutSession(); // ATUALIZADO: Adicionado skipAerobic
+    skipAerobic, // ADICIONADO: Nova função para pular cardio
+    completeAbdominalSet,
+    completeAbdominalExercise
+  } = useWorkoutSession(); // ATUALIZADO: Adicionado skipAerobic e funções de abdominal
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
@@ -568,6 +570,9 @@ const Index = () => {
               <div className="text-center">
                 <h2 className="text-xl font-bold text-foreground mb-2">Exercícios Abdominais</h2>
                 <p className="text-sm text-muted-foreground mb-4">Complete os exercícios abdominais para finalizar</p>
+                <Button variant="outline" className="w-full" onClick={() => setAbdominalCompleted(true)}>
+                  Pular Abdominais
+                </Button>
               </div>
               
               {currentSession.abdominal?.map((exercise) => (
@@ -575,18 +580,29 @@ const Index = () => {
                   <AbdominalTimer
                     key={exercise.id}
                     exercise={exercise}
-                    onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
-                    onExerciseComplete={() => handleExerciseComplete(exercise.id)}
+                    onSetComplete={(setIndex, setData) => {
+                      completeAbdominalSet(exercise.id, setIndex, setData);
+                      if (setIndex < (exercise.sets - 1)) {
+                        startRestTimer(60, 'rest-between-sets', exercise.id, setIndex);
+                      }
+                    }}
+                    onExerciseComplete={() => completeAbdominalExercise(exercise.id)}
                     isActive={!exercise.completed}
                   />
                 ) : (
                   <ExerciseCard
                     key={exercise.id}
                     exercise={exercise}
-                    onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
-                    onExerciseComplete={() => handleExerciseComplete(exercise.id)}
+                    onSetComplete={(setIndex, setData) => {
+                      completeAbdominalSet(exercise.id, setIndex, setData);
+                      if (setIndex < (exercise.sets - 1)) {
+                        startRestTimer(60, 'rest-between-sets', exercise.id, setIndex);
+                      }
+                    }}
+                    onExerciseComplete={() => completeAbdominalExercise(exercise.id)}
                     onStartRest={(setIndex) => startRestTimer(60, 'rest-between-sets', exercise.id, setIndex)}
                     isActive={!exercise.completed}
+                    hideWeightInputs
                   />
                 )
               )) || []}
