@@ -125,21 +125,22 @@ const Index = () => {
   const checkRestDay = async () => {
     const todayWorkoutId = getTodayWorkoutId();
     const todaysWorkout = findTodaysWorkout();
-    
-    // Se existe treino programado para hoje, não é dia de folga
-    if (todaysWorkout) {
-      setIsRestDay(false);
+
+    // Prioridade para descanso manual: se marcado, é dia de descanso
+    const isManualRest = await restDayManager.isTodayRestDay();
+    if (isManualRest) {
+      setIsRestDay(true);
       return;
     }
-    
-    // Se não existe treino e é fim de semana, é dia de folga
-    if (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday') {
+
+    // Se não há treino programado e for fim de semana, é descanso
+    if (!todaysWorkout && (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday')) {
       setIsRestDay(true);
-    } else {
-      // Se não é fim de semana, verificar se foi marcado manualmente como folga
-      const isManualRest = await restDayManager.isTodayRestDay();
-      setIsRestDay(isManualRest);
+      return;
     }
+
+    // Caso contrário, não é dia de descanso
+    setIsRestDay(false);
   };
 
   const loadWorkouts = async () => {

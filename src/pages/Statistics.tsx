@@ -8,6 +8,7 @@ import { storage } from '../utils/storage';
 import { WorkoutSession, WorkoutStats } from '../types/workout';
 import { calculatePersonalRecords, calculateWeeklyStats } from '../utils/workoutHelpers';
 import { useToast } from '../hooks/use-toast';
+import { restDayManager } from '../utils/restDays';
 
 interface StatisticsProps {
   onBack: () => void;
@@ -19,6 +20,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
   const { toast } = useToast();
+  const [customRestDays, setCustomRestDays] = useState<string[]>([]);
 
   // Função para converter segundos em formato HH:MM:SS
   const formatTime = (totalSeconds: number): string => {
@@ -47,6 +49,19 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   };
 
   loadData();
+}, []);
+
+// Carregar dias de descanso customizados
+useEffect(() => {
+  const loadRestDays = async () => {
+    try {
+      const days = await restDayManager.getCustomRestDays();
+      setCustomRestDays(days);
+    } catch (e) {
+      console.error('Falha ao carregar dias de descanso:', e);
+    }
+  };
+  loadRestDays();
 }, []);
 
   const loadData = async () => {
@@ -157,8 +172,71 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
     const periodStart = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
     const periodHistory = history.filter(session => session.startTime >= periodStart);
     
-    return calculateCardioTime(periodHistory);
-  }, [history, selectedPeriod]);
+  return calculateCardioTime(periodHistory);
+}, [history, selectedPeriod]);
+
+// Dias de descanso no período selecionado (fins de semana sem treino + dias marcados manualmente)
+const restDaysCount = React.useMemo(() => {
+  const toYMD = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  const parseSessionDate = (dateStr: string): Date => {
+    if (dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split('/');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    const [year, month, day] = dateStr.split('-');
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  };
+  const oneDay = 24 * 60 * 60 * 1000;
+
+  let start: number;
+  if (selectedPeriod === 'all') {
+    const historyTimes = history.map(s => parseSessionDate(s.date).getTime());
+    const customTimes = customRestDays.map(d => new Date(`${d}T00:00:00`).getTime());
+    const minHistory = historyTimes.length ? Math.min(...historyTimes) : Number.POSITIVE_INFINITY;
+    const minCustom = customTimes.length ? Math.min(...customTimes) : Number.POSITIVE_INFINITY;
+    const minTime = Math.min(minHistory, minCustom);
+    start = Number.isFinite(minTime) ? minTime : (Date.now() - 30 * oneDay);
+  } else {
+    const daysBack = selectedPeriod === 'week' ? 7 : 30;
+    start = Date.now() - (daysBack * oneDay);
+  }
+
+  const startDate = new Date(start);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date();
+  endDate.setHours(0, 0, 0, 0);
+
+  const workoutDates = new Set<string>();
+  history.forEach(s => {
+    const d = parseSessionDate(s.date);
+    if (d.getTime() >= startDate.getTime() && d.getTime() <= endDate.getTime() && s.completed) {
+      workoutDates.add(toYMD(d));
+    }
+  });
+
+  const customSet = new Set(customRestDays);
+
+  let count = 0;
+  for (let t = startDate.getTime(); t <= endDate.getTime(); t += oneDay) {
+    const d = new Date(t);
+    const ymd = toYMD(d);
+    const dow = d.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const hasWorkout = workoutDates.has(ymd);
+    const isCustom = customSet.has(ymd);
+
+    if (!hasWorkout && (isCustom || isWeekend)) {
+      count++;
+    }
+  }
+
+  return count;
+}, [history, customRestDays, selectedPeriod]);
 
   // Advanced statistics
   const advancedStats = React.useMemo(() => {
@@ -437,6 +515,20 @@ const workoutDistribution: Record<string, number> = {};
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="flex items-center justify-center mb-2">
+              <Calendar className="w-4 h-4 text-iron-orange" />
+            </div>
+            <div className="text-lg font-bold text-foreground">
+              {restDaysCount}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Dias de descanso ({selectedPeriod === 'week' ? 'semana' : selectedPeriod === 'month' ? 'mês' : 'total'})
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Cardio Stats */}
         <Card>
