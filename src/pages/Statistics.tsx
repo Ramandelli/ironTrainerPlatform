@@ -21,6 +21,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
   const { toast } = useToast();
   const [customRestDays, setCustomRestDays] = useState<string[]>([]);
+  const [installDate, setInstallDate] = useState<string | null>(null);
 
   // Função para converter segundos em formato HH:MM:SS
   const formatTime = (totalSeconds: number): string => {
@@ -62,6 +63,19 @@ useEffect(() => {
     }
   };
   loadRestDays();
+}, []);
+
+// Carregar data de instalação para limitar contagem de descanso
+useEffect(() => {
+  const loadInstallDate = async () => {
+    try {
+      const date = await storage.getItem('app_install_date');
+      setInstallDate(date);
+    } catch (e) {
+      console.error('Falha ao carregar data de instalação:', e);
+    }
+  };
+  loadInstallDate();
 }, []);
 
   const loadData = async () => {
@@ -193,17 +207,26 @@ const restDaysCount = React.useMemo(() => {
   };
   const oneDay = 24 * 60 * 60 * 1000;
 
-  let start: number;
+  let baseStart: number;
   if (selectedPeriod === 'all') {
     const historyTimes = history.map(s => parseSessionDate(s.date).getTime());
     const customTimes = customRestDays.map(d => new Date(`${d}T00:00:00`).getTime());
     const minHistory = historyTimes.length ? Math.min(...historyTimes) : Number.POSITIVE_INFINITY;
     const minCustom = customTimes.length ? Math.min(...customTimes) : Number.POSITIVE_INFINITY;
     const minTime = Math.min(minHistory, minCustom);
-    start = Number.isFinite(minTime) ? minTime : (Date.now() - 30 * oneDay);
+    baseStart = Number.isFinite(minTime) ? minTime : (Date.now() - 30 * oneDay);
   } else {
     const daysBack = selectedPeriod === 'week' ? 7 : 30;
-    start = Date.now() - (daysBack * oneDay);
+    baseStart = Date.now() - (daysBack * oneDay);
+  }
+
+  // Aplicar data de instalação como limite inferior
+  let start = baseStart;
+  if (installDate) {
+    const installTime = new Date(`${installDate}T00:00:00`).getTime();
+    if (Number.isFinite(installTime)) {
+      start = Math.max(baseStart, installTime);
+    }
   }
 
   const startDate = new Date(start);
@@ -236,7 +259,7 @@ const restDaysCount = React.useMemo(() => {
   }
 
   return count;
-}, [history, customRestDays, selectedPeriod]);
+}, [history, customRestDays, selectedPeriod, installDate]);
 
   // Advanced statistics
   const advancedStats = React.useMemo(() => {

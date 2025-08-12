@@ -239,6 +239,33 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
       console.error(`Failed to remove item ${key}:`, error);
     }
   }
+
+  // App install date utilities
+  private readonly INSTALL_DATE_KEY = 'app_install_date';
+
+  // Ensure the app install date is set (YYYY-MM-DD)
+  async ensureInstallDate(): Promise<void> {
+    try {
+      const { value } = await Preferences.get({ key: this.INSTALL_DATE_KEY });
+      if (!value) {
+        const today = new Date().toISOString().split('T')[0];
+        await Preferences.set({ key: this.INSTALL_DATE_KEY, value: today });
+      }
+    } catch (error) {
+      console.error('Failed to ensure install date:', error);
+    }
+  }
+
+  // Get the stored app install date (YYYY-MM-DD)
+  async getInstallDate(): Promise<string | null> {
+    try {
+      const { value } = await Preferences.get({ key: this.INSTALL_DATE_KEY });
+      return value || null;
+    } catch (error) {
+      console.error('Failed to get install date:', error);
+      return null;
+    }
+  }
 }
 
 export const storage = new StorageManager();
