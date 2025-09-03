@@ -261,6 +261,45 @@ const restDaysCount = React.useMemo(() => {
   return count;
 }, [history, customRestDays, selectedPeriod, installDate]);
 
+  // Abdominal statistics
+  const abdominalStats = React.useMemo(() => {
+    if (history.length === 0) {
+      return {
+        totalAbdominalSets: 0,
+        totalAbdominalReps: 0,
+        totalAbdominalTimeSeconds: 0
+      };
+    }
+
+    let totalAbdominalSets = 0;
+    let totalAbdominalReps = 0;
+    let totalAbdominalTimeSeconds = 0;
+
+    history.forEach(session => {
+      if (session.abdominal) {
+        session.abdominal.forEach(exercise => {
+          const completedSets = exercise.setData.filter(set => set.completed);
+          totalAbdominalSets += completedSets.length;
+          
+          completedSets.forEach(set => {
+            if (set.reps) {
+              totalAbdominalReps += set.reps;
+            }
+            if (set.timeCompleted) {
+              totalAbdominalTimeSeconds += set.timeCompleted;
+            }
+          });
+        });
+      }
+    });
+
+    return {
+      totalAbdominalSets,
+      totalAbdominalReps,
+      totalAbdominalTimeSeconds
+    };
+  }, [history]);
+
   // Advanced statistics
   const advancedStats = React.useMemo(() => {
     if (history.length === 0) {
@@ -268,7 +307,6 @@ const restDaysCount = React.useMemo(() => {
         averageWorkoutTime: 0,
         totalSets: 0,
         totalReps: 0,
-        streak: 0,
         mostFrequentExercise: '',
         averageRestTime: 0,
         workoutDistribution: {}
@@ -297,22 +335,6 @@ const restDaysCount = React.useMemo(() => {
     // Most frequent exercise
     const mostFrequentExercise = Object.entries(exerciseFrequency)
       .sort(([,a], [,b]) => b - a)[0]?.[0] || '';
-
-    // Current streak (consecutive days with workouts)
-    const workoutDates = [...new Set(history.map(w => new Date(w.date).toDateString()))].sort();
-    let streak = 0;
-    const today = new Date();
-    
-    for (let i = workoutDates.length - 1; i >= 0; i--) {
-      const workoutDate = new Date(workoutDates[i]);
-      const daysDiff = Math.floor((today.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (daysDiff === streak || (streak === 0 && daysDiff <= 1)) {
-        streak++;
-      } else {
-        break;
-      }
-    }
 
     // Workout type distribution
 const workoutDistribution: Record<string, number> = {};
@@ -364,7 +386,6 @@ const workoutDistribution: Record<string, number> = {};
       averageWorkoutTime,
       totalSets,
       totalReps,
-      streak,
       mostFrequentExercise,
       workoutDistribution
     };
@@ -468,13 +489,13 @@ const workoutDistribution: Record<string, number> = {};
           <Card>
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center mb-2">
-                <Flame className="w-5 h-5 text-iron-orange" />
+                <Target className="w-5 h-5 text-iron-orange" />
               </div>
               <div className="text-2xl font-bold text-foreground">
-                {advancedStats.streak}
+                {abdominalStats.totalAbdominalSets}
               </div>
               <div className="text-sm text-muted-foreground">
-                Sequência (dias)
+                Séries abdominais
               </div>
             </CardContent>
           </Card>
@@ -549,6 +570,44 @@ const workoutDistribution: Record<string, number> = {};
             </div>
             <div className="text-xs text-muted-foreground">
               Dias de descanso ({selectedPeriod === 'week' ? 'semana' : selectedPeriod === 'month' ? 'mês' : 'total'})
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Abdominal Statistics */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-iron-orange" />
+              Estatísticas Abdominais
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <div className="text-lg font-bold text-foreground">
+                  {abdominalStats.totalAbdominalSets}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total séries
+                </div>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <div className="text-lg font-bold text-foreground">
+                  {abdominalStats.totalAbdominalReps}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total reps
+                </div>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <div className="text-lg font-bold text-foreground">
+                  {formatTime(abdominalStats.totalAbdominalTimeSeconds)}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total tempo
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -242,6 +242,38 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
 
   // App install date utilities
   private readonly INSTALL_DATE_KEY = 'app_install_date';
+  private readonly WORKOUT_AVERAGES_KEY = 'workout_averages';
+
+  async getWorkoutAverages(): Promise<Record<string, number>> {
+    try {
+      const { value } = await Preferences.get({ key: this.WORKOUT_AVERAGES_KEY });
+      return value ? JSON.parse(value) : {};
+    } catch (error) {
+      console.error('Error getting workout averages:', error);
+      return {};
+    }
+  }
+
+  async updateWorkoutAverage(workoutDayId: string, duration: number): Promise<void> {
+    try {
+      const averages = await this.getWorkoutAverages();
+      
+      if (averages[workoutDayId]) {
+        // Calcular nova média (assumindo que já temos pelo menos um registro)
+        averages[workoutDayId] = Math.round((averages[workoutDayId] + duration) / 2);
+      } else {
+        // Primeira vez fazendo este treino
+        averages[workoutDayId] = duration;
+      }
+      
+      await Preferences.set({ 
+        key: this.WORKOUT_AVERAGES_KEY, 
+        value: JSON.stringify(averages) 
+      });
+    } catch (error) {
+      console.error('Error updating workout average:', error);
+    }
+  }
 
   // Ensure the app install date is set (YYYY-MM-DD)
   async ensureInstallDate(): Promise<void> {

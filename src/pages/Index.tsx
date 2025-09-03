@@ -38,7 +38,9 @@ const Index = () => {
   } = useWorkoutSession(); // ATUALIZADO: Adicionado skipAerobic e funções de abdominal
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
+  const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
+  const [workoutAverages, setWorkoutAverages] = useState<Record<string, number>>({});
   const [isRestDay, setIsRestDay] = useState(false);
   const [currentView, setCurrentView] = useState<'home' | 'workout' | 'workout-view' | 'statistics' | 'management'>('home');
   const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null);
@@ -47,6 +49,15 @@ const Index = () => {
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
   const [aerobicContext, setAerobicContext] = useState<'before' | 'after' | null>(null);
   const [currentTime, setCurrentTime] = useState(0); // Moved to top level
+
+  const getLastWorkoutTime = () => {
+    if (history.length === 0) return 0;
+    
+    const lastSession = history.find(session => session.endTime);
+    if (!lastSession || !lastSession.endTime) return 0;
+    
+    return Math.round((lastSession.endTime - lastSession.startTime) / 60000);
+  };
 
   // Update workout timer in real-time when in workout mode
   useEffect(() => {
@@ -60,10 +71,27 @@ const Index = () => {
   }, [currentView, currentSession]);
 
   useEffect(() => {
-    loadStats();
+    const loadData = async () => {
+      try {
+        const [loadedStats, workoutHistoryData, averages] = await Promise.all([
+          storage.loadStats(),
+          storage.loadWorkoutHistory(),
+          storage.getWorkoutAverages()
+        ]);
+        setStats(loadedStats);
+        setHistory(workoutHistoryData);
+        setWorkoutHistory(workoutHistoryData);
+        setWorkoutAverages(averages || {});
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        // Remove setIsLoading since it's not exported from useWorkoutSession
+      }
+    };
+
+    loadData();
     loadWorkouts();
     checkRestDay();
-    loadHistory();
   }, []);
 
   useEffect(() => {
@@ -212,6 +240,16 @@ const Index = () => {
   };
 
   const handleFinishWorkout = async () => {
+    if (!currentSession) return;
+    
+    // Calcular e salvar a nova média do treino
+    const workoutDuration = Math.round((Date.now() - currentSession.startTime) / 60000);
+    await storage.updateWorkoutAverage(currentSession.workoutDayId, workoutDuration);
+    
+    // Recarregar médias
+    const updatedAverages = await storage.getWorkoutAverages();
+    setWorkoutAverages(updatedAverages || {});
+    
     await finishWorkout();
     setCurrentView('home');
     setShowAerobicTimer(false);
@@ -714,10 +752,10 @@ const Index = () => {
                 <Clock className="w-5 h-5 text-iron-orange" />
               </div>
               <div className="text-2xl font-bold text-foreground">
-                {stats?.averageTime || 0}min
+                {getLastWorkoutTime()}min
               </div>
               <div className="text-sm text-muted-foreground">
-                Média semanal
+                Último treino
               </div>
             </CardContent>
           </Card>
@@ -779,7 +817,7 @@ const Index = () => {
                 workoutDay={todayWorkout}
                 onStartWorkout={() => handleStartWorkout(todayWorkout.id)}
                 isToday={true}
-                averageTime={stats?.averageTime}
+                averageTime={workoutAverages[todayWorkout.id] || 0}
                 isCompleted={isTodayWorkoutCompleted(todayWorkout.id)}
               />
             )}
@@ -798,7 +836,7 @@ const Index = () => {
                 workoutDay={workoutDay}
                 onStartWorkout={() => handleViewWorkout(workoutDay.id)}
                 isToday={false}
-                averageTime={stats?.averageTime}
+                averageTime={workoutAverages[workoutDay.id] || 0}
               />
             ))}
           </div>
