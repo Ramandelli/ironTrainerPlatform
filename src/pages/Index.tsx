@@ -53,9 +53,14 @@ const Index = () => {
   const getLastWorkoutTime = () => {
     if (history.length === 0) return 0;
     
-    const lastSession = history.find(session => session.endTime);
-    if (!lastSession || !lastSession.endTime) return 0;
+    // Ordenar por data mais recente e pegar o último treino completado
+    const completedSessions = history
+      .filter(session => session.completed && session.endTime)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
+    if (completedSessions.length === 0) return 0;
+    
+    const lastSession = completedSessions[0];
     return Math.round((lastSession.endTime - lastSession.startTime) / 60000);
   };
 
