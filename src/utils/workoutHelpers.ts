@@ -141,8 +141,8 @@ export const calculateWeeklyStats = (history: WorkoutSession[]): { averageTime: 
   
   // Filtrar sessões da última semana
   const thisWeek = history.filter(session => {
-    const [day, month, year] = session.date.split('/');
-    const sessionDate = new Date(`${year}-${month}-${day}`).getTime();
+    // Data já está no formato yyyy-MM-dd
+    const sessionDate = new Date(`${session.date}T00:00:00`).getTime();
     return sessionDate > oneWeekAgo;
   });
 
@@ -164,10 +164,10 @@ export const calculateWeeklyStats = (history: WorkoutSession[]): { averageTime: 
 
 export const isWorkoutCompletedToday = (history: WorkoutSession[], workoutDayId: string): boolean => {
   const today = new Date();
-  const day = String(today.getDate()).padStart(2, '0');
-  const month = String(today.getMonth() + 1).padStart(2, '0');
   const year = today.getFullYear();
-  const todayStr = `${day}/${month}/${year}`;
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
   
   return history.some(session => 
     session.date === todayStr && 
