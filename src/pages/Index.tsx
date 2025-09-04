@@ -108,6 +108,7 @@ const Index = () => {
   const loadHistory = async () => {
     try {
       const historyData = await storage.loadWorkoutHistory();
+      setHistory(historyData);
       setWorkoutHistory(historyData);
     } catch (error) {
       console.error('Failed to load history:', error);
