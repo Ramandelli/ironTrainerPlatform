@@ -787,14 +787,9 @@ const workoutDistribution: Record<string, number> = {};
           </CardHeader>
           <CardContent className="space-y-3">
   {history.slice(0, 5).map((session) => {
-    // A data já está no formato yyyy-MM-dd, apenas criar o objeto Date
-    const formattedDate = new Date(session.date);
-    
-    const workoutDate = formattedDate.toLocaleDateString('pt-BR', { 
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    // Converter data do formato yyyy-MM-dd para dd/MM/yyyy
+    const [year, month, day] = session.date.split('-');
+    const workoutDate = `${day}/${month}/${year}`;
               const workoutTime = session.endTime 
       ? Math.round((session.endTime - session.startTime) / 60000)
       : 0;
