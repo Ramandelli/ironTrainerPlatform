@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { WorkoutForm } from '../components/WorkoutForm';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
+import { ImportExportGuide } from '../components/ImportExportGuide';
 import { useToast } from '../hooks/use-toast';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
@@ -34,6 +35,9 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
   const [deleteConfirm, setDeleteConfirm] = useState<WorkoutDay | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+
+  // File input ref for importing workouts
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadWorkouts();
@@ -164,6 +168,67 @@ const getWorkoutId = (day: string) => {
     }
   };
 
+  // Export workouts to JSON file
+  const handleExportWorkouts = async () => {
+    try {
+      const jsonData = await customWorkoutManager.exportWorkouts();
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `treinos_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Sucesso",
+        description: "Treinos exportados com sucesso!",
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao exportar treinos",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Import workouts from JSON file
+  const handleImportWorkouts = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const jsonData = e.target?.result as string;
+        await customWorkoutManager.importWorkouts(jsonData);
+        await loadWorkouts(); // Reload to show imported workouts
+        
+        toast({
+          title: "Sucesso",
+          description: "Treinos importados com sucesso!",
+        });
+      } catch (error) {
+        console.error('Import failed:', error);
+        toast({
+          title: "Erro",
+          description: "Falha ao importar treinos. Verifique se o arquivo está correto.",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsText(file);
+    
+    // Clear the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   if (showWorkoutForm) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -210,16 +275,48 @@ const getWorkoutId = (day: string) => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={handleCreateWorkout} size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Novo
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleExportWorkouts} 
+                size="sm" 
+                variant="outline"
+                title="Exportar treinos"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Exportar
+              </Button>
+              <Button 
+                onClick={() => fileInputRef.current?.click()} 
+                size="sm" 
+                variant="outline"
+                title="Importar treinos"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Importar
+              </Button>
+              <Button onClick={handleCreateWorkout} size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Novo
+              </Button>
+            </div>
           </div>
+          
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportWorkouts}
+            style={{ display: 'none' }}
+          />
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-2xl mx-auto p-4 space-y-6 pb-24">
+        {/* Import/Export Guide */}
+        <ImportExportGuide />
+
         {loading ? (
           <div className="text-center py-8">
             <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
