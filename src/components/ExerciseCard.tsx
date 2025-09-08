@@ -11,7 +11,6 @@ interface ExerciseCardProps {
   exercise: Exercise;
   onSetComplete: (setIndex: number, setData: SetData) => void;
   onExerciseComplete: () => void;
-  onStartRest: (setIndex: number) => void;
   isActive?: boolean;
   hideWeightInputs?: boolean;
 }
@@ -20,7 +19,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   exercise,
   onSetComplete,
   onExerciseComplete,
-  onStartRest,
   isActive = false,
   hideWeightInputs = false
 }) => {
@@ -54,11 +52,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       };
       
       onSetComplete(exercise.currentSet, setData);
-      
-      // Start rest timer if not the last set
-      if (exercise.currentSet < exercise.sets - 1) {
-        onStartRest(exercise.currentSet);
-      }
       
       // Clear inputs
       setCurrentSetInputs({ weight: '', reps: '' });

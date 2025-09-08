@@ -231,8 +231,10 @@ const Index = () => {
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: any) => {
     completeSet(exerciseId, setIndex, setData);
     
-    if (setIndex < (currentSession?.exercises.find(e => e.id === exerciseId)?.sets || 0) - 1) {
-      startRestTimer(90, 'rest-between-sets', exerciseId, setIndex);
+    const exercise = currentSession?.exercises.find(e => e.id === exerciseId);
+    if (setIndex < (exercise?.sets || 0) - 1) {
+      const restTime = exercise?.restTime || 90;
+      startRestTimer(restTime, 'rest-between-sets', exerciseId, setIndex);
     }
   };
 
@@ -605,7 +607,6 @@ const Index = () => {
               exercise={exercise}
               onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
               onExerciseComplete={() => handleExerciseComplete(exercise.id)}
-              onStartRest={(setIndex) => startRestTimer(90, 'rest-between-sets', exercise.id, setIndex)}
               isActive={nextExercise?.id === exercise.id}
             />
           ))}
@@ -628,7 +629,8 @@ const Index = () => {
                     onSetComplete={(setIndex, setData) => {
                       completeAbdominalSet(exercise.id, setIndex, setData);
                       if (setIndex < (exercise.sets - 1)) {
-                        startRestTimer(60, 'rest-between-sets', exercise.id, setIndex);
+                        const restTime = exercise.restTime || 60;
+                        startRestTimer(restTime, 'rest-between-sets', exercise.id, setIndex);
                       }
                     }}
                     onExerciseComplete={() => completeAbdominalExercise(exercise.id)}
@@ -641,11 +643,11 @@ const Index = () => {
                     onSetComplete={(setIndex, setData) => {
                       completeAbdominalSet(exercise.id, setIndex, setData);
                       if (setIndex < (exercise.sets - 1)) {
-                        startRestTimer(60, 'rest-between-sets', exercise.id, setIndex);
+                        const restTime = exercise.restTime || 60;
+                        startRestTimer(restTime, 'rest-between-sets', exercise.id, setIndex);
                       }
                     }}
                     onExerciseComplete={() => completeAbdominalExercise(exercise.id)}
-                    onStartRest={(setIndex) => startRestTimer(60, 'rest-between-sets', exercise.id, setIndex)}
                     isActive={!exercise.completed}
                     hideWeightInputs
                   />

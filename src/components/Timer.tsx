@@ -27,27 +27,19 @@ export const Timer: React.FC<TimerProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [startTime] = useState(Date.now());
 
-  // Load saved state on mount
+  // Load saved state on mount from global storage only
   useEffect(() => {
-    const loadSavedState = () => {
+    const loadSavedState = async () => {
       try {
-        const timerKey = exerciseId ? `${type}_${exerciseId}_${setIndex}` : type;
-        const saved = localStorage.getItem(`timer_${timerKey}`);
-        if (saved) {
-          const { savedTimeLeft, savedIsActive, savedIsPaused, savedStartTime } = JSON.parse(saved);
+        const savedTimer = await storage.loadTimerState();
+        if (savedTimer && savedTimer.timeLeft > 0) {
+          const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+          const adjustedTimeLeft = Math.max(0, savedTimer.timeLeft - elapsedSeconds);
           
-          if (savedStartTime) {
-            // Calculate elapsed time and adjust timeLeft only if timer was active
-            if (savedIsActive && !savedIsPaused) {
-              const elapsedSeconds = Math.floor((Date.now() - savedStartTime) / 1000);
-              const adjustedTimeLeft = Math.max(0, initialTime - elapsedSeconds);
-              setTimeLeft(adjustedTimeLeft);
-              setIsActive(adjustedTimeLeft > 0);
-            } else {
-              setTimeLeft(savedTimeLeft);
-              setIsActive(savedIsActive);
-            }
-            setIsPaused(savedIsPaused);
+          if (adjustedTimeLeft > 0) {
+            setTimeLeft(adjustedTimeLeft);
+            setIsActive(true);
+            setIsPaused(false);
           }
         }
       } catch (error) {
@@ -56,36 +48,21 @@ export const Timer: React.FC<TimerProps> = ({
     };
 
     loadSavedState();
-  }, [initialTime, type, exerciseId, setIndex]);
+  }, [initialTime, startTime]);
 
-  // Save timer state whenever it changes
+  // Save timer state to global storage only
   useEffect(() => {
-    try {
-      const timerKey = exerciseId ? `${type}_${exerciseId}_${setIndex}` : type;
-      const stateToSave = {
-        savedTimeLeft: timeLeft,
-        savedIsActive: isActive,
-        savedIsPaused: isPaused,
-        savedStartTime: startTime
-      };
-      
-      localStorage.setItem(`timer_${timerKey}`, JSON.stringify(stateToSave));
-    } catch (error) {
-      console.error('Error saving timer state:', error);
-    }
-  }, [timeLeft, isActive, isPaused, startTime, type, exerciseId, setIndex]);
-
-  useEffect(() => {
-    // Save timer state constantly
     const saveState = async () => {
-      const timerState: TimerState = {
-        isActive,
-        timeLeft,
-        type,
-        exerciseId,
-        setIndex
-      };
-      await storage.saveTimerState(timerState);
+      if (timeLeft > 0 && isActive) {
+        const timerState: TimerState = {
+          isActive,
+          timeLeft,
+          type,
+          exerciseId,
+          setIndex
+        };
+        await storage.saveTimerState(timerState);
+      }
     };
 
     saveState();
@@ -114,8 +91,6 @@ export const Timer: React.FC<TimerProps> = ({
   const handleComplete = async () => {
     setIsActive(false);
     try {
-      const timerKey = exerciseId ? `${type}_${exerciseId}_${setIndex}` : type;
-      localStorage.removeItem(`timer_${timerKey}`);
       await storage.clearTimerState();
     } catch (error) {
       console.error('Error clearing timer state:', error);
@@ -126,8 +101,6 @@ export const Timer: React.FC<TimerProps> = ({
   const handleCancel = async () => {
     setIsActive(false);
     try {
-      const timerKey = exerciseId ? `${type}_${exerciseId}_${setIndex}` : type;
-      localStorage.removeItem(`timer_${timerKey}`);
       await storage.clearTimerState();
     } catch (error) {
       console.error('Error clearing timer state:', error);
