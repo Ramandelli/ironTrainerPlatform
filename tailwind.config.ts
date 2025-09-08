@@ -53,7 +53,7 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				// Iron Tracker custom colors
+				
 				iron: {
 					orange: 'hsl(var(--iron-orange))',
 					'orange-light': 'hsl(var(--iron-orange-light))',

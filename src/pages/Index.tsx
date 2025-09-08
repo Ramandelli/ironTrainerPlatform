@@ -32,10 +32,10 @@ const Index = () => {
     finishWorkout,
     cancelWorkout,
     completeAerobic,
-    skipAerobic, // ADICIONADO: Nova função para pular cardio
+    skipAerobic, 
     completeAbdominalSet,
     completeAbdominalExercise
-  } = useWorkoutSession(); // ATUALIZADO: Adicionado skipAerobic e funções de abdominal
+  } = useWorkoutSession(); 
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
@@ -48,12 +48,12 @@ const Index = () => {
   const [abdominalCompleted, setAbdominalCompleted] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
   const [aerobicContext, setAerobicContext] = useState<'before' | 'after' | null>(null);
-  const [currentTime, setCurrentTime] = useState(0); // Moved to top level
+  const [currentTime, setCurrentTime] = useState(0); 
 
   const getLastWorkoutTime = () => {
     if (history.length === 0) return 0;
     
-    // Ordenar por data mais recente e pegar o último treino completado
+    
     const completedSessions = history
       .filter(session => session.completed && session.endTime)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -64,7 +64,7 @@ const Index = () => {
     return Math.round((lastSession.endTime - lastSession.startTime) / 60000);
   };
 
-  // Update workout timer in real-time when in workout mode
+  
   useEffect(() => {
     if (currentView === 'workout' && currentSession) {
       const interval = setInterval(() => {
@@ -90,7 +90,7 @@ const Index = () => {
       } catch (error) {
         console.error('Failed to load data:', error);
       } finally {
-        // Remove setIsLoading since it's not exported from useWorkoutSession
+        
       }
     };
 
@@ -160,20 +160,20 @@ const Index = () => {
     const todayWorkoutId = getTodayWorkoutId();
     const todaysWorkout = findTodaysWorkout();
 
-    // Prioridade para descanso manual: se marcado, é dia de descanso
+    
     const isManualRest = await restDayManager.isTodayRestDay();
     if (isManualRest) {
       setIsRestDay(true);
       return;
     }
 
-    // Se não há treino programado e for fim de semana, é descanso
+    
     if (!todaysWorkout && (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday')) {
       setIsRestDay(true);
       return;
     }
 
-    // Caso contrário, não é dia de descanso
+   
     setIsRestDay(false);
   };
 
@@ -181,7 +181,6 @@ const Index = () => {
     try {
       const allWorkouts = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
       setWorkoutPlan(allWorkouts);
-      // Reavaliar se hoje é dia de descanso após carregar os treinos
       await checkRestDay();
     } catch (error) {
       console.error('Failed to load workouts:', error);
@@ -250,11 +249,11 @@ const Index = () => {
   const handleFinishWorkout = async () => {
     if (!currentSession) return;
     
-    // Calcular e salvar a nova média do treino
+    
     const workoutDuration = Math.round((Date.now() - currentSession.startTime) / 60000);
     await storage.updateWorkoutAverage(currentSession.workoutDayId, workoutDuration);
     
-    // Recarregar médias
+    
     const updatedAverages = await storage.getWorkoutAverages();
     setWorkoutAverages(updatedAverages || {});
     
@@ -272,7 +271,7 @@ const Index = () => {
     setShowAerobicTimer(false);
   };
 
-  // ATUALIZADO: Removida a função handleSkipAerobic antiga
+  
   const handleCompleteAbdominals = () => {
     setAbdominalCompleted(true);
   };
@@ -287,7 +286,6 @@ const Index = () => {
   };
 
   const handleDataReset = async () => {
-    // Recarregar todos os dados após reset
     await loadStats();
     await loadWorkouts();
     await loadHistory();
@@ -322,12 +320,12 @@ const Index = () => {
   const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
   if (!workoutDay) return 'none';
 
-  // Verificar se o cardio inicial foi pulado ou não está mais pendente
+  
   const isAerobicBeforePending = 
     workoutDay.aerobic?.timing === 'antes' && 
     currentSession.aerobic && 
     !currentSession.aerobic.completed &&
-    !currentSession.aerobic.skipped; // Considerar o novo campo "skipped"
+    !currentSession.aerobic.skipped; 
 
   if (isAerobicBeforePending) {
     return 'aerobic-before';
@@ -343,12 +341,12 @@ const Index = () => {
     return 'abdominal';
   }
 
-  // Verificar se o cardio final foi pulado ou não está mais pendente
+  
   const isAerobicAfterPending = 
     workoutDay.aerobic?.timing === 'depois' && 
     currentSession.aerobic && 
     !currentSession.aerobic.completed &&
-    !currentSession.aerobic.skipped; // Considerar o novo campo "skipped"
+    !currentSession.aerobic.skipped; 
 
   if (isAerobicAfterPending) {
     return 'aerobic-after';
@@ -746,7 +744,7 @@ const Index = () => {
       <div className="max-w-md mx-auto p-4">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Iron Tracker 💪
+            Iron Trainer 💪
           </h1>
           <p className="text-muted-foreground">
             Seu progresso de treino nunca se perde

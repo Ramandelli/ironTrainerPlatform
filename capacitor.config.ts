@@ -4,16 +4,13 @@ const config: CapacitorConfig = {
   appId: 'br.projeto.irontrainer',
   appName: 'Iron Trainer',
   webDir: 'dist',
-  version: '2.0.0',
-   ios: {
-    path: 'ios',
-  },
-  
+  version: '1.0.0',
+     
   plugins: {
     Preferences: {
       configure: {
         defaults: {
-          group: 'IronTracker'
+          group: 'IronTrainer'
         }
       }
     }

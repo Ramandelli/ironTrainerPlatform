@@ -73,7 +73,7 @@ export const AbdominalTimer: React.FC<AbdominalTimerProps> = ({
 
     onSetComplete(exercise.currentSet, setData);
     
-    // Reset for next set
+    
     setTimeLeft(timePerSet);
     setCurrentSide(isBilateral ? 'left' : 'both');
     setSideProgress({ left: false, right: false });

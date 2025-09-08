@@ -35,7 +35,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     const reps = parseInt(currentSetInputs.reps);
     
     if (reps > 0) {
-      // Se é a última série e tem dropset, salvar dados e mostrar input de dropset
       const isLastSet = exercise.currentSet === exercise.sets - 1;
       if (isLastSet && exercise.hasDropset) {
         setMainSetData({ weight, reps });
@@ -53,7 +52,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       
       onSetComplete(exercise.currentSet, setData);
       
-      // Clear inputs
+      
       setCurrentSetInputs({ weight: '', reps: '' });
     }
   };
@@ -78,7 +77,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const handleDropsetCancel = () => {
     setShowDropsetInput(false);
     setMainSetData(null);
-    // Restaurar os valores dos inputs
+    
     if (mainSetData) {
       setCurrentSetInputs({ 
         weight: mainSetData.weight.toString(), 
@@ -95,7 +94,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const completedSets = exercise.setData.filter(set => set.completed).length;
   const allSetsCompleted = completedSets === exercise.sets;
 
-  // Se está mostrando o input de dropset, renderizar apenas ele
+  
   if (showDropsetInput) {
     return (
       <DropsetInput

@@ -100,7 +100,7 @@ const loadSession = async () => {
 
       const session = createWorkoutSession(workoutDayId, workoutDay.exercises);
       
-      // Inicializa o cardio apenas com dados básicos
+     
       if (workoutDay.aerobic) {
         session.aerobic = {
           ...workoutDay.aerobic,

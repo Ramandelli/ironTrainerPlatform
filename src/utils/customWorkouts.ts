@@ -4,7 +4,7 @@ import { storage } from './storage';
 class CustomWorkoutManager {
   private readonly CUSTOM_WORKOUTS_KEY = 'custom_workouts';
 
-  // Load custom workouts from storage
+  
   async loadCustomWorkouts(): Promise<WorkoutDay[]> {
     try {
       const workouts = await storage.getItem(this.CUSTOM_WORKOUTS_KEY);
@@ -16,7 +16,7 @@ class CustomWorkoutManager {
   }
 
   
-  // Save custom workouts to storage
+  
   async saveCustomWorkouts(workouts: WorkoutDay[]): Promise<void> {
     try {
       await storage.setItem(this.CUSTOM_WORKOUTS_KEY, JSON.stringify(workouts));
@@ -26,17 +26,15 @@ class CustomWorkoutManager {
     }
   }
 
-  // Add or update a custom workout
+  
   async saveWorkout(workout: WorkoutDay): Promise<void> {
     try {
       const workouts = await this.loadCustomWorkouts();
       const existingIndex = workouts.findIndex(w => w.id === workout.id);
 
       if (existingIndex >= 0) {
-        // Update existing workout
         workouts[existingIndex] = workout;
       } else {
-        // Add new workout with generated ID if not provided
         const newWorkout = {
           ...workout,
           id: workout.id || `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -51,17 +49,15 @@ class CustomWorkoutManager {
     }
   }
 
-  // Delete a workout (custom or default)
+  
   async deleteWorkout(workoutId: string): Promise<void> {
     try {
       const workouts = await this.loadCustomWorkouts();
       
       if (this.isCustomWorkout(workoutId)) {
-        // Delete custom workout
         const filteredWorkouts = workouts.filter(w => w.id !== workoutId);
         await this.saveCustomWorkouts(filteredWorkouts);
       } else {
-        // For default workouts, create a "deleted" marker
         const deletedMarker: WorkoutDay = {
           id: `custom_deleted_${workoutId}_${Date.now()}`,
           name: `DELETED_${workoutId}`,
@@ -80,14 +76,13 @@ class CustomWorkoutManager {
     }
   }
 
-  // Duplicate a workout (can be custom or default)
+  
   async duplicateWorkout(sourceWorkout: WorkoutDay, newName?: string): Promise<WorkoutDay> {
     try {
       const duplicatedWorkout: WorkoutDay = {
-        ...JSON.parse(JSON.stringify(sourceWorkout)), // Deep clone
+        ...JSON.parse(JSON.stringify(sourceWorkout)), 
         id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name: newName || `${sourceWorkout.name} (Cópia)`,
-        // Reset exercise states
         exercises: sourceWorkout.exercises.map(ex => ({
           ...ex,
           id: `ex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -116,7 +111,7 @@ class CustomWorkoutManager {
     }
   }
 
-  // Get all workouts (default + custom, prioritizing custom over default with same base id)
+ 
   async getAllWorkouts(defaultWorkouts: WorkoutDay[]): Promise<WorkoutDay[]> {
     try {
       const customWorkouts = await this.loadCustomWorkouts();
@@ -125,9 +120,8 @@ class CustomWorkoutManager {
       const allWorkouts: WorkoutDay[] = [];
       const overriddenDefaultIds = new Set();
 
-      // Process custom workouts and track deleted defaults
+      
       customWorkouts.forEach(workout => {
-        // Skip deleted markers
         if ((workout as any)._isDeleted) {
           deletedDefaultIds.add((workout as any)._originalId);
           return;
@@ -135,9 +129,7 @@ class CustomWorkoutManager {
         
         allWorkouts.push(workout);
         
-        // Check if this is a custom workout that overrides a default one
-        // This happens when editing a default workout - it creates a custom version
-        // and we need to track which default workout it replaces
+      
         const baseId = this.getBaseWorkoutId(workout.id);
         if (baseId) {
           overriddenDefaultIds.add(baseId);
@@ -146,7 +138,7 @@ class CustomWorkoutManager {
         customWorkoutIds.add(workout.id);
       });
 
-      // Add default workouts only if they haven't been overridden or deleted
+      
       defaultWorkouts.forEach(workout => {
         if (!customWorkoutIds.has(workout.id) && 
             !deletedDefaultIds.has(workout.id) &&
@@ -162,28 +154,27 @@ class CustomWorkoutManager {
     }
   }
 
-  // Check if workout is custom (can be edited/deleted)
+  
   isCustomWorkout(workoutId: string): boolean {
     return workoutId.startsWith('custom_');
   }
 
-  // Get base workout ID from custom workout ID (e.g., "custom_monday_123" -> "monday")
+  
   getBaseWorkoutId(workoutId: string): string | null {
     if (!workoutId.startsWith('custom_')) return null;
     const parts = workoutId.split('_');
     if (parts.length >= 3) {
-      return parts[1]; // Return the base ID part
+      return parts[1]; 
     }
     return null;
   }
 
-  // Convert default workout to editable custom workout
+  
   async convertToCustomWorkout(sourceWorkout: WorkoutDay): Promise<WorkoutDay> {
     try {
       const customWorkout: WorkoutDay = {
-        ...JSON.parse(JSON.stringify(sourceWorkout)), // Deep clone
+        ...JSON.parse(JSON.stringify(sourceWorkout)), 
         id: `custom_${sourceWorkout.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        // Reset exercise states but keep original structure
         exercises: sourceWorkout.exercises.map(ex => ({
           ...ex,
           id: `ex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -212,7 +203,7 @@ class CustomWorkoutManager {
     }
   }
 
-  // Export workouts to JSON
+  
   async exportWorkouts(): Promise<string> {
     try {
       const customWorkouts = await this.loadCustomWorkouts();
@@ -224,17 +215,17 @@ class CustomWorkoutManager {
   }
   
 
-  // Import workouts from JSON
+  
   async importWorkouts(jsonData: string): Promise<void> {
     try {
       const importedWorkouts: WorkoutDay[] = JSON.parse(jsonData);
       
-      // Validate data structure
+      
       if (!Array.isArray(importedWorkouts)) {
         throw new Error('Invalid workout data format');
       }
 
-      // Ensure unique IDs for imported workouts
+     
       const workoutsWithNewIds = importedWorkouts.map(workout => ({
         ...workout,
         id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

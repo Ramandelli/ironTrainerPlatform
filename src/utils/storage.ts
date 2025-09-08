@@ -7,7 +7,7 @@ class StorageManager {
   private readonly WORKOUT_STATS_KEY = 'workout_stats';
   private readonly TIMER_STATE_KEY = 'timer_state';
 
-  // Save current workout session (called frequently during workout)
+  
   async saveCurrentSession(session: WorkoutSession): Promise<void> {
     try {
       await Preferences.set({
@@ -19,7 +19,7 @@ class StorageManager {
     }
   }
 
-  // Load current workout session (called when app starts)
+  
   async loadCurrentSession(): Promise<WorkoutSession | null> {
     try {
       const { value } = await Preferences.get({ key: this.CURRENT_SESSION_KEY });
@@ -30,7 +30,7 @@ class StorageManager {
     }
   }
 
-  // Clear current session (called when workout is completed)
+  
   async clearCurrentSession(): Promise<void> {
     try {
       await Preferences.remove({ key: this.CURRENT_SESSION_KEY });
@@ -39,7 +39,7 @@ class StorageManager {
     }
   }
 
-  // Save timer state (called when timer is active)
+  
   async saveTimerState(timerState: TimerState): Promise<void> {
     try {
       await Preferences.set({
@@ -51,7 +51,7 @@ class StorageManager {
     }
   }
 
-  // Load timer state
+  
   async loadTimerState(): Promise<TimerState | null> {
     try {
       const { value } = await Preferences.get({ key: this.TIMER_STATE_KEY });
@@ -62,7 +62,7 @@ class StorageManager {
     }
   }
 
-  // Clear timer state
+  
   async clearTimerState(): Promise<void> {
     try {
       await Preferences.remove({ key: this.TIMER_STATE_KEY });
@@ -74,7 +74,6 @@ class StorageManager {
   async cleanInvalidSessions(): Promise<void> {
     try {
       const history = await this.loadWorkoutHistory();
-      // Manter apenas sessões completadas e com data válida
       const validHistory = history.filter(session => 
         session.completed && session.date && session.endTime
       );
@@ -88,7 +87,7 @@ class StorageManager {
     }
   }
 
-  // Save completed workout to history (alias for saveToHistory)
+  
   async saveWorkoutToHistory(session: WorkoutSession): Promise<void> {
     return this.saveToHistory(session);
   }
@@ -96,25 +95,22 @@ class StorageManager {
   // Save completed workout to history
 async saveToHistory(session: WorkoutSession): Promise<void> {
   try {
-    // Não salvar se não estiver completado
     if (!session.completed) return;
 
     const history = await this.loadWorkoutHistory();
     
-    // Verificar se já existe um treino com o mesmo ID no mesmo dia
+    
     const existingIndex = history.findIndex(s => 
       s.id === session.id && s.date === session.date
     );
     
     if (existingIndex >= 0) {
-      // Substituir treino existente
       history[existingIndex] = session;
     } else {
-      // Adicionar novo treino
       history.push(session);
     }
     
-    // Manter apenas últimos 100 treinos
+    
     if (history.length > 100) {
       history.splice(0, history.length - 100);
     }
@@ -128,7 +124,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
   }
 }
 
-  // Load workout history
+  
   async loadWorkoutHistory(): Promise<WorkoutSession[]> {
     try {
       const { value } = await Preferences.get({ key: this.WORKOUT_HISTORY_KEY });
@@ -139,7 +135,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
     }
   }
 
-  // Update workout stats
+  
   async updateStats(stats: WorkoutStats): Promise<void> {
     try {
       await Preferences.set({
@@ -151,7 +147,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
     }
   }
 
-  // Load workout stats
+  
   async loadStats(): Promise<WorkoutStats> {
     try {
       const { value } = await Preferences.get({ key: this.WORKOUT_STATS_KEY });
@@ -172,7 +168,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
     }
   }
 
-  // Emergency backup - save everything to a single key
+  
   async createBackup(): Promise<void> {
     try {
       const currentSession = await this.loadCurrentSession();
@@ -197,7 +193,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
     }
   }
 
-  // Reset all workout data
+  
   async resetAllData(): Promise<void> {
     try {
       const { restDayManager } = await import('./restDays');
@@ -215,7 +211,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
     }
   }
 
-  // Generic methods for custom data storage
+  
   async setItem(key: string, value: string): Promise<void> {
     try {
       await Preferences.set({ key, value });
@@ -243,7 +239,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
     }
   }
 
-  // App install date utilities
+  
   private readonly INSTALL_DATE_KEY = 'app_install_date';
   private readonly WORKOUT_AVERAGES_KEY = 'workout_averages';
 
@@ -262,10 +258,8 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
       const averages = await this.getWorkoutAverages();
       
       if (averages[workoutDayId]) {
-        // Calcular nova média (assumindo que já temos pelo menos um registro)
         averages[workoutDayId] = Math.round((averages[workoutDayId] + duration) / 2);
       } else {
-        // Primeira vez fazendo este treino
         averages[workoutDayId] = duration;
       }
       
@@ -278,7 +272,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
     }
   }
 
-  // Ensure the app install date is set (YYYY-MM-DD)
+  
   async ensureInstallDate(): Promise<void> {
     try {
       const { value } = await Preferences.get({ key: this.INSTALL_DATE_KEY });
@@ -291,7 +285,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
     }
   }
 
-  // Get the stored app install date (YYYY-MM-DD)
+  
   async getInstallDate(): Promise<string | null> {
     try {
       const { value } = await Preferences.get({ key: this.INSTALL_DATE_KEY });

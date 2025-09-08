@@ -24,7 +24,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
   const [showDistanceInput, setShowDistanceInput] = useState(false);
   const [startTime] = useState(Date.now());
 
-  // Load saved state on mount
+  
   useEffect(() => {
     const loadSavedState = () => {
       try {
@@ -51,7 +51,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
     loadSavedState();
   }, [duration, type]);
 
-  // Save state to localStorage
+  
   useEffect(() => {
     try {
       const stateToSave = {
@@ -99,7 +99,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
     const actualMinutes = (duration * 60 - secondsLeft) / 60;
     const distanceNum = distance ? parseFloat(distance) : undefined;
     
-    // Clear saved state
+    
     try {
       localStorage.removeItem(`aerobic_timer_${type}`);
     } catch (error) {

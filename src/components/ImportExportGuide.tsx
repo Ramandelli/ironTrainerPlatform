@@ -52,13 +52,6 @@ export const ImportExportGuide: React.FC = () => {
             </div>
           </div>
         </div>
-
-        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-          <p className="text-xs text-muted-foreground">
-            💡 <strong>Dica:</strong> O arquivo exportado contém apenas treinos personalizados/customizados. 
-            Os treinos padrão do sistema não são incluídos na exportação.
-          </p>
-        </div>
       </CardContent>
     </Card>
   );

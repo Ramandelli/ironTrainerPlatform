@@ -6,7 +6,7 @@ import { TimerState } from '../types/workout';
 import { storage } from '../utils/storage';
 
 interface TimerProps {
-  initialTime: number; // seconds
+  initialTime: number; 
   type: 'rest-between-sets' | 'rest-between-exercises';
   exerciseId?: string;
   setIndex?: number;
@@ -50,7 +50,7 @@ export const Timer: React.FC<TimerProps> = ({
     loadSavedState();
   }, [initialTime, startTime]);
 
-  // Save timer state to global storage only
+  
   useEffect(() => {
     const saveState = async () => {
       if (timeLeft > 0 && isActive) {

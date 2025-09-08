@@ -35,8 +35,6 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
   const [deleteConfirm, setDeleteConfirm] = useState<WorkoutDay | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
-
-  // File input ref for importing workouts
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -69,10 +67,10 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
     try {
       let workoutToEdit = workout;
       
-      // If it's a default workout, convert it to custom first
+     
       if (!customWorkoutManager.isCustomWorkout(workout.id)) {
         workoutToEdit = await customWorkoutManager.convertToCustomWorkout(workout);
-        await loadWorkouts(); // Refresh the list
+        await loadWorkouts(); 
         
         toast({
           title: "Treino convertido",
@@ -96,7 +94,7 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
   try {
     const workout: WorkoutDay = {
       ...workoutData,
-      id: workoutData.id || getWorkoutId(workoutData.day) // Use a função abaixo
+      id: workoutData.id || getWorkoutId(workoutData.day) 
     };
 
     await customWorkoutManager.saveWorkout(workout);
@@ -168,7 +166,7 @@ const getWorkoutId = (day: string) => {
     }
   };
 
-  // Export workouts to JSON file
+  
   const handleExportWorkouts = async () => {
     try {
       const jsonData = await customWorkoutManager.exportWorkouts();
@@ -196,7 +194,7 @@ const getWorkoutId = (day: string) => {
     }
   };
 
-  // Import workouts from JSON file
+  
   const handleImportWorkouts = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -206,7 +204,7 @@ const getWorkoutId = (day: string) => {
       try {
         const jsonData = e.target?.result as string;
         await customWorkoutManager.importWorkouts(jsonData);
-        await loadWorkouts(); // Reload to show imported workouts
+        await loadWorkouts(); 
         
         toast({
           title: "Sucesso",

@@ -11,10 +11,10 @@ export interface Exercise {
   setData: SetData[];
   // Propriedades específicas para abdominais por tempo
   isTimeBased?: boolean;
-  timePerSet?: number; // tempo em segundos por série
-  isBilateral?: boolean; // se é exercício para ambos os lados
+  timePerSet?: number; 
+  isBilateral?: boolean; 
   // Propriedades para dropset
-  hasDropset?: boolean; // se tem dropset na última série
+  hasDropset?: boolean; 
 }
 
 export interface SetData {
@@ -22,11 +22,9 @@ export interface SetData {
   reps?: number;
   completed: boolean;
   restStartTime?: number;
-  // Para exercícios por tempo
-  timeCompleted?: number; // tempo realizado em segundos
-  leftSideCompleted?: boolean; // para exercícios bilaterais
-  rightSideCompleted?: boolean; // para exercícios bilaterais
-  // Para dropsets
+  timeCompleted?: number; 
+  leftSideCompleted?: boolean; 
+  rightSideCompleted?: boolean; 
   dropsetData?: DropsetData[];
 }
 
@@ -50,7 +48,7 @@ export interface AerobicExercise {
   type: 'esteira' | 'bicicleta' | 'transport' | 'rowing';
   duration: number;
   actualDuration?: number;
-  distance?: number; // Nova propriedade para distância em km
+  distance?: number; 
   intensity: 'leve' | 'moderada' | 'intensa';
   timing: 'antes' | 'depois';
   completed: boolean;

@@ -4,7 +4,7 @@ export class RestDayManager {
   private static readonly REST_DAYS_KEY = 'custom_rest_days';
   private static readonly REST_DAYS_COUNT_KEY = 'rest_days_count';
 
-  // Get custom rest days
+  
   async getCustomRestDays(): Promise<string[]> {
     try {
       const restDaysStr = await storage.getItem(RestDayManager.REST_DAYS_KEY);
@@ -15,7 +15,7 @@ export class RestDayManager {
     }
   }
 
-  // Get total rest days count since installation
+  
   async getRestDaysCount(): Promise<number> {
     try {
       const countStr = await storage.getItem(RestDayManager.REST_DAYS_COUNT_KEY);
@@ -26,7 +26,7 @@ export class RestDayManager {
     }
   }
 
-  // Update rest days count (called daily check)
+  
   async updateRestDaysCount(): Promise<void> {
     try {
       const installDate = await storage.getInstallDate();
@@ -35,7 +35,7 @@ export class RestDayManager {
       const today = new Date();
       const install = new Date(installDate);
       
-      // Calculate total days since installation
+      
       const daysDiff = Math.floor((today.getTime() - install.getTime()) / (1000 * 60 * 60 * 24));
       
       if (daysDiff <= 0) return;
@@ -48,7 +48,7 @@ export class RestDayManager {
         const dateStr = checkDate.toISOString().split('T')[0];
         const dayOfWeek = checkDate.getDay();
         
-        // Check if it's weekend or custom rest day
+        
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         const isCustomRestDay = await this.isRestDay(dateStr);
         
@@ -63,7 +63,7 @@ export class RestDayManager {
     }
   }
 
-  // Set a day as rest day (format: YYYY-MM-DD)
+  
   async setRestDay(date: string): Promise<void> {
     try {
       const restDays = await this.getCustomRestDays();
@@ -76,7 +76,7 @@ export class RestDayManager {
     }
   }
 
-  // Remove a day from rest days
+  
   async removeRestDay(date: string): Promise<void> {
     try {
       const restDays = await this.getCustomRestDays();
@@ -87,7 +87,7 @@ export class RestDayManager {
     }
   }
 
-  // Check if a specific date is a rest day
+  
   async isRestDay(date: string): Promise<boolean> {
     try {
       const restDays = await this.getCustomRestDays();
@@ -98,24 +98,24 @@ export class RestDayManager {
     }
   }
 
-  // Check if today is a rest day
+  
   async isTodayRestDay(): Promise<boolean> {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     return this.isRestDay(today);
   }
 
-  // Check if today is a weekend (Saturday or Sunday)
+  
   isWeekend(): boolean {
     const dayOfWeek = new Date().getDay();
     return dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
   }
 
-  // Check if today is a natural rest day (weekend OR custom rest day)
+  
   async shouldShowRestDay(): Promise<boolean> {
     return this.isWeekend() || await this.isTodayRestDay();
   }
 
-  // Reset all rest day data
+  
   async resetRestDays(): Promise<void> {
     try {
       await Promise.all([

@@ -43,7 +43,7 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
   onSave,
   onCancel
 }) => {
-  // Mapear o dia da semana para o valor correto do select
+  
   const mapDayToSelectValue = (dayName: string) => {
     const dayMapping: Record<string, string> = {
       'Segunda-feira': 'monday',
@@ -99,7 +99,7 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     const dayValue = formData.day.toLowerCase();
     const dayLabel = dayMap[dayValue] || formData.day;
     
-    // Gerar ID baseado no dia
+    
     const baseId = dayValue.replace(/\s+/g, '_').toLowerCase();
     const newId = workout?.id || `custom_${baseId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
@@ -212,7 +212,7 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Ex: PEITO + TRÍCEPS"
+                placeholder="Ex: TREINO PEITO + TRÍCEPS"
                 required
               />
             </div>

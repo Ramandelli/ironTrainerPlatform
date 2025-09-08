@@ -23,7 +23,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   const [customRestDays, setCustomRestDays] = useState<string[]>([]);
   const [installDate, setInstallDate] = useState<string | null>(null);
 
-  // Função para converter segundos em formato HH:MM:SS
+  
   const formatTime = (totalSeconds: number): string => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -35,7 +35,6 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   useEffect(() => {
      const loadData = async () => {
     try {
-      // Limpar sessões inválidas antes de carregar
       await storage.cleanInvalidSessions();
       
       const [loadedStats, workoutHistory] = await Promise.all([
@@ -52,7 +51,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   loadData();
 }, []);
 
-// Carregar dias de descanso customizados
+
 useEffect(() => {
   const loadRestDays = async () => {
     try {
@@ -65,7 +64,7 @@ useEffect(() => {
   loadRestDays();
 }, []);
 
-// Carregar data de instalação para limitar contagem de descanso
+
 useEffect(() => {
   const loadInstallDate = async () => {
     try {
@@ -125,12 +124,12 @@ useEffect(() => {
               set.weight || 0
             );
             
-            // Volume da série principal
+            
             if (set.weight && set.reps) {
               exerciseData[exercise.name].totalVolume += set.weight * set.reps;
             }
             
-            // Volume dos dropsets
+            
             if (set.dropsetData && set.dropsetData.length > 0) {
               set.dropsetData.forEach(dropset => {
                 exerciseData[exercise.name].totalVolume += dropset.weight * dropset.reps;
@@ -151,7 +150,7 @@ useEffect(() => {
       .slice(0, 5);
   }, [history]);
 
-  // Cardio statistics
+  
   const cardioStats = React.useMemo(() => {
     const calculateCardioTime = (sessions: WorkoutSession[]) => {
       let esteiraTotalSeconds = 0;
@@ -161,7 +160,6 @@ useEffect(() => {
       
       sessions.forEach(session => {
         if (session.aerobic && session.aerobic.completed && session.aerobic.actualDuration !== undefined) {
-          // Usar o tempo real (actualDuration) em minutos, converter para segundos
           const timeSpentSeconds = Math.round(session.aerobic.actualDuration * 60);
           const distance = session.aerobic.distance || 0;
             
@@ -189,7 +187,7 @@ useEffect(() => {
   return calculateCardioTime(periodHistory);
 }, [history, selectedPeriod]);
 
-// Dias de descanso no período selecionado (fins de semana sem treino + dias marcados manualmente)
+
 const restDaysCount = React.useMemo(() => {
   const toYMD = (d: Date) => {
     const y = d.getFullYear();
@@ -220,7 +218,7 @@ const restDaysCount = React.useMemo(() => {
     baseStart = Date.now() - (daysBack * oneDay);
   }
 
-  // Aplicar data de instalação como limite inferior
+  
   let start = baseStart;
   if (installDate) {
     const installTime = new Date(`${installDate}T00:00:00`).getTime();
@@ -261,7 +259,7 @@ const restDaysCount = React.useMemo(() => {
   return count;
 }, [history, customRestDays, selectedPeriod, installDate]);
 
-  // Abdominal statistics
+  
   const abdominalStats = React.useMemo(() => {
     if (history.length === 0) {
       return {
@@ -300,7 +298,7 @@ const restDaysCount = React.useMemo(() => {
     };
   }, [history]);
 
-  // Advanced statistics
+  
   const advancedStats = React.useMemo(() => {
     if (history.length === 0) {
       return {
@@ -313,13 +311,13 @@ const restDaysCount = React.useMemo(() => {
       };
     }
 
-    // Average workout time
+    
     const completedWorkouts = history.filter(w => w.endTime);
     const averageWorkoutTime = completedWorkouts.length > 0 
       ? completedWorkouts.reduce((sum, w) => sum + (w.endTime! - w.startTime), 0) / completedWorkouts.length / 60000
       : 0;
 
-    // Total sets and reps
+    
     let totalSets = 0;
     let totalReps = 0;
     const exerciseFrequency: Record<string, number> = {};
@@ -332,36 +330,33 @@ const restDaysCount = React.useMemo(() => {
       });
     });
 
-    // Most frequent exercise
+    
     const mostFrequentExercise = Object.entries(exerciseFrequency)
       .sort(([,a], [,b]) => b - a)[0]?.[0] || '';
 
-    // Workout type distribution
+    
 const workoutDistribution: Record<string, number> = {};
   history.forEach(session => {
     try {
       let sessionDate: Date;
       
-      // Suportar tanto formato dd/mm/yyyy quanto yyyy-mm-dd
+      
       if (session.date.includes('/')) {
-        // Formato dd/mm/yyyy
         const [day, month, year] = session.date.split('/');
         sessionDate = new Date(
           parseInt(year),
-          parseInt(month) - 1, // Mês começa em 0 no JavaScript
+          parseInt(month) - 1, 
           parseInt(day)
         );
       } else {
-        // Formato yyyy-mm-dd
         const [year, month, day] = session.date.split('-');
         sessionDate = new Date(
           parseInt(year),
-          parseInt(month) - 1, // Mês começa em 0 no JavaScript
+          parseInt(month) - 1, 
           parseInt(day)
         );
       }
       
-      // Obter o dia da semana (0=domingo, 1=segunda, etc)
       const dayIndex = sessionDate.getDay();
       const days = [
         'domingo', 
@@ -398,7 +393,7 @@ const workoutDistribution: Record<string, number> = {};
       setHistory([]);
       await loadData();
       
-      // Notificar a tela inicial sobre o reset
+      
       if (onDataReset) {
         onDataReset();
       }
