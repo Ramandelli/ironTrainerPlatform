@@ -67,7 +67,8 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     day: workout?.day ? mapDayToSelectValue(workout.day) : '',
     exercises: workout?.exercises || [],
     abdominal: workout?.abdominal || [],
-    aerobic: workout?.aerobic || null
+    aerobic: workout?.aerobic || null,
+    warmup: workout?.warmup || ''
   });
 
   const [showExerciseForm, setShowExerciseForm] = useState(false);
@@ -110,7 +111,8 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
       day: dayLabel,
       exercises: formData.exercises,
       abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
-      aerobic: formData.aerobic
+      aerobic: formData.aerobic,
+      warmup: formData.warmup.trim() || undefined
     });
   };
 
@@ -235,6 +237,18 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Warmup Section */}
+            <div>
+              <Label htmlFor="warmup">Aquecimento (opcional)</Label>
+              <textarea
+                id="warmup"
+                className="w-full min-h-[80px] px-3 py-2 text-sm border border-input bg-background rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                value={formData.warmup}
+                onChange={(e) => setFormData(prev => ({ ...prev, warmup: e.target.value }))}
+                placeholder="Descreva o aquecimento para este treino (ex: 5min de caminhada, alongamentos dinâmicos, articulação dos ombros...)"
+              />
             </div>
 
             {/* Aerobic Section */}

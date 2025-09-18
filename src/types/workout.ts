@@ -40,6 +40,7 @@ export interface WorkoutDay {
   exercises: Exercise[];
   aerobic?: AerobicExercise;
   abdominal?: Exercise[];
+  warmup?: string;
   _isDeleted?: boolean;
   _originalId?: string;
 }

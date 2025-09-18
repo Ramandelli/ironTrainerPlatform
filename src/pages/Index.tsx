@@ -16,7 +16,8 @@ import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { restDayManager } from '../utils/restDays';
 import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
-import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home } from 'lucide-react';
+import { WarmupCard } from '../components/WarmupCard';
+import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
 
 const Index = () => {
@@ -48,7 +49,8 @@ const Index = () => {
   const [abdominalCompleted, setAbdominalCompleted] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
   const [aerobicContext, setAerobicContext] = useState<'before' | 'after' | null>(null);
-  const [currentTime, setCurrentTime] = useState(0); 
+  const [currentTime, setCurrentTime] = useState(0);
+  const [warmupCompleted, setWarmupCompleted] = useState(false);
 
   const getLastWorkoutTime = () => {
     if (history.length === 0) return 0;
@@ -214,6 +216,11 @@ const Index = () => {
     const isToday = workoutDay.day.toLowerCase() === todayLabel.toLowerCase();
     
     if (isToday) {
+      // Reset workout-specific states
+      setWarmupCompleted(false);
+      setAbdominalCompleted(false);
+      setAerobicContext(null);
+      
       startWorkout(workoutDayId);
       setCurrentView('workout');
     } else {
@@ -315,45 +322,52 @@ const Index = () => {
   };
 
   const getWorkoutPhase = () => {
-  if (!currentSession) return 'none';
-  
-  const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
-  if (!workoutDay) return 'none';
+    if (!currentSession) return 'none';
+    
+    const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
+    if (!workoutDay) return 'none';
 
-  
-  const isAerobicBeforePending = 
-    workoutDay.aerobic?.timing === 'antes' && 
-    currentSession.aerobic && 
-    !currentSession.aerobic.completed &&
-    !currentSession.aerobic.skipped; 
+    // Primeira fase: Aquecimento (se existir e não estiver completo)
+    if (workoutDay.warmup && !warmupCompleted) {
+      return 'warmup';
+    }
 
-  if (isAerobicBeforePending) {
-    return 'aerobic-before';
-  }
+    // Segunda fase: Aeróbico antes dos exercícios
+    const isAerobicBeforePending = 
+      workoutDay.aerobic?.timing === 'antes' && 
+      currentSession.aerobic && 
+      !currentSession.aerobic.completed &&
+      !currentSession.aerobic.skipped; 
 
-  const allExercisesCompleted = currentSession.exercises.every(ex => ex.completed);
-  
-  if (!allExercisesCompleted) {
-    return 'exercises';
-  }
+    if (isAerobicBeforePending) {
+      return 'aerobic-before';
+    }
 
-  if (workoutDay.abdominal && !abdominalCompleted) {
-    return 'abdominal';
-  }
+    // Terceira fase: Exercícios principais
+    const allExercisesCompleted = currentSession.exercises.every(ex => ex.completed);
+    
+    if (!allExercisesCompleted) {
+      return 'exercises';
+    }
 
-  
-  const isAerobicAfterPending = 
-    workoutDay.aerobic?.timing === 'depois' && 
-    currentSession.aerobic && 
-    !currentSession.aerobic.completed &&
-    !currentSession.aerobic.skipped; 
+    // Quarta fase: Exercícios abdominais
+    if (workoutDay.abdominal && !abdominalCompleted) {
+      return 'abdominal';
+    }
 
-  if (isAerobicAfterPending) {
-    return 'aerobic-after';
-  }
+    // Quinta fase: Aeróbico depois dos exercícios
+    const isAerobicAfterPending = 
+      workoutDay.aerobic?.timing === 'depois' && 
+      currentSession.aerobic && 
+      !currentSession.aerobic.completed &&
+      !currentSession.aerobic.skipped; 
 
-  return 'finished';
-};
+    if (isAerobicAfterPending) {
+      return 'aerobic-after';
+    }
+
+    return 'finished';
+  };
 
   if (isLoading) {
     return (
@@ -392,6 +406,23 @@ const Index = () => {
         </div>
 
         <div className="max-w-md mx-auto p-4 space-y-4 pb-24">
+          {/* Warmup Section */}
+          {workoutDay.warmup && (
+            <Card className="border-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-orange-500" />
+                  Aquecimento
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap mb-2">
+                  {workoutDay.warmup}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {workoutDay.aerobic && (
             <Card className="border-border">
               <CardHeader className="pb-3">
@@ -564,6 +595,13 @@ const Index = () => {
         </div>
 
         <div className="max-w-md mx-auto p-4 space-y-4 pb-24">
+          {workoutPhase === 'warmup' && workoutDay.warmup && (
+            <WarmupCard
+              warmupDescription={workoutDay.warmup}
+              onComplete={() => setWarmupCompleted(true)}
+            />
+          )}
+
           {workoutPhase === 'aerobic-before' && workoutDay.aerobic && (
             <div className="space-y-6">
               <div className="text-center">
