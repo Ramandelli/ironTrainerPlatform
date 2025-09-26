@@ -95,8 +95,23 @@ useEffect(() => {
       return calculateWeeklyStats(history);
     }
     
-    const daysBack = selectedPeriod === 'week' ? 7 : 30;
-    const periodStart = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
+    let periodStart: number;
+    
+    if (selectedPeriod === 'week') {
+      // Início da semana atual (domingo)
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      periodStart = startOfWeek.getTime();
+    } else {
+      // Primeiro dia do mês atual
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      periodStart = startOfMonth.getTime();
+    }
+    
     const periodHistory = history.filter(session => session.startTime >= periodStart);
     
     return calculateWeeklyStats(periodHistory);
@@ -180,8 +195,23 @@ useEffect(() => {
       return calculateCardioTime(history);
     }
     
-    const daysBack = selectedPeriod === 'week' ? 7 : 30;
-    const periodStart = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
+    let periodStart: number;
+    
+    if (selectedPeriod === 'week') {
+      // Início da semana atual (domingo)
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      periodStart = startOfWeek.getTime();
+    } else {
+      // Primeiro dia do mês atual
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      periodStart = startOfMonth.getTime();
+    }
+    
     const periodHistory = history.filter(session => session.startTime >= periodStart);
     
   return calculateCardioTime(periodHistory);
@@ -214,8 +244,20 @@ const restDaysCount = React.useMemo(() => {
     const minTime = Math.min(minHistory, minCustom);
     baseStart = Number.isFinite(minTime) ? minTime : (Date.now() - 30 * oneDay);
   } else {
-    const daysBack = selectedPeriod === 'week' ? 7 : 30;
-    baseStart = Date.now() - (daysBack * oneDay);
+    if (selectedPeriod === 'week') {
+      // Início da semana atual (domingo)
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      baseStart = startOfWeek.getTime();
+    } else {
+      // Primeiro dia do mês atual
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      baseStart = startOfMonth.getTime();
+    }
   }
 
   
