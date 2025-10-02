@@ -90,32 +90,34 @@ useEffect(() => {
     }
   };
 
-  const periodStats = React.useMemo(() => {
-    if (selectedPeriod === 'all') {
-      return calculateWeeklyStats(history);
-    }
-    
-    let periodStart: number;
+  // Função auxiliar para calcular o início do período
+  const getPeriodStart = () => {
+    if (selectedPeriod === 'all') return null;
     
     if (selectedPeriod === 'week') {
-      // Início da semana atual (domingo)
       const now = new Date();
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay());
       startOfWeek.setHours(0, 0, 0, 0);
-      periodStart = startOfWeek.getTime();
+      return startOfWeek.getTime();
     } else {
-      // Primeiro dia do mês atual
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       startOfMonth.setHours(0, 0, 0, 0);
-      periodStart = startOfMonth.getTime();
+      return startOfMonth.getTime();
     }
-    
-    const periodHistory = history.filter(session => session.startTime >= periodStart);
-    
-    return calculateWeeklyStats(periodHistory);
+  };
+
+  // Histórico filtrado pelo período
+  const filteredHistory = React.useMemo(() => {
+    const periodStart = getPeriodStart();
+    if (periodStart === null) return history;
+    return history.filter(session => session.startTime >= periodStart);
   }, [history, selectedPeriod]);
+
+  const periodStats = React.useMemo(() => {
+    return calculateWeeklyStats(filteredHistory);
+  }, [filteredHistory]);
 
   const personalRecords = React.useMemo(() => {
     return calculatePersonalRecords(history);
@@ -191,31 +193,8 @@ useEffect(() => {
       return { esteiraTotalSeconds, bicicletaTotalSeconds, esteiraTotalDistance, bicicletaTotalDistance };
     };
     
-    if (selectedPeriod === 'all') {
-      return calculateCardioTime(history);
-    }
-    
-    let periodStart: number;
-    
-    if (selectedPeriod === 'week') {
-      // Início da semana atual (domingo)
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-      periodStart = startOfWeek.getTime();
-    } else {
-      // Primeiro dia do mês atual
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      periodStart = startOfMonth.getTime();
-    }
-    
-    const periodHistory = history.filter(session => session.startTime >= periodStart);
-    
-  return calculateCardioTime(periodHistory);
-}, [history, selectedPeriod]);
+    return calculateCardioTime(filteredHistory);
+}, [filteredHistory]);
 
 
 const restDaysCount = React.useMemo(() => {
@@ -235,8 +214,10 @@ const restDaysCount = React.useMemo(() => {
   };
   const oneDay = 24 * 60 * 60 * 1000;
 
+  const periodStart = getPeriodStart();
   let baseStart: number;
-  if (selectedPeriod === 'all') {
+  
+  if (periodStart === null) {
     const historyTimes = history.map(s => parseSessionDate(s.date).getTime());
     const customTimes = customRestDays.map(d => new Date(`${d}T00:00:00`).getTime());
     const minHistory = historyTimes.length ? Math.min(...historyTimes) : Number.POSITIVE_INFINITY;
@@ -244,20 +225,7 @@ const restDaysCount = React.useMemo(() => {
     const minTime = Math.min(minHistory, minCustom);
     baseStart = Number.isFinite(minTime) ? minTime : (Date.now() - 30 * oneDay);
   } else {
-    if (selectedPeriod === 'week') {
-      // Início da semana atual (domingo)
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-      baseStart = startOfWeek.getTime();
-    } else {
-      // Primeiro dia do mês atual
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      baseStart = startOfMonth.getTime();
-    }
+    baseStart = periodStart;
   }
 
   
@@ -303,7 +271,7 @@ const restDaysCount = React.useMemo(() => {
 
   
   const abdominalStats = React.useMemo(() => {
-    if (history.length === 0) {
+    if (filteredHistory.length === 0) {
       return {
         totalAbdominalSets: 0,
         totalAbdominalReps: 0,
@@ -315,7 +283,7 @@ const restDaysCount = React.useMemo(() => {
     let totalAbdominalReps = 0;
     let totalAbdominalTimeSeconds = 0;
 
-    history.forEach(session => {
+    filteredHistory.forEach(session => {
       if (session.abdominal) {
         session.abdominal.forEach(exercise => {
           const completedSets = exercise.setData.filter(set => set.completed);
@@ -338,11 +306,11 @@ const restDaysCount = React.useMemo(() => {
       totalAbdominalReps,
       totalAbdominalTimeSeconds
     };
-  }, [history]);
+  }, [filteredHistory]);
 
   
   const advancedStats = React.useMemo(() => {
-    if (history.length === 0) {
+    if (filteredHistory.length === 0) {
       return {
         averageWorkoutTime: 0,
         totalSets: 0,
@@ -354,7 +322,7 @@ const restDaysCount = React.useMemo(() => {
     }
 
     
-    const completedWorkouts = history.filter(w => w.endTime);
+    const completedWorkouts = filteredHistory.filter(w => w.endTime);
     const averageWorkoutTime = completedWorkouts.length > 0 
       ? completedWorkouts.reduce((sum, w) => sum + (w.endTime! - w.startTime), 0) / completedWorkouts.length / 60000
       : 0;
@@ -364,7 +332,7 @@ const restDaysCount = React.useMemo(() => {
     let totalReps = 0;
     const exerciseFrequency: Record<string, number> = {};
 
-    history.forEach(session => {
+    filteredHistory.forEach(session => {
       session.exercises.forEach(exercise => {
         exerciseFrequency[exercise.name] = (exerciseFrequency[exercise.name] || 0) + 1;
         totalSets += exercise.setData.filter(set => set.completed).length;
@@ -377,6 +345,7 @@ const restDaysCount = React.useMemo(() => {
       .sort(([,a], [,b]) => b - a)[0]?.[0] || '';
 
     
+    // Distribuição semanal sempre usa todo o histórico (não filtra por período)
 const workoutDistribution: Record<string, number> = {};
   history.forEach(session => {
     try {
@@ -426,7 +395,7 @@ const workoutDistribution: Record<string, number> = {};
       mostFrequentExercise,
       workoutDistribution
     };
-  }, [history]);
+  }, [filteredHistory, history]);
 
   const handleResetData = async () => {
     try {
@@ -501,7 +470,7 @@ const workoutDistribution: Record<string, number> = {};
                 <BarChart3 className="w-5 h-5 text-iron-orange" />
               </div>
               <div className="text-2xl font-bold text-foreground">
-                {stats?.totalWorkouts || 0}
+                {filteredHistory.length}
               </div>
               <div className="text-sm text-muted-foreground">
                 Total de treinos
@@ -588,7 +557,7 @@ const workoutDistribution: Record<string, number> = {};
                 <TrendingUp className="w-4 h-4 text-iron-orange" />
               </div>
               <div className="text-lg font-bold text-foreground">
-                {history.reduce((total, session) => total + session.totalVolume, 0).toFixed(0)}kg
+                {filteredHistory.reduce((total, session) => total + session.totalVolume, 0).toFixed(0)}kg
               </div>
               <div className="text-xs text-muted-foreground">
                 Total de peso
