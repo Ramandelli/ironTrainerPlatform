@@ -18,7 +18,7 @@ interface StatisticsProps {
 export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) => {
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'lastMonth' | 'currentMonth' | 'all'>('week');
   const { toast } = useToast();
   const [customRestDays, setCustomRestDays] = useState<string[]>([]);
   const [installDate, setInstallDate] = useState<string | null>(null);
@@ -94,25 +94,46 @@ useEffect(() => {
   const getPeriodStart = () => {
     if (selectedPeriod === 'all') return null;
     
+    const now = new Date();
+    
     if (selectedPeriod === 'week') {
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-      return startOfWeek.getTime();
-    } else {
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      return startOfMonth.getTime();
+      // Últimos 7 dias
+      const startDate = new Date(now);
+      startDate.setDate(now.getDate() - 6); // 7 dias incluindo hoje
+      startDate.setHours(0, 0, 0, 0);
+      return startDate.getTime();
+    } else if (selectedPeriod === 'lastMonth') {
+      // Primeiro ao último dia do mês ANTERIOR
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      startOfLastMonth.setHours(0, 0, 0, 0);
+      return startOfLastMonth.getTime();
+    } else if (selectedPeriod === 'currentMonth') {
+      // Primeiro dia do mês atual até hoje
+      const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      startOfCurrentMonth.setHours(0, 0, 0, 0);
+      return startOfCurrentMonth.getTime();
     }
+    
+    return null;
   };
 
   // Histórico filtrado pelo período
   const filteredHistory = React.useMemo(() => {
     const periodStart = getPeriodStart();
     if (periodStart === null) return history;
-    return history.filter(session => session.startTime >= periodStart);
+    
+    const now = new Date();
+    let periodEnd = now.getTime();
+    
+    // Para o mês anterior, precisamos filtrar até o último dia do mês anterior
+    if (selectedPeriod === 'lastMonth') {
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      periodEnd = endOfLastMonth.getTime();
+    }
+    
+    return history.filter(session => 
+      session.startTime >= periodStart && session.startTime <= periodEnd
+    );
   }, [history, selectedPeriod]);
 
   const periodStats = React.useMemo(() => {
@@ -438,7 +459,7 @@ const workoutDistribution: Record<string, number> = {};
 
       <div className="max-w-md mx-auto p-4 space-y-6">
         {/* Period Selector */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             variant={selectedPeriod === 'week' ? 'default' : 'outline'}
             size="sm"
@@ -447,11 +468,18 @@ const workoutDistribution: Record<string, number> = {};
             Última Semana
           </Button>
           <Button
-            variant={selectedPeriod === 'month' ? 'default' : 'outline'}
+            variant={selectedPeriod === 'lastMonth' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setSelectedPeriod('month')}
+            onClick={() => setSelectedPeriod('lastMonth')}
           >
             Último Mês
+          </Button>
+          <Button
+            variant={selectedPeriod === 'currentMonth' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedPeriod('currentMonth')}
+          >
+            Mês Atual
           </Button>
           <Button
             variant={selectedPeriod === 'all' ? 'default' : 'outline'}
@@ -487,7 +515,7 @@ const workoutDistribution: Record<string, number> = {};
                 {periodStats.weeklyVolume.toFixed(0)}kg
               </div>
               <div className="text-sm text-muted-foreground">
-                Volume {selectedPeriod === 'week' ? 'semanal' : selectedPeriod === 'month' ? 'mensal' : 'total'}
+                Volume {selectedPeriod === 'week' ? 'semanal' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? 'mensal' : 'total'}
               </div>
             </CardContent>
           </Card>
@@ -575,7 +603,7 @@ const workoutDistribution: Record<string, number> = {};
               {restDaysCount}
             </div>
             <div className="text-xs text-muted-foreground">
-              Dias de descanso ({selectedPeriod === 'week' ? 'semana' : selectedPeriod === 'month' ? 'mês' : 'total'})
+              Dias de descanso ({selectedPeriod === 'week' ? 'semana' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? 'mês' : 'total'})
             </div>
           </CardContent>
         </Card>
@@ -633,7 +661,7 @@ const workoutDistribution: Record<string, number> = {};
                   {formatTime(cardioStats.esteiraTotalSeconds)}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Esteira - Tempo {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
+                  Esteira - Tempo {selectedPeriod === 'week' ? '(semana)' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? '(mês)' : '(total)'}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {cardioStats.esteiraTotalDistance.toFixed(1)} km
@@ -644,7 +672,7 @@ const workoutDistribution: Record<string, number> = {};
                   {formatTime(cardioStats.bicicletaTotalSeconds)}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Bicicleta - Tempo {selectedPeriod === 'week' ? '(semana)' : selectedPeriod === 'month' ? '(mês)' : '(total)'}
+                  Bicicleta - Tempo {selectedPeriod === 'week' ? '(semana)' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? '(mês)' : '(total)'}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {cardioStats.bicicletaTotalDistance.toFixed(1)} km
