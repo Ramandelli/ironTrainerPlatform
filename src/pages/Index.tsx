@@ -19,6 +19,7 @@ import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../uti
 import { WarmupCard } from '../components/WarmupCard';
 import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
+import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 
 const Index = () => {
   const {
@@ -51,6 +52,7 @@ const Index = () => {
   const [aerobicContext, setAerobicContext] = useState<'before' | 'after' | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [warmupCompleted, setWarmupCompleted] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const getLastWorkoutTime = () => {
     if (history.length === 0) return 0;
@@ -192,8 +194,26 @@ const Index = () => {
   useEffect(() => {
     if (currentSession && currentView === 'home') {
       setCurrentView('workout');
+      
+      // Restaurar estado do timer aeróbico se existir
+      const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
+      if (workoutDay?.aerobic) {
+        try {
+          const savedTimer = localStorage.getItem(`aerobic_timer_${workoutDay.aerobic.type}`);
+          if (savedTimer) {
+            const { savedStartTime } = JSON.parse(savedTimer);
+            if (savedStartTime) {
+              setShowAerobicTimer(true);
+              const isBeforeTiming = workoutDay.aerobic.timing === 'antes';
+              setAerobicContext(isBeforeTiming ? 'before' : 'after');
+            }
+          }
+        } catch (error) {
+          console.error('Error restoring aerobic timer:', error);
+        }
+      }
     }
-  }, [currentSession, currentView]);
+  }, [currentSession, currentView, workoutPlan]);
 
   const loadStats = async () => {
     try {
@@ -284,8 +304,13 @@ const Index = () => {
   };
 
   const handleCancelWorkout = () => {
+    setShowCancelConfirm(true);
+  };
+
+  const confirmCancelWorkout = () => {
     cancelWorkout();
     setCurrentView('home');
+    setShowCancelConfirm(false);
   };
 
   const handleNavigateToStatistics = () => {
@@ -560,6 +585,14 @@ const Index = () => {
 
     return (
       <div className="min-h-screen bg-background">
+        <DeleteConfirmDialog
+          open={showCancelConfirm}
+          onOpenChange={setShowCancelConfirm}
+          title="Cancelar Treino?"
+          description="Tem certeza que deseja cancelar o treino? Todo o progresso atual será perdido."
+          onConfirm={confirmCancelWorkout}
+        />
+
         {timerState && (
           <Timer
             initialTime={timerState.timeLeft}

@@ -22,7 +22,18 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
   const [isActive, setIsActive] = useState(true);
   const [distance, setDistance] = useState<string>('');
   const [showDistanceInput, setShowDistanceInput] = useState(false);
-  const [startTime] = useState(Date.now());
+  const [startTime] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`aerobic_timer_${type}`);
+      if (saved) {
+        const { savedStartTime } = JSON.parse(saved);
+        return savedStartTime || Date.now();
+      }
+    } catch (error) {
+      console.error('Error loading start time:', error);
+    }
+    return Date.now();
+  });
 
   
   useEffect(() => {
@@ -33,9 +44,8 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
           const { savedSecondsLeft, savedIsActive, savedStartTime, savedDistance, savedShowDistanceInput } = JSON.parse(saved);
           
           if (savedStartTime) {
-            // Calculate elapsed time and adjust secondsLeft
-            const elapsedMinutes = (Date.now() - savedStartTime) / 60000;
-            const adjustedSecondsLeft = Math.max(0, duration * 60 - Math.floor(elapsedMinutes * 60));
+            const elapsedSeconds = Math.floor((Date.now() - savedStartTime) / 1000);
+            const adjustedSecondsLeft = Math.max(0, (duration * 60) - elapsedSeconds);
             
             setSecondsLeft(adjustedSecondsLeft);
             setIsActive(savedIsActive && adjustedSecondsLeft > 0);
