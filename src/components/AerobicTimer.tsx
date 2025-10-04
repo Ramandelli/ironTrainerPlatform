@@ -45,16 +45,32 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
           
           if (savedStartTime) {
             const elapsedSeconds = Math.floor((Date.now() - savedStartTime) / 1000);
+            const maxValidTime = 6 * 60 * 60; // 6 horas em segundos
+            
+            // Se o estado salvo é muito antigo (mais de 6 horas), ignore e comece do zero
+            if (elapsedSeconds > maxValidTime) {
+              console.log('Saved aerobic timer state is too old, starting fresh');
+              localStorage.removeItem(`aerobic_timer_${type}`);
+              return;
+            }
+            
             const adjustedSecondsLeft = Math.max(0, (duration * 60) - elapsedSeconds);
             
-            setSecondsLeft(adjustedSecondsLeft);
-            setIsActive(savedIsActive && adjustedSecondsLeft > 0);
-            setDistance(savedDistance || '');
-            setShowDistanceInput(savedShowDistanceInput || adjustedSecondsLeft === 0);
+            // Apenas restaurar se ainda houver tempo significativo (mais de 5 segundos)
+            if (adjustedSecondsLeft > 5) {
+              setSecondsLeft(adjustedSecondsLeft);
+              setIsActive(savedIsActive);
+              setDistance(savedDistance || '');
+              setShowDistanceInput(false);
+            } else {
+              // Se o tempo acabou, limpar o estado salvo
+              localStorage.removeItem(`aerobic_timer_${type}`);
+            }
           }
         }
       } catch (error) {
         console.error('Error loading aerobic timer state:', error);
+        localStorage.removeItem(`aerobic_timer_${type}`);
       }
     };
 
@@ -109,7 +125,6 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
     const actualMinutes = (duration * 60 - secondsLeft) / 60;
     const distanceNum = distance ? parseFloat(distance) : undefined;
     
-    
     try {
       localStorage.removeItem(`aerobic_timer_${type}`);
     } catch (error) {
@@ -117,6 +132,15 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
     }
     
     onComplete(actualMinutes, distanceNum);
+  };
+
+  const handleCancel = () => {
+    try {
+      localStorage.removeItem(`aerobic_timer_${type}`);
+    } catch (error) {
+      console.error('Error clearing aerobic timer state on cancel:', error);
+    }
+    onCancel();
   };
 
   return (
@@ -127,7 +151,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
             <Clock className="w-6 h-6 text-iron-orange" />
             {type}
           </h2>
-          <Button variant="ghost" size="icon" onClick={onCancel}>
+          <Button variant="ghost" size="icon" onClick={handleCancel}>
             <X className="w-5 h-5" />
           </Button>
         </div>
