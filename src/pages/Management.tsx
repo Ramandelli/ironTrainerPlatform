@@ -10,6 +10,9 @@ import { useToast } from '../hooks/use-toast';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { WorkoutDay } from '../types/workout';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import { 
   ArrowLeft, 
   Plus, 
@@ -170,25 +173,52 @@ const getWorkoutId = (day: string) => {
   const handleExportWorkouts = async () => {
     try {
       const jsonData = await customWorkoutManager.exportWorkouts();
-      const blob = new Blob([jsonData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `treinos_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const fileName = `treinos_${new Date().toISOString().split('T')[0]}.json`;
       
-      toast({
-        title: "Sucesso",
-        description: "Treinos exportados com sucesso!",
-      });
+      // Check if running on native mobile platform
+      if (Capacitor.isNativePlatform()) {
+        // Use Capacitor Filesystem API for mobile
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: jsonData,
+          directory: Directory.Documents,
+          encoding: Encoding.UTF8
+        });
+        
+        // Share the file
+        await Share.share({
+          title: 'Exportar Treinos',
+          text: 'Arquivo de treinos exportado',
+          url: result.uri,
+          dialogTitle: 'Compartilhar arquivo de treinos'
+        });
+        
+        toast({
+          title: "Sucesso",
+          description: "Treinos exportados! Escolha onde salvar o arquivo.",
+        });
+      } else {
+        // Web platform - use traditional blob download
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Sucesso",
+          description: "Treinos exportados com sucesso!",
+        });
+      }
     } catch (error) {
       console.error('Export failed:', error);
       toast({
         title: "Erro",
-        description: "Falha ao exportar treinos",
+        description: "Falha ao exportar treinos. Detalhes: " + (error as Error).message,
         variant: "destructive",
       });
     }
