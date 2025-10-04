@@ -93,21 +93,31 @@ const Index = () => {
         setWorkoutAverages(averages || {});
       } catch (error) {
         console.error('Failed to load data:', error);
-      } finally {
-        
       }
     };
 
-    loadData();
-    loadWorkouts();
-    checkRestDay();
+    const initializeData = async () => {
+      await loadData();
+      await loadWorkouts();
+    };
+    
+    initializeData();
   }, []);
 
   useEffect(() => {
     if (currentView === 'home') {
-      loadWorkouts();
+      const refreshHome = async () => {
+        await loadWorkouts();
+        await checkRestDay();
+      };
+      refreshHome();
     }
   }, [currentView]);
+
+  // Check rest day whenever workoutPlan changes
+  useEffect(() => {
+    checkRestDay();
+  }, [workoutPlan]);
 
   const loadHistory = async () => {
     try {
@@ -164,20 +174,26 @@ const Index = () => {
     const todayWorkoutId = getTodayWorkoutId();
     const todaysWorkout = findTodaysWorkout();
 
-    
+    // Priority 1: If there's a workout scheduled for today, it's NOT a rest day
+    if (todaysWorkout) {
+      setIsRestDay(false);
+      return;
+    }
+
+    // Priority 2: Manual rest day
     const isManualRest = await restDayManager.isTodayRestDay();
     if (isManualRest) {
       setIsRestDay(true);
       return;
     }
 
-    
-    if (!todaysWorkout && (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday')) {
+    // Priority 3: Weekend without scheduled workout
+    if (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday') {
       setIsRestDay(true);
       return;
     }
 
-   
+    // Not a rest day
     setIsRestDay(false);
   };
 
@@ -185,7 +201,6 @@ const Index = () => {
     try {
       const allWorkouts = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
       setWorkoutPlan(allWorkouts);
-      await checkRestDay();
     } catch (error) {
       console.error('Failed to load workouts:', error);
     }
