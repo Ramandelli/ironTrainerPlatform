@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
-import { CheckCircle, Circle, Timer, Weight, RotateCcw, Zap } from 'lucide-react';
-import { Exercise, SetData, DropsetData } from '../types/workout';
+import { CheckCircle, Circle, Timer, Weight, RotateCcw, Zap, TrendingUp } from 'lucide-react';
+import { Exercise, SetData, DropsetData, WorkoutSession } from '../types/workout';
 import { DropsetInput } from './DropsetInput';
+import { exerciseSuggestionManager, ExerciseSuggestion } from '../utils/exerciseSuggestions';
+import { storage } from '../utils/storage';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -13,6 +15,7 @@ interface ExerciseCardProps {
   onExerciseComplete: () => void;
   isActive?: boolean;
   hideWeightInputs?: boolean;
+  showSuggestion?: boolean;
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -20,12 +23,38 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onSetComplete,
   onExerciseComplete,
   isActive = false,
-  hideWeightInputs = false
+  hideWeightInputs = false,
+  showSuggestion = true
 }) => {
+  const [suggestion, setSuggestion] = useState<ExerciseSuggestion | null>(null);
+
+  useEffect(() => {
+    if (showSuggestion && !hideWeightInputs) {
+      loadSuggestion();
+    }
+  }, [exercise.name, showSuggestion, hideWeightInputs]);
+
   const [currentSetInputs, setCurrentSetInputs] = useState<{ weight: string; reps: string }>({
     weight: '',
     reps: ''
   });
+
+  const loadSuggestion = async () => {
+    try {
+      const history = await storage.loadWorkoutHistory();
+      const exerciseSuggestion = exerciseSuggestionManager.getSuggestion(exercise.name, history);
+      setSuggestion(exerciseSuggestion);
+      
+      if (exerciseSuggestion && exercise.currentSet === 0 && !currentSetInputs.weight && !currentSetInputs.reps) {
+        setCurrentSetInputs({
+          weight: exerciseSuggestion.weight.toString(),
+          reps: exerciseSuggestion.reps.toString(),
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load suggestion:', error);
+    }
+  };
   const [showDropsetInput, setShowDropsetInput] = useState(false);
 
   const [mainSetData, setMainSetData] = useState<{ weight: number; reps: number } | null>(null);
@@ -131,6 +160,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </Badge>
           )}
         </div>
+        {suggestion && !hideWeightInputs && exercise.currentSet === 0 && !exercise.completed && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded mt-2">
+            <TrendingUp className="w-3 h-3 text-iron-orange" />
+            <span>Sugerido: {suggestion.weight}kg × {suggestion.reps} reps</span>
+          </div>
+        )}
         <div className="space-y-1">
           {exercise.targetReps && (
             <p className="text-sm text-muted-foreground">

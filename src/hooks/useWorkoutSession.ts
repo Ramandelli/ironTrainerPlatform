@@ -14,11 +14,14 @@ import {
 } from '../utils/workoutHelpers';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { useToast } from './use-toast';
+import { achievementManager } from '../utils/achievements';
+import { UnlockedAchievement } from '../types/achievement';
 
 export const useWorkoutSession = () => {
   const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
   const [timerState, setTimerState] = useState<TimerState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [newAchievements, setNewAchievements] = useState<UnlockedAchievement[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -352,6 +355,12 @@ const loadSession = async () => {
 
       const workoutTime = calculateWorkoutTime(finishedSession.startTime, finishedSession.endTime);      
       
+      // Check for new achievements
+      const newUnlocked = await achievementManager.checkAndUnlockAchievements(history);
+      if (newUnlocked.length > 0) {
+        setNewAchievements(newUnlocked);
+      }
+      
       toast({
         title: "Treino finalizado! 🎉",
         description: `Duração: ${workoutTime}min | Volume: ${finishedSession.totalVolume}kg`,
@@ -384,6 +393,10 @@ const loadSession = async () => {
     }
   }, [toast]);
 
+  const clearAchievements = () => {
+    setNewAchievements([]);
+  };
+
   return {
     currentSession,
     timerState,
@@ -396,8 +409,10 @@ const loadSession = async () => {
     finishWorkout,
     cancelWorkout,
     completeAerobic,
-    skipAerobic, // Nova função para pular o cardio
+    skipAerobic,
     completeAbdominalSet,
     completeAbdominalExercise,
+    newAchievements,
+    clearAchievements,
   };
 };

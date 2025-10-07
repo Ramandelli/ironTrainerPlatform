@@ -20,6 +20,7 @@ import { WarmupCard } from '../components/WarmupCard';
 import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
+import { AchievementModal } from '../components/AchievementModal';
 
 const Index = () => {
   const {
@@ -36,8 +37,10 @@ const Index = () => {
     completeAerobic,
     skipAerobic, 
     completeAbdominalSet,
-    completeAbdominalExercise
-  } = useWorkoutSession(); 
+    completeAbdominalExercise,
+    newAchievements,
+    clearAchievements
+  } = useWorkoutSession();
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
@@ -827,6 +830,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <AchievementModal 
+        achievements={newAchievements}
+        onClose={clearAchievements}
+      />
+      
       <div className="max-w-md mx-auto p-4">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">

@@ -3,12 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
-import { ArrowLeft, TrendingUp, Award, Calendar, BarChart3, Activity, Clock, Target, Flame, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Award, Calendar, BarChart3, Activity, Clock, Target, Flame, RotateCcw, Trash2, Trophy } from 'lucide-react';
 import { storage } from '../utils/storage';
 import { WorkoutSession, WorkoutStats } from '../types/workout';
 import { calculatePersonalRecords, calculateWeeklyStats } from '../utils/workoutHelpers';
 import { useToast } from '../hooks/use-toast';
 import { restDayManager } from '../utils/restDays';
+import { achievementManager } from '../utils/achievements';
+import { UnlockedAchievement } from '../types/achievement';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 interface StatisticsProps {
   onBack: () => void;
@@ -22,6 +25,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   const { toast } = useToast();
   const [customRestDays, setCustomRestDays] = useState<string[]>([]);
   const [installDate, setInstallDate] = useState<string | null>(null);
+  const [achievements, setAchievements] = useState<UnlockedAchievement[]>([]);
 
   
   const formatTime = (totalSeconds: number): string => {
@@ -49,7 +53,17 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   };
 
   loadData();
+  loadAchievements();
 }, []);
+
+const loadAchievements = async () => {
+  try {
+    const unlocked = await achievementManager.getUnlockedAchievements();
+    setAchievements(unlocked);
+  } catch (error) {
+    console.error('Failed to load achievements:', error);
+  }
+};
 
 
 useEffect(() => {
@@ -421,9 +435,12 @@ const workoutDistribution: Record<string, number> = {};
   const handleResetData = async () => {
     try {
       await storage.resetAllData();
+      await achievementManager.resetAchievements();
       setStats(null);
       setHistory([]);
+      setAchievements([]);
       await loadData();
+      await loadAchievements();
       
       
       if (onDataReset) {
@@ -432,7 +449,7 @@ const workoutDistribution: Record<string, number> = {};
       
       toast({
         title: "Dados resetados",
-        description: "Todo o histórico de treinos foi removido com sucesso.",
+        description: "Todo o histórico de treinos e conquistas foi removido com sucesso.",
       });
     } catch (error) {
       toast({
@@ -737,7 +754,44 @@ const workoutDistribution: Record<string, number> = {};
 </CardContent>
         </Card>
 
-        {/* Exercise Progress */}
+        {/* Achievements */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-iron-orange" />
+              Conquistas Desbloqueadas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {achievements.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {achievements.map((achievement) => (
+                  <div 
+                    key={achievement.id} 
+                    className="flex flex-col items-center p-3 bg-muted/30 rounded-lg border border-border hover:border-iron-orange/50 transition-colors"
+                  >
+                    <div className="text-3xl mb-2">{achievement.icon}</div>
+                    <div className="text-sm font-semibold text-foreground text-center mb-1">
+                      {achievement.title}
+                    </div>
+                    <div className="text-xs text-muted-foreground text-center mb-1">
+                      {achievement.description}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(achievement.unlockedAt).toLocaleDateString('pt-BR')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">
+                Complete treinos para desbloquear conquistas!
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Exercise Progress with Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -745,26 +799,31 @@ const workoutDistribution: Record<string, number> = {};
               Top 5 Exercícios por Volume
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent>
             {exerciseProgress.length > 0 ? (
-              exerciseProgress.map((exercise, index) => (
-                <div key={exercise.name} className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="w-6 h-6 p-0 text-xs">
-                      {index + 1}
-                    </Badge>
-                    <span className="text-sm font-medium text-foreground">{exercise.name}</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-iron-orange">
-                      {exercise.totalVolume.toFixed(0)}kg
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {exercise.sessions} sessões • {exercise.maxWeight}kg máx
-                    </div>
-                  </div>
-                </div>
-              ))
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={exerciseProgress} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    width={100}
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    formatter={(value: number) => [`${value.toFixed(0)}kg`, 'Volume Total']}
+                  />
+                  <Bar dataKey="totalVolume" fill="hsl(var(--iron-orange))" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             ) : (
               <p className="text-center text-muted-foreground py-4">
                 Complete alguns treinos para ver o progresso!
@@ -773,7 +832,7 @@ const workoutDistribution: Record<string, number> = {};
           </CardContent>
         </Card>
 
-        {/* Workout Distribution */}
+        {/* Workout Distribution with Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -781,28 +840,40 @@ const workoutDistribution: Record<string, number> = {};
               Distribuição Semanal
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent>
             {Object.entries(advancedStats.workoutDistribution).length > 0 ? (
-              Object.entries(advancedStats.workoutDistribution)
-                .sort(([,a], [,b]) => b - a)
-                .map(([day, count]) => (
-                  <div key={day} className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-foreground capitalize">{day}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 bg-muted rounded-full w-20 overflow-hidden">
-                        <div 
-                          className="h-full bg-iron-orange rounded-full transition-all duration-300"
-                          style={{ 
-                            width: `${Math.max(10, (count / Math.max(...Object.values(advancedStats.workoutDistribution))) * 100)}%` 
-                          }}
-                        />
-                      </div>
-                      <span className="text-sm font-bold text-iron-orange w-6 text-right">
-                        {count}
-                      </span>
-                    </div>
-                  </div>
-                ))
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart 
+                  data={Object.entries(advancedStats.workoutDistribution)
+                    .map(([day, count]) => ({ day: day.charAt(0).toUpperCase() + day.slice(1), count }))
+                    .sort((a, b) => {
+                      const dayOrder = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+                      return dayOrder.indexOf(a.day.toLowerCase()) - dayOrder.indexOf(b.day.toLowerCase());
+                    })
+                  }
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="day" 
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: '11px' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    formatter={(value: number) => [`${value}`, 'Treinos']}
+                  />
+                  <Bar dataKey="count" fill="hsl(var(--iron-orange))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             ) : (
               <p className="text-center text-muted-foreground py-4">
                 Complete alguns treinos para ver a distribuição!
