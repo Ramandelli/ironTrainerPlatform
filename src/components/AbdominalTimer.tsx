@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Play, Pause, RotateCcw, CheckCircle, Timer } from 'lucide-react';
+import { Play, Pause, RotateCcw, CheckCircle, Timer, Pencil } from 'lucide-react';
 import { Exercise, SetData } from '../types/workout';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { AbdominalForm } from './AbdominalForm';
 
 interface AbdominalTimerProps {
   exercise: Exercise;
   onSetComplete: (setIndex: number, setData: SetData) => void;
   onExerciseComplete: () => void;
+  onExerciseUpdate?: (updates: Partial<Exercise>) => void;
   isActive?: boolean;
 }
 
@@ -16,6 +19,7 @@ export const AbdominalTimer: React.FC<AbdominalTimerProps> = ({
   exercise,
   onSetComplete,
   onExerciseComplete,
+  onExerciseUpdate,
   isActive = false
 }) => {
   const [isRunning, setIsRunning] = useState(false);
@@ -25,6 +29,7 @@ export const AbdominalTimer: React.FC<AbdominalTimerProps> = ({
     left: false,
     right: false
   });
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const currentSetData = exercise.setData[exercise.currentSet];
   const isCurrentSetCompleted = currentSetData?.completed;
@@ -112,6 +117,18 @@ export const AbdominalTimer: React.FC<AbdominalTimerProps> = ({
   const completedSets = exercise.setData.filter(set => set.completed).length;
   const allSetsCompleted = completedSets === exercise.sets;
 
+  const handleEditSave = (updates: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>) => {
+    if (onExerciseUpdate) {
+      onExerciseUpdate(updates);
+    }
+    setShowEditDialog(false);
+    
+    // Update time if changed
+    if (updates.timePerSet && updates.timePerSet !== exercise.timePerSet) {
+      setTimeLeft(updates.timePerSet);
+    }
+  };
+
   const getCurrentSideLabel = () => {
     if (!isBilateral) return '';
     if (currentSide === 'left') return ' - Lado Esquerdo';
@@ -120,12 +137,37 @@ export const AbdominalTimer: React.FC<AbdominalTimerProps> = ({
   };
 
   return (
+    <>
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Abdominal</DialogTitle>
+          </DialogHeader>
+          <AbdominalForm
+            exercise={exercise}
+            onSave={handleEditSave}
+            onCancel={() => setShowEditDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     <Card className={`${isActive ? 'border-iron-orange shadow-primary bg-card/80' : 'border-border'} transition-all duration-300`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-semibold text-foreground pr-2">
-            {exercise.name}{getCurrentSideLabel()}
-          </CardTitle>
+          <div className="flex items-center gap-2 flex-1">
+            <CardTitle className="text-lg font-semibold text-foreground pr-2">
+              {exercise.name}{getCurrentSideLabel()}
+            </CardTitle>
+            {onExerciseUpdate && !exercise.completed && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowEditDialog(true)}
+                className="h-7 px-2"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
           {exercise.completed ? (
             <Badge variant="outline" className="bg-success/20 text-success border-success">
               <CheckCircle className="w-3 h-3 mr-1" />
@@ -260,5 +302,6 @@ export const AbdominalTimer: React.FC<AbdominalTimerProps> = ({
         )}
       </CardContent>
     </Card>
+    </>
   );
 };

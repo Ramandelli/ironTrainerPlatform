@@ -21,6 +21,7 @@ import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Fl
 import { WorkoutStats } from '../types/workout';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { AchievementModal } from '../components/AchievementModal';
+import { ApplyChangesDialog } from '../components/ApplyChangesDialog';
 
 const Index = () => {
   const {
@@ -38,6 +39,11 @@ const Index = () => {
     skipAerobic, 
     completeAbdominalSet,
     completeAbdominalExercise,
+    updateExercise,
+    updateAbdominalExercise,
+    applyPermanentChanges,
+    modifiedExercises,
+    clearModifications,
     newAchievements,
     clearAchievements
   } = useWorkoutSession();
@@ -56,6 +62,7 @@ const Index = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [warmupCompleted, setWarmupCompleted] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showApplyChangesDialog, setShowApplyChangesDialog] = useState(false);
 
   const getLastWorkoutTime = () => {
     if (history.length === 0) return 0;
@@ -294,6 +301,19 @@ const Index = () => {
   const handleFinishWorkout = async () => {
     if (!currentSession) return;
     
+    // Check if there are modified exercises
+    if (modifiedExercises.size > 0) {
+      setShowApplyChangesDialog(true);
+      return;
+    }
+    
+    // Finish workout normally
+    await finishWorkoutInternal();
+  };
+
+  const finishWorkoutInternal = async () => {
+    if (!currentSession) return;
+    
     
     const workoutDuration = Math.round((Date.now() - currentSession.startTime) / 60000);
     await storage.updateWorkoutAverage(currentSession.workoutDayId, workoutDuration);
@@ -303,12 +323,24 @@ const Index = () => {
     setWorkoutAverages(updatedAverages || {});
     
     await finishWorkout();
+    clearModifications();
     setCurrentView('home');
     setShowAerobicTimer(false);
     setAbdominalCompleted(false);
     await loadStats();
     await loadWorkouts();
     await loadHistory();
+  };
+
+  const handleApplyChangesConfirm = async () => {
+    await applyPermanentChanges();
+    setShowApplyChangesDialog(false);
+    await finishWorkoutInternal();
+  };
+
+  const handleApplyChangesCancel = async () => {
+    setShowApplyChangesDialog(false);
+    await finishWorkoutInternal();
   };
 
   const handleCompleteAerobic = (actualMinutes?: number, distance?: number) => {
@@ -611,6 +643,13 @@ const Index = () => {
           onConfirm={confirmCancelWorkout}
         />
 
+        <ApplyChangesDialog
+          open={showApplyChangesDialog}
+          onOpenChange={setShowApplyChangesDialog}
+          onConfirm={handleApplyChangesConfirm}
+          onCancel={handleApplyChangesCancel}
+        />
+
         {timerState && (
           <Timer
             initialTime={timerState.timeLeft}
@@ -694,6 +733,7 @@ const Index = () => {
               exercise={exercise}
               onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
               onExerciseComplete={() => handleExerciseComplete(exercise.id)}
+              onExerciseUpdate={(updates) => updateExercise(exercise.id, updates)}
               isActive={nextExercise?.id === exercise.id}
             />
           ))}
@@ -721,6 +761,7 @@ const Index = () => {
                       }
                     }}
                     onExerciseComplete={() => completeAbdominalExercise(exercise.id)}
+                    onExerciseUpdate={(updates) => updateAbdominalExercise(exercise.id, updates)}
                     isActive={!exercise.completed}
                   />
                 ) : (
@@ -735,6 +776,7 @@ const Index = () => {
                       }
                     }}
                     onExerciseComplete={() => completeAbdominalExercise(exercise.id)}
+                    onExerciseUpdate={(updates) => updateAbdominalExercise(exercise.id, updates)}
                     isActive={!exercise.completed}
                     hideWeightInputs
                   />

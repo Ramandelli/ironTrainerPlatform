@@ -22,6 +22,7 @@ export const useWorkoutSession = () => {
   const [timerState, setTimerState] = useState<TimerState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newAchievements, setNewAchievements] = useState<UnlockedAchievement[]>([]);
+  const [modifiedExercises, setModifiedExercises] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -393,8 +394,130 @@ const loadSession = async () => {
     }
   }, [toast]);
 
+  const updateExercise = useCallback((exerciseId: string, updates: Partial<Exercise>) => {
+    if (!currentSession) return;
+
+    setCurrentSession(prev => {
+      if (!prev) return null;
+      
+      const updatedExercises = prev.exercises.map(ex => 
+        ex.id === exerciseId ? { ...ex, ...updates } : ex
+      );
+      
+      return { ...prev, exercises: updatedExercises };
+    });
+    
+    setModifiedExercises(prev => new Set(prev).add(exerciseId));
+    
+    toast({
+      title: "Exercício atualizado",
+      description: "Alterações serão aplicadas neste treino.",
+    });
+  }, [currentSession, toast]);
+
+  const updateAbdominalExercise = useCallback((exerciseId: string, updates: Partial<Exercise>) => {
+    if (!currentSession || !currentSession.abdominal) return;
+
+    setCurrentSession(prev => {
+      if (!prev || !prev.abdominal) return prev;
+      
+      const updatedAbdominal = prev.abdominal.map(ex => 
+        ex.id === exerciseId ? { ...ex, ...updates } : ex
+      );
+      
+      return { ...prev, abdominal: updatedAbdominal };
+    });
+    
+    setModifiedExercises(prev => new Set(prev).add(exerciseId));
+    
+    toast({
+      title: "Exercício atualizado",
+      description: "Alterações serão aplicadas neste treino.",
+    });
+  }, [currentSession, toast]);
+
+  const applyPermanentChanges = useCallback(async () => {
+    if (!currentSession || modifiedExercises.size === 0) return;
+
+    try {
+      const allWorkouts = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
+      const originalWorkout = allWorkouts.find(w => w.id === currentSession.workoutDayId);
+      
+      if (!originalWorkout) {
+        throw new Error('Workout not found');
+      }
+
+      let workoutToUpdate = originalWorkout;
+      
+      // Convert to custom if it's a default workout
+      if (!customWorkoutManager.isCustomWorkout(originalWorkout.id)) {
+        workoutToUpdate = await customWorkoutManager.convertToCustomWorkout(originalWorkout);
+      }
+
+      // Apply changes to the workout
+      const updatedExercises = workoutToUpdate.exercises.map(ex => {
+        const sessionExercise = currentSession.exercises.find(se => se.name === ex.name);
+        if (sessionExercise && modifiedExercises.has(sessionExercise.id)) {
+          return {
+            ...ex,
+            name: sessionExercise.name,
+            sets: sessionExercise.sets,
+            targetReps: sessionExercise.targetReps,
+            suggestedWeight: sessionExercise.suggestedWeight,
+            restTime: sessionExercise.restTime,
+            notes: sessionExercise.notes,
+            hasDropset: sessionExercise.hasDropset
+          };
+        }
+        return ex;
+      });
+
+      const updatedAbdominal = workoutToUpdate.abdominal?.map(ex => {
+        const sessionAbdominal = currentSession.abdominal?.find(sa => sa.name === ex.name);
+        if (sessionAbdominal && modifiedExercises.has(sessionAbdominal.id)) {
+          return {
+            ...ex,
+            name: sessionAbdominal.name,
+            sets: sessionAbdominal.sets,
+            targetReps: sessionAbdominal.targetReps,
+            restTime: sessionAbdominal.restTime,
+            notes: sessionAbdominal.notes,
+            isTimeBased: sessionAbdominal.isTimeBased,
+            timePerSet: sessionAbdominal.timePerSet,
+            isBilateral: sessionAbdominal.isBilateral
+          };
+        }
+        return ex;
+      });
+
+      await customWorkoutManager.saveWorkout({
+        ...workoutToUpdate,
+        exercises: updatedExercises,
+        abdominal: updatedAbdominal
+      });
+
+      setModifiedExercises(new Set());
+      
+      toast({
+        title: "Alterações aplicadas! ✅",
+        description: "O treino base foi atualizado permanentemente.",
+      });
+    } catch (error) {
+      console.error('Failed to apply permanent changes:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível aplicar as alterações permanentemente.",
+        variant: "destructive"
+      });
+    }
+  }, [currentSession, modifiedExercises, toast]);
+
   const clearAchievements = () => {
     setNewAchievements([]);
+  };
+
+  const clearModifications = () => {
+    setModifiedExercises(new Set());
   };
 
   return {
@@ -412,6 +535,11 @@ const loadSession = async () => {
     skipAerobic,
     completeAbdominalSet,
     completeAbdominalExercise,
+    updateExercise,
+    updateAbdominalExercise,
+    applyPermanentChanges,
+    modifiedExercises,
+    clearModifications,
     newAchievements,
     clearAchievements,
   };

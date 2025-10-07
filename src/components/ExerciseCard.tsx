@@ -3,16 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
-import { CheckCircle, Circle, Timer, Weight, RotateCcw, Zap, TrendingUp } from 'lucide-react';
+import { CheckCircle, Circle, Timer, Weight, RotateCcw, Zap, TrendingUp, Pencil } from 'lucide-react';
 import { Exercise, SetData, DropsetData, WorkoutSession } from '../types/workout';
 import { DropsetInput } from './DropsetInput';
 import { exerciseSuggestionManager, ExerciseSuggestion } from '../utils/exerciseSuggestions';
 import { storage } from '../utils/storage';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { ExerciseForm } from './ExerciseForm';
 
 interface ExerciseCardProps {
   exercise: Exercise;
   onSetComplete: (setIndex: number, setData: SetData) => void;
   onExerciseComplete: () => void;
+  onExerciseUpdate?: (updates: Partial<Exercise>) => void;
   isActive?: boolean;
   hideWeightInputs?: boolean;
   showSuggestion?: boolean;
@@ -22,11 +25,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   exercise,
   onSetComplete,
   onExerciseComplete,
+  onExerciseUpdate,
   isActive = false,
   hideWeightInputs = false,
   showSuggestion = true
 }) => {
   const [suggestion, setSuggestion] = useState<ExerciseSuggestion | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   useEffect(() => {
     if (showSuggestion && !hideWeightInputs) {
@@ -120,6 +125,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     return reps > 0 && exercise.currentSet < exercise.sets;
   };
 
+  const handleEditSave = (updates: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>) => {
+    if (onExerciseUpdate) {
+      onExerciseUpdate(updates);
+    }
+    setShowEditDialog(false);
+  };
+
   const completedSets = exercise.setData.filter(set => set.completed).length;
   const allSetsCompleted = completedSets === exercise.sets;
 
@@ -135,13 +147,36 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   }
 
   return (
+    <>
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Exercício</DialogTitle>
+          </DialogHeader>
+          <ExerciseForm
+            exercise={exercise}
+            onSave={handleEditSave}
+            onCancel={() => setShowEditDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     <Card className={`${isActive ? 'border-iron-orange shadow-primary bg-card/80' : 'border-border'} transition-all duration-300`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <CardTitle className="text-lg font-semibold text-foreground pr-2">
               {exercise.name}
             </CardTitle>
+            {onExerciseUpdate && !exercise.completed && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowEditDialog(true)}
+                className="h-7 px-2"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+            )}
             {exercise.hasDropset && (
               <Badge variant="outline" className="bg-iron-orange/20 text-iron-orange border-iron-orange">
                 <Zap className="w-3 h-3 mr-1" />
@@ -290,5 +325,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         </div>
       </CardContent>
     </Card>
+    </>
   );
 };
