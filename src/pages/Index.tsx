@@ -10,6 +10,7 @@ import { Timer } from '../components/Timer';
 import { AerobicTimer } from '../components/AerobicTimer';
 import { Statistics } from './Statistics';
 import { Management } from './Management';
+import { Achievements } from './Achievements';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { storage } from '../utils/storage';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
@@ -17,7 +18,7 @@ import { customWorkoutManager } from '../utils/customWorkouts';
 import { restDayManager } from '../utils/restDays';
 import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
 import { WarmupCard } from '../components/WarmupCard';
-import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame } from 'lucide-react';
+import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame, Trophy } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { AchievementModal } from '../components/AchievementModal';
@@ -53,7 +54,7 @@ const Index = () => {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
   const [workoutAverages, setWorkoutAverages] = useState<Record<string, number>>({});
   const [isRestDay, setIsRestDay] = useState(false);
-  const [currentView, setCurrentView] = useState<'home' | 'workout' | 'workout-view' | 'statistics' | 'management'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'workout' | 'workout-view' | 'statistics' | 'management' | 'achievements'>('home');
   const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null);
   const [showAerobicTimer, setShowAerobicTimer] = useState(false);
   const [abdominalCompleted, setAbdominalCompleted] = useState(false);
@@ -376,6 +377,10 @@ const Index = () => {
 
   const handleNavigateToManagement = () => {
     setCurrentView('management');
+  };
+
+  const handleNavigateToAchievements = () => {
+    setCurrentView('achievements');
   };
 
   const handleBackToHome = () => {
@@ -870,6 +875,10 @@ const Index = () => {
     }} />;
   }
 
+  if (currentView === 'achievements') {
+    return <Achievements onBack={handleBackToHome} />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <AchievementModal 
@@ -1005,6 +1014,16 @@ const Index = () => {
               >
                 <BarChart3 className="w-5 h-5" />
                 <span className="text-xs">Estatísticas</span>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleNavigateToAchievements}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <Trophy className="w-5 h-5" />
+                <span className="text-xs">Conquistas</span>
               </Button>
               
               <Button
