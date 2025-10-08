@@ -754,43 +754,6 @@ const workoutDistribution: Record<string, number> = {};
 </CardContent>
         </Card>
 
-        {/* Achievements */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-iron-orange" />
-              Conquistas Desbloqueadas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {achievements.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
-                {achievements.map((achievement) => (
-                  <div 
-                    key={achievement.id} 
-                    className="flex flex-col items-center p-3 bg-muted/30 rounded-lg border border-border hover:border-iron-orange/50 transition-colors"
-                  >
-                    <div className="text-3xl mb-2">{achievement.icon}</div>
-                    <div className="text-sm font-semibold text-foreground text-center mb-1">
-                      {achievement.title}
-                    </div>
-                    <div className="text-xs text-muted-foreground text-center mb-1">
-                      {achievement.description}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(achievement.unlockedAt).toLocaleDateString('pt-BR')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-4">
-                Complete treinos para desbloquear conquistas!
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Exercise Progress with Chart */}
         <Card>
           <CardHeader>

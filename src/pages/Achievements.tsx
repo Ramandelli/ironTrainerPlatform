@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { X, Lock, Trophy, Calendar } from 'lucide-react';
+import { ArrowLeft, Lock, Trophy, Calendar } from 'lucide-react';
 import { ACHIEVEMENTS } from '../utils/achievements';
 import { achievementManager } from '../utils/achievements';
 import { UnlockedAchievement } from '../types/achievement';
+import { storage } from '../utils/storage';
+import { WorkoutSession } from '../types/workout';
 import {
   Dialog,
   DialogContent,
@@ -20,14 +22,106 @@ interface AchievementsProps {
 export const Achievements: React.FC<AchievementsProps> = ({ onBack }) => {
   const [unlockedAchievements, setUnlockedAchievements] = useState<UnlockedAchievement[]>([]);
   const [selectedAchievement, setSelectedAchievement] = useState<UnlockedAchievement | null>(null);
+  const [history, setHistory] = useState<WorkoutSession[]>([]);
+  const [currentStats, setCurrentStats] = useState<any>(null);
 
   useEffect(() => {
     loadAchievements();
+    loadHistory();
   }, []);
 
   const loadAchievements = async () => {
     const unlocked = await achievementManager.getUnlockedAchievements();
     setUnlockedAchievements(unlocked);
+  };
+
+  const loadHistory = async () => {
+    const workoutHistory = await storage.loadWorkoutHistory();
+    setHistory(workoutHistory);
+    calculateCurrentStats(workoutHistory);
+  };
+
+  const calculateCurrentStats = (workoutHistory: WorkoutSession[]) => {
+    const totalWorkouts = workoutHistory.length;
+    const totalVolume = workoutHistory.reduce((sum, session) => sum + (session.totalVolume || 0), 0);
+    const totalTimeSeconds = workoutHistory.reduce((sum, session) => {
+      if (session.endTime && session.startTime) {
+        return sum + Math.floor((session.endTime - session.startTime) / 1000);
+      }
+      return sum;
+    }, 0);
+    
+    // Calculate consecutive days
+    const sortedWorkouts = [...workoutHistory].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    
+    let consecutiveDays = 0;
+    let currentStreak = 0;
+    let lastDate: Date | null = null;
+    
+    for (const workout of sortedWorkouts) {
+      const workoutDate = new Date(workout.date);
+      workoutDate.setHours(0, 0, 0, 0);
+      
+      if (!lastDate) {
+        currentStreak = 1;
+      } else {
+        const daysDiff = Math.floor((lastDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysDiff === 1) {
+          currentStreak++;
+        } else if (daysDiff > 1) {
+          break;
+        }
+      }
+      
+      consecutiveDays = Math.max(consecutiveDays, currentStreak);
+      lastDate = workoutDate;
+    }
+
+    // Calculate abdominal stats
+    const totalAbdominalSets = workoutHistory.reduce((sum, session) => {
+      return sum + (session.abdominal?.length || 0);
+    }, 0);
+
+    // Calculate cardio stats
+    const totalCardioMinutes = workoutHistory.reduce((sum, session) => {
+      if (session.aerobic) {
+        return sum + (session.aerobic.actualDuration || session.aerobic.duration) / 60;
+      }
+      return sum;
+    }, 0);
+
+    const totalCardioKm = workoutHistory.reduce((sum, session) => {
+      if (session.aerobic) {
+        return sum + (session.aerobic.distance || 0);
+      }
+      return sum;
+    }, 0);
+
+    // Calculate total sets and reps
+    const totalSets = workoutHistory.reduce((sum, session) => {
+      return sum + (session.exercises?.reduce((exSum, ex) => exSum + ex.sets, 0) || 0);
+    }, 0);
+
+    const totalReps = workoutHistory.reduce((sum, session) => {
+      return sum + (session.exercises?.reduce((exSum, ex) => {
+        return exSum + (ex.setData?.reduce((setSum, set) => setSum + (set.reps || 0), 0) || 0);
+      }, 0) || 0);
+    }, 0);
+
+    setCurrentStats({
+      totalWorkouts,
+      totalVolume,
+      totalTimeSeconds,
+      consecutiveDays,
+      totalAbdominalSets,
+      totalCardioMinutes,
+      totalCardioKm,
+      totalSets,
+      totalReps,
+      history: workoutHistory
+    });
   };
 
   const isUnlocked = (achievementId: string) => {
@@ -49,6 +143,68 @@ export const Achievements: React.FC<AchievementsProps> = ({ onBack }) => {
     });
   };
 
+  const getProgressText = (achievement: any): string | null => {
+    if (!currentStats || isUnlocked(achievement.id)) return null;
+
+    try {
+      // Map achievement IDs to their progress
+      const progressMap: { [key: string]: string } = {
+        'first_workout': `(atual ${currentStats.totalWorkouts})`,
+        'workout_10': `(atual ${currentStats.totalWorkouts})`,
+        'workout_25': `(atual ${currentStats.totalWorkouts})`,
+        'workout_50': `(atual ${currentStats.totalWorkouts})`,
+        'workout_100': `(atual ${currentStats.totalWorkouts})`,
+        'workout_250': `(atual ${currentStats.totalWorkouts})`,
+        'workout_500': `(atual ${currentStats.totalWorkouts})`,
+        
+        'volume_10k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_25k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_50k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_100k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_250k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_500k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_1m': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        
+        'time_10h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
+        'time_50h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
+        'time_100h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
+        'time_250h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
+        'time_500h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
+        
+        'streak_7': `(atual ${currentStats.consecutiveDays} dias)`,
+        'streak_14': `(atual ${currentStats.consecutiveDays} dias)`,
+        'streak_30': `(atual ${currentStats.consecutiveDays} dias)`,
+        'streak_60': `(atual ${currentStats.consecutiveDays} dias)`,
+        'streak_100': `(atual ${currentStats.consecutiveDays} dias)`,
+        
+        'abs_100': `(atual ${currentStats.totalAbdominalSets} séries)`,
+        'abs_250': `(atual ${currentStats.totalAbdominalSets} séries)`,
+        'abs_500': `(atual ${currentStats.totalAbdominalSets} séries)`,
+        'abs_1000': `(atual ${currentStats.totalAbdominalSets} séries)`,
+        
+        'cardio_10h': `(atual ${(currentStats.totalCardioMinutes / 60).toFixed(2)}h)`,
+        'cardio_50h': `(atual ${(currentStats.totalCardioMinutes / 60).toFixed(2)}h)`,
+        'cardio_100h': `(atual ${(currentStats.totalCardioMinutes / 60).toFixed(2)}h)`,
+        
+        'cardio_50km': `(atual ${currentStats.totalCardioKm.toFixed(2)} km)`,
+        'cardio_100km': `(atual ${currentStats.totalCardioKm.toFixed(2)} km)`,
+        'cardio_250km': `(atual ${currentStats.totalCardioKm.toFixed(2)} km)`,
+        
+        'sets_1000': `(atual ${currentStats.totalSets} séries)`,
+        'sets_2500': `(atual ${currentStats.totalSets} séries)`,
+        'sets_5000': `(atual ${currentStats.totalSets} séries)`,
+        
+        'reps_10k': `(atual ${currentStats.totalReps} reps)`,
+        'reps_25k': `(atual ${currentStats.totalReps} reps)`,
+        'reps_50k': `(atual ${currentStats.totalReps} reps)`,
+      };
+
+      return progressMap[achievement.id] || null;
+    } catch (error) {
+      return null;
+    }
+  };
+
   const unlockedCount = unlockedAchievements.length;
   const totalCount = ACHIEVEMENTS.length;
 
@@ -56,19 +212,16 @@ export const Achievements: React.FC<AchievementsProps> = ({ onBack }) => {
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 bg-background/95 backdrop-blur-lg border-b border-border z-40">
         <div className="max-w-4xl mx-auto p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Trophy className="w-6 h-6 text-iron-orange" />
-                Conquistas
-              </h1>
+              <h1 className="text-xl font-bold text-foreground">Conquistas</h1>
               <p className="text-sm text-muted-foreground">
-                {unlockedCount} de {totalCount} conquistas desbloqueadas
+                {unlockedCount} de {totalCount} desbloqueadas
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={onBack}>
-              <X className="w-4 h-4" />
-            </Button>
           </div>
         </div>
       </div>
@@ -109,6 +262,11 @@ export const Achievements: React.FC<AchievementsProps> = ({ onBack }) => {
                       </CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">
                         {achievement.description}
+                        {!unlocked && getProgressText(achievement) && (
+                          <span className="text-iron-orange font-medium ml-1">
+                            {getProgressText(achievement)}
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
