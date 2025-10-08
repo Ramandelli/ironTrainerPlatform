@@ -115,6 +115,245 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🌟',
     condition: (stats) => stats.consecutiveDays >= 7,
   },
+  {
+    id: 'consecutive_14',
+    title: 'Duas Semanas Seguidas',
+    description: 'Treine 14 dias consecutivos',
+    icon: '🔥',
+    condition: (stats) => stats.consecutiveDays >= 14,
+  },
+  {
+    id: 'consecutive_30',
+    title: 'Mês Perfeito',
+    description: 'Treine 30 dias consecutivos',
+    icon: '👑',
+    condition: (stats) => stats.consecutiveDays >= 30,
+  },
+  {
+    id: 'volume_50000',
+    title: 'Hercules',
+    description: 'Levante 50.000 kg no total',
+    icon: '💎',
+    condition: (stats) => stats.totalVolume >= 50000,
+  },
+  {
+    id: 'volume_100000',
+    title: 'Força Lendária',
+    description: 'Levante 100.000 kg no total',
+    icon: '🦾',
+    condition: (stats) => stats.totalVolume >= 100000,
+  },
+  {
+    id: 'time_50h',
+    title: 'Dedicação Total',
+    description: 'Acumule 50 horas de treino',
+    icon: '🎖️',
+    condition: (stats) => stats.totalTimeSeconds >= 50 * 3600,
+  },
+  {
+    id: 'time_100h',
+    title: 'Veterano',
+    description: 'Acumule 100 horas de treino',
+    icon: '🏅',
+    condition: (stats) => stats.totalTimeSeconds >= 100 * 3600,
+  },
+  {
+    id: 'workout_250',
+    title: 'Mestre',
+    description: 'Complete 250 treinos',
+    icon: '🌠',
+    condition: (stats) => stats.totalWorkouts >= 250,
+  },
+  {
+    id: 'workout_500',
+    title: 'Imortal',
+    description: 'Complete 500 treinos',
+    icon: '⚜️',
+    condition: (stats) => stats.totalWorkouts >= 500,
+  },
+  {
+    id: 'abdominal_100_sets',
+    title: 'Abdômen de Aço',
+    description: 'Complete 100 séries de abdominais',
+    icon: '💪',
+    condition: (stats) => {
+      const abdominalSets = stats.history.reduce((sum, session) => {
+        if (!session.abdominal) return sum;
+        return sum + session.abdominal.reduce((exerciseSum, ex) => {
+          return exerciseSum + (ex.completedSets || 0);
+        }, 0);
+      }, 0);
+      return abdominalSets >= 100;
+    },
+  },
+  {
+    id: 'abdominal_500_sets',
+    title: 'Núcleo Destruído',
+    description: 'Complete 500 séries de abdominais',
+    icon: '🔱',
+    condition: (stats) => {
+      const abdominalSets = stats.history.reduce((sum, session) => {
+        if (!session.abdominal) return sum;
+        return sum + session.abdominal.reduce((exerciseSum, ex) => {
+          return exerciseSum + (ex.completedSets || 0);
+        }, 0);
+      }, 0);
+      return abdominalSets >= 500;
+    },
+  },
+  {
+    id: 'cardio_10h',
+    title: 'Cardio Iniciante',
+    description: 'Complete 10 horas de cardio',
+    icon: '🏃',
+    condition: (stats) => {
+      const cardioTime = stats.history.reduce((sum, session) => {
+        if (!session.aerobic?.completed || !session.aerobic.actualMinutes) return sum;
+        return sum + (session.aerobic.actualMinutes * 60);
+      }, 0);
+      return cardioTime >= 10 * 3600;
+    },
+  },
+  {
+    id: 'cardio_50h',
+    title: 'Corredor de Elite',
+    description: 'Complete 50 horas de cardio',
+    icon: '🏃‍♂️',
+    condition: (stats) => {
+      const cardioTime = stats.history.reduce((sum, session) => {
+        if (!session.aerobic?.completed || !session.aerobic.actualMinutes) return sum;
+        return sum + (session.aerobic.actualMinutes * 60);
+      }, 0);
+      return cardioTime >= 50 * 3600;
+    },
+  },
+  {
+    id: 'cardio_100km',
+    title: 'Maratonista',
+    description: 'Complete 100 km de cardio',
+    icon: '🎽',
+    condition: (stats) => {
+      const totalDistance = stats.history.reduce((sum, session) => {
+        if (!session.aerobic?.completed || !session.aerobic.distance) return sum;
+        return sum + session.aerobic.distance;
+      }, 0);
+      return totalDistance >= 100;
+    },
+  },
+  {
+    id: 'cardio_500km',
+    title: 'Ultramaratonista',
+    description: 'Complete 500 km de cardio',
+    icon: '🦅',
+    condition: (stats) => {
+      const totalDistance = stats.history.reduce((sum, session) => {
+        if (!session.aerobic?.completed || !session.aerobic.distance) return sum;
+        return sum + session.aerobic.distance;
+      }, 0);
+      return totalDistance >= 500;
+    },
+  },
+  {
+    id: 'sets_1000',
+    title: 'Máquina de Séries',
+    description: 'Complete 1.000 séries no total',
+    icon: '🎯',
+    condition: (stats) => {
+      const totalSets = stats.history.reduce((sum, session) => {
+        return sum + session.exercises.reduce((exerciseSum, ex) => {
+          return exerciseSum + (ex.completedSets || 0);
+        }, 0);
+      }, 0);
+      return totalSets >= 1000;
+    },
+  },
+  {
+    id: 'sets_5000',
+    title: 'Senhor das Séries',
+    description: 'Complete 5.000 séries no total',
+    icon: '💯',
+    condition: (stats) => {
+      const totalSets = stats.history.reduce((sum, session) => {
+        return sum + session.exercises.reduce((exerciseSum, ex) => {
+          return exerciseSum + (ex.completedSets || 0);
+        }, 0);
+      }, 0);
+      return totalSets >= 5000;
+    },
+  },
+  {
+    id: 'reps_10000',
+    title: 'Contador de Reps',
+    description: 'Complete 10.000 repetições no total',
+    icon: '🔢',
+    condition: (stats) => {
+      const totalReps = stats.history.reduce((sum, session) => {
+        return sum + session.exercises.reduce((exerciseSum, ex) => {
+          return exerciseSum + ex.setsData.reduce((setSum, set) => {
+            return setSum + (set.actualReps || 0);
+          }, 0);
+        }, 0);
+      }, 0);
+      return totalReps >= 10000;
+    },
+  },
+  {
+    id: 'reps_50000',
+    title: 'Mestre das Repetições',
+    description: 'Complete 50.000 repetições no total',
+    icon: '♾️',
+    condition: (stats) => {
+      const totalReps = stats.history.reduce((sum, session) => {
+        return sum + session.exercises.reduce((exerciseSum, ex) => {
+          return exerciseSum + ex.setsData.reduce((setSum, set) => {
+            return setSum + (set.actualReps || 0);
+          }, 0);
+        }, 0);
+      }, 0);
+      return totalReps >= 50000;
+    },
+  },
+  {
+    id: 'perfect_workout',
+    title: 'Treino Perfeito',
+    description: 'Complete um treino com todos os exercícios sem pular nenhum',
+    icon: '✨',
+    condition: (stats) => {
+      return stats.history.some(session => {
+        if (!session.completed) return false;
+        const allExercisesCompleted = session.exercises.every(ex => ex.completed);
+        const aerobicCompleted = !session.aerobic || session.aerobic.completed;
+        const abdominalCompleted = !session.abdominal || session.abdominal.every(ex => ex.completed);
+        return allExercisesCompleted && aerobicCompleted && abdominalCompleted;
+      });
+    },
+  },
+  {
+    id: 'early_bird',
+    title: 'Madrugador',
+    description: 'Complete um treino antes das 7h da manhã',
+    icon: '🌅',
+    condition: (stats) => {
+      return stats.history.some(session => {
+        if (!session.completed || !session.startTime) return false;
+        const startHour = new Date(session.startTime).getHours();
+        return startHour < 7;
+      });
+    },
+  },
+  {
+    id: 'night_warrior',
+    title: 'Guerreiro Noturno',
+    description: 'Complete um treino depois das 22h',
+    icon: '🌙',
+    condition: (stats) => {
+      return stats.history.some(session => {
+        if (!session.completed || !session.startTime) return false;
+        const startHour = new Date(session.startTime).getHours();
+        return startHour >= 22;
+      });
+    },
+  },
 ];
 
 class AchievementManager {

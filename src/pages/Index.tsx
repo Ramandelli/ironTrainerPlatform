@@ -402,8 +402,8 @@ const Index = () => {
     const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
     if (!workoutDay) return 'none';
 
-    // Primeira fase: Aquecimento (se existir e não estiver completo)
-    if (workoutDay.warmup && !warmupCompleted) {
+    // Primeira fase: Aquecimento (se existir, tiver conteúdo e não estiver completo)
+    if (workoutDay.warmup && workoutDay.warmup.trim() !== '' && !warmupCompleted) {
       return 'warmup';
     }
 
@@ -685,7 +685,7 @@ const Index = () => {
         </div>
 
         <div className="max-w-md mx-auto p-4 space-y-4 pb-24">
-          {workoutPhase === 'warmup' && workoutDay.warmup && (
+          {workoutPhase === 'warmup' && workoutDay.warmup && workoutDay.warmup.trim() !== '' && (
             <WarmupCard
               warmupDescription={workoutDay.warmup}
               onComplete={() => setWarmupCompleted(true)}
