@@ -87,7 +87,8 @@ export const Achievements: React.FC<AchievementsProps> = ({ onBack }) => {
     // Calculate cardio stats
     const totalCardioMinutes = workoutHistory.reduce((sum, session) => {
       if (session.aerobic) {
-        return sum + (session.aerobic.actualDuration || session.aerobic.duration) / 60;
+        // actualDuration is already in minutes, duration is in seconds
+        return sum + (session.aerobic.actualDuration || session.aerobic.duration / 60);
       }
       return sum;
     }, 0);
