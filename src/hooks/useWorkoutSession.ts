@@ -454,9 +454,19 @@ const loadSession = async () => {
         workoutToUpdate = await customWorkoutManager.convertToCustomWorkout(originalWorkout);
       }
 
-      // Apply changes to the workout
-      const updatedExercises = workoutToUpdate.exercises.map(ex => {
-        const sessionExercise = currentSession.exercises.find(se => se.name === ex.name);
+      // Create a map of original exercise IDs to their indices for matching
+      const exerciseMap = new Map(
+        workoutToUpdate.exercises.map((ex, idx) => [idx, ex])
+      );
+
+      // Apply changes to the workout exercises
+      const updatedExercises = workoutToUpdate.exercises.map((ex, idx) => {
+        // Try to find matching session exercise by index first, then by name
+        let sessionExercise = currentSession.exercises[idx];
+        if (!sessionExercise || sessionExercise.name !== ex.name) {
+          sessionExercise = currentSession.exercises.find(se => se.name === ex.name);
+        }
+        
         if (sessionExercise && modifiedExercises.has(sessionExercise.id)) {
           return {
             ...ex,
@@ -472,8 +482,14 @@ const loadSession = async () => {
         return ex;
       });
 
-      const updatedAbdominal = workoutToUpdate.abdominal?.map(ex => {
-        const sessionAbdominal = currentSession.abdominal?.find(sa => sa.name === ex.name);
+      // Apply changes to abdominal exercises
+      const updatedAbdominal = workoutToUpdate.abdominal?.map((ex, idx) => {
+        // Try to find matching session abdominal by index first, then by name
+        let sessionAbdominal = currentSession.abdominal?.[idx];
+        if (!sessionAbdominal || sessionAbdominal.name !== ex.name) {
+          sessionAbdominal = currentSession.abdominal?.find(sa => sa.name === ex.name);
+        }
+        
         if (sessionAbdominal && modifiedExercises.has(sessionAbdominal.id)) {
           return {
             ...ex,
@@ -509,6 +525,7 @@ const loadSession = async () => {
         description: "Não foi possível aplicar as alterações permanentemente.",
         variant: "destructive"
       });
+      throw error;
     }
   }, [currentSession, modifiedExercises, toast]);
 

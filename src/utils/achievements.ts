@@ -316,13 +316,13 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'perfect_workout',
     title: 'Treino Perfeito',
-    description: 'Complete um treino com todos os exercícios sem pular nenhum',
+    description: 'Complete um treino com todos os exercícios principais e abdominais',
     icon: '✨',
     condition: (stats) => {
       return stats.history.some(session => {
         if (!session.completed) return false;
         const allExercisesCompleted = session.exercises.every(ex => ex.completed);
-        const aerobicCompleted = !session.aerobic || session.aerobic.completed;
+        const aerobicCompleted = !session.aerobic || session.aerobic.completed || session.aerobic.skipped;
         const abdominalCompleted = !session.abdominal || session.abdominal.every(ex => ex.completed);
         return allExercisesCompleted && aerobicCompleted && abdominalCompleted;
       });

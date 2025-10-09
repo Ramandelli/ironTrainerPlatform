@@ -150,6 +150,7 @@ export const Achievements: React.FC<AchievementsProps> = ({ onBack }) => {
       // Map achievement IDs to their progress
       const progressMap: { [key: string]: string } = {
         'first_workout': `(atual ${currentStats.totalWorkouts})`,
+        'workout_5': `(atual ${currentStats.totalWorkouts})`,
         'workout_10': `(atual ${currentStats.totalWorkouts})`,
         'workout_25': `(atual ${currentStats.totalWorkouts})`,
         'workout_50': `(atual ${currentStats.totalWorkouts})`,
@@ -157,46 +158,39 @@ export const Achievements: React.FC<AchievementsProps> = ({ onBack }) => {
         'workout_250': `(atual ${currentStats.totalWorkouts})`,
         'workout_500': `(atual ${currentStats.totalWorkouts})`,
         
-        'volume_10k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
-        'volume_25k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
-        'volume_50k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
-        'volume_100k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
-        'volume_250k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
-        'volume_500k': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
-        'volume_1m': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_1000': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_5000': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_10000': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_25000': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_50000': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
+        'volume_100000': `(atual ${(currentStats.totalVolume / 1000).toFixed(2)} mil kg)`,
         
+        'time_5h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
         'time_10h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
+        'time_25h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
         'time_50h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
         'time_100h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
-        'time_250h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
-        'time_500h': `(atual ${(currentStats.totalTimeSeconds / 3600).toFixed(2)}h)`,
         
-        'streak_7': `(atual ${currentStats.consecutiveDays} dias)`,
-        'streak_14': `(atual ${currentStats.consecutiveDays} dias)`,
-        'streak_30': `(atual ${currentStats.consecutiveDays} dias)`,
-        'streak_60': `(atual ${currentStats.consecutiveDays} dias)`,
-        'streak_100': `(atual ${currentStats.consecutiveDays} dias)`,
+        'consecutive_3': `(atual ${currentStats.consecutiveDays} dias)`,
+        'consecutive_5': `(atual ${currentStats.consecutiveDays} dias)`,
+        'consecutive_7': `(atual ${currentStats.consecutiveDays} dias)`,
+        'consecutive_14': `(atual ${currentStats.consecutiveDays} dias)`,
+        'consecutive_30': `(atual ${currentStats.consecutiveDays} dias)`,
         
-        'abs_100': `(atual ${currentStats.totalAbdominalSets} séries)`,
-        'abs_250': `(atual ${currentStats.totalAbdominalSets} séries)`,
-        'abs_500': `(atual ${currentStats.totalAbdominalSets} séries)`,
-        'abs_1000': `(atual ${currentStats.totalAbdominalSets} séries)`,
+        'abdominal_100_sets': `(atual ${currentStats.totalAbdominalSets} séries)`,
+        'abdominal_500_sets': `(atual ${currentStats.totalAbdominalSets} séries)`,
         
         'cardio_10h': `(atual ${(currentStats.totalCardioMinutes / 60).toFixed(2)}h)`,
         'cardio_50h': `(atual ${(currentStats.totalCardioMinutes / 60).toFixed(2)}h)`,
-        'cardio_100h': `(atual ${(currentStats.totalCardioMinutes / 60).toFixed(2)}h)`,
         
-        'cardio_50km': `(atual ${currentStats.totalCardioKm.toFixed(2)} km)`,
         'cardio_100km': `(atual ${currentStats.totalCardioKm.toFixed(2)} km)`,
-        'cardio_250km': `(atual ${currentStats.totalCardioKm.toFixed(2)} km)`,
+        'cardio_500km': `(atual ${currentStats.totalCardioKm.toFixed(2)} km)`,
         
         'sets_1000': `(atual ${currentStats.totalSets} séries)`,
-        'sets_2500': `(atual ${currentStats.totalSets} séries)`,
         'sets_5000': `(atual ${currentStats.totalSets} séries)`,
         
-        'reps_10k': `(atual ${currentStats.totalReps} reps)`,
-        'reps_25k': `(atual ${currentStats.totalReps} reps)`,
-        'reps_50k': `(atual ${currentStats.totalReps} reps)`,
+        'reps_10000': `(atual ${currentStats.totalReps} reps)`,
+        'reps_50000': `(atual ${currentStats.totalReps} reps)`,
       };
 
       return progressMap[achievement.id] || null;
