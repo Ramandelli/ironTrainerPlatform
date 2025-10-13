@@ -525,7 +525,6 @@ const loadSession = async () => {
         description: "Não foi possível aplicar as alterações permanentemente.",
         variant: "destructive"
       });
-      throw error;
     }
   }, [currentSession, modifiedExercises, toast]);
 
