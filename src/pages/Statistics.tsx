@@ -432,6 +432,70 @@ const workoutDistribution: Record<string, number> = {};
     };
   }, [filteredHistory, history]);
 
+  // Volume comparison by day of the week
+  const volumeByDayOfWeek = React.useMemo(() => {
+    const dayData: Record<string, { volumes: number[]; dates: string[] }> = {};
+    
+    history.forEach(session => {
+      if (!session.completed || session.totalVolume === 0) return;
+      
+      try {
+        let sessionDate: Date;
+        
+        if (session.date.includes('/')) {
+          const [day, month, year] = session.date.split('/');
+          sessionDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else {
+          const [year, month, day] = session.date.split('-');
+          sessionDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        }
+        
+        const dayIndex = sessionDate.getDay();
+        const days = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        
+        if (dayIndex >= 0 && dayIndex < days.length) {
+          const dayName = days[dayIndex];
+          if (!dayData[dayName]) {
+            dayData[dayName] = { volumes: [], dates: [] };
+          }
+          dayData[dayName].volumes.push(session.totalVolume);
+          dayData[dayName].dates.push(session.date);
+        }
+      } catch (e) {
+        console.error('Erro ao processar data:', session.date, e);
+      }
+    });
+
+    return Object.entries(dayData)
+      .map(([day, data]) => {
+        const volumes = data.volumes;
+        const average = volumes.reduce((sum, v) => sum + v, 0) / volumes.length;
+        const min = Math.min(...volumes);
+        const max = Math.max(...volumes);
+        const lastVolume = volumes[volumes.length - 1];
+        const firstVolume = volumes[0];
+        const evolution = volumes.length > 1 ? lastVolume - firstVolume : 0;
+        const evolutionPercent = volumes.length > 1 ? ((evolution / firstVolume) * 100) : 0;
+        
+        return {
+          day,
+          average,
+          min,
+          max,
+          lastVolume,
+          firstVolume,
+          evolution,
+          evolutionPercent,
+          count: volumes.length
+        };
+      })
+      .filter(d => d.count > 0)
+      .sort((a, b) => {
+        const dayOrder = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        return dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
+      });
+  }, [history]);
+
   const handleResetData = async () => {
     try {
       await storage.resetAllData();
@@ -845,6 +909,58 @@ const workoutDistribution: Record<string, number> = {};
           </CardContent>
         </Card>
 
+        {/* Volume Evolution by Day of Week */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-iron-orange" />
+              Evolução de Volume por Dia
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {volumeByDayOfWeek.length > 0 ? (
+              <>
+                {volumeByDayOfWeek.map((dayStats) => (
+                  <div key={dayStats.day} className="p-4 border border-border rounded-lg space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-foreground">{dayStats.day}</span>
+                      <Badge variant={dayStats.evolutionPercent >= 0 ? "default" : "destructive"}>
+                        {dayStats.evolution >= 0 ? '+' : ''}{dayStats.evolution.toFixed(0)}kg 
+                        ({dayStats.evolutionPercent >= 0 ? '+' : ''}{dayStats.evolutionPercent.toFixed(1)}%)
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 text-xs">
+                      <div className="text-center p-2 bg-muted/30 rounded">
+                        <div className="font-medium text-foreground">{dayStats.min.toFixed(0)}kg</div>
+                        <div className="text-muted-foreground">Mín</div>
+                      </div>
+                      <div className="text-center p-2 bg-muted/30 rounded">
+                        <div className="font-medium text-foreground">{dayStats.average.toFixed(0)}kg</div>
+                        <div className="text-muted-foreground">Média</div>
+                      </div>
+                      <div className="text-center p-2 bg-muted/30 rounded">
+                        <div className="font-medium text-foreground">{dayStats.max.toFixed(0)}kg</div>
+                        <div className="text-muted-foreground">Máx</div>
+                      </div>
+                      <div className="text-center p-2 bg-muted/30 rounded">
+                        <div className="font-medium text-foreground">{dayStats.lastVolume.toFixed(0)}kg</div>
+                        <div className="text-muted-foreground">Último</div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground text-center">
+                      {dayStats.count} treino{dayStats.count > 1 ? 's' : ''} realizado{dayStats.count > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">
+                Complete alguns treinos para ver a evolução!
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Recent Workouts */}
         <Card>
           <CardHeader>
@@ -854,7 +970,7 @@ const workoutDistribution: Record<string, number> = {};
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-  {history.slice(0, 5).map((session) => {
+  {[...history].sort((a, b) => b.startTime - a.startTime).slice(0, 5).map((session) => {
     // Converter data do formato yyyy-MM-dd para dd/MM/yyyy
     const [year, month, day] = session.date.split('-');
     const workoutDate = `${day}/${month}/${year}`;
