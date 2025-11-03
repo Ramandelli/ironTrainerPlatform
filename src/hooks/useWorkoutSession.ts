@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { WorkoutSession, Exercise, SetData, TimerState } from '../types/workout';
+import { WorkoutSession, Exercise, SetData, TimerState, AerobicExercise } from '../types/workout';
 import { storage } from '../utils/storage';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { 
@@ -415,6 +415,34 @@ const loadSession = async () => {
     });
   }, [currentSession, toast]);
 
+  const addExercise = useCallback((exercise: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>) => {
+    if (!currentSession) return;
+
+    const newExercise: Exercise = {
+      ...exercise,
+      id: `exercise_${Date.now()}`,
+      completed: false,
+      currentSet: 0,
+      setData: Array(exercise.sets).fill(null).map(() => ({
+        weight: 0,
+        reps: 0,
+        completed: false
+      }))
+    };
+
+    setCurrentSession(prev => {
+      if (!prev) return null;
+      return { ...prev, exercises: [...prev.exercises, newExercise] };
+    });
+
+    setModifiedExercises(prev => new Set(prev).add(newExercise.id));
+
+    toast({
+      title: "Exercício adicionado! ✅",
+      description: `${exercise.name} foi adicionado ao treino.`,
+    });
+  }, [currentSession, toast]);
+
   const updateAbdominalExercise = useCallback((exerciseId: string, updates: Partial<Exercise>) => {
     if (!currentSession || !currentSession.abdominal) return;
 
@@ -432,6 +460,23 @@ const loadSession = async () => {
     
     toast({
       title: "Exercício atualizado",
+      description: "Alterações serão aplicadas neste treino.",
+    });
+  }, [currentSession, toast]);
+
+  const updateAerobic = useCallback((updates: Partial<AerobicExercise>) => {
+    if (!currentSession || !currentSession.aerobic) return;
+
+    setCurrentSession(prev => {
+      if (!prev || !prev.aerobic) return prev;
+      return { 
+        ...prev, 
+        aerobic: { ...prev.aerobic, ...updates, completed: false, actualDuration: 0 }
+      };
+    });
+
+    toast({
+      title: "Cardio atualizado",
       description: "Alterações serão aplicadas neste treino.",
     });
   }, [currentSession, toast]);
@@ -553,6 +598,8 @@ const loadSession = async () => {
     completeAbdominalExercise,
     updateExercise,
     updateAbdominalExercise,
+    updateAerobic,
+    addExercise,
     applyPermanentChanges,
     modifiedExercises,
     clearModifications,

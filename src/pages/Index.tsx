@@ -23,6 +23,7 @@ import { WorkoutStats } from '../types/workout';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { AchievementModal } from '../components/AchievementModal';
 import { ApplyChangesDialog } from '../components/ApplyChangesDialog';
+import { AddExerciseDuringWorkout } from '../components/AddExerciseDuringWorkout';
 
 const Index = () => {
   const {
@@ -42,6 +43,8 @@ const Index = () => {
     completeAbdominalExercise,
     updateExercise,
     updateAbdominalExercise,
+    updateAerobic,
+    addExercise,
     applyPermanentChanges,
     modifiedExercises,
     clearModifications,
@@ -64,6 +67,7 @@ const Index = () => {
   const [warmupCompleted, setWarmupCompleted] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showApplyChangesDialog, setShowApplyChangesDialog] = useState(false);
+  const [showAddExercise, setShowAddExercise] = useState(false);
 
   const getLastWorkoutTime = () => {
     if (history.length === 0) return 0;
@@ -475,7 +479,7 @@ const Index = () => {
           <div className="max-w-md mx-auto p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-lg font-bold text-foreground">{workoutDay.name}</h1>
+                <h1 className="text-lg font-bold text-foreground uppercase">{workoutDay.name}</h1>
                 <p className="text-sm text-muted-foreground">{workoutDay.day} (Modo Visualização)</p>
               </div>
               <Button variant="ghost" size="sm" onClick={handleBackToHome}>
@@ -533,7 +537,7 @@ const Index = () => {
           {workoutDay.exercises.map((exercise) => (
             <Card key={exercise.id} className="border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-base flex items-center gap-2 uppercase">
                   <Dumbbell className="w-4 h-4 text-iron-orange" />
                   {exercise.name}
                 </CardTitle>
@@ -565,7 +569,7 @@ const Index = () => {
               {workoutDay.abdominal.map((exercise) => (
                 <Card key={exercise.id} className="border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="text-base flex items-center gap-2 uppercase">
                       <Dumbbell className="w-4 h-4 text-iron-orange" />
                       {exercise.name}
                     </CardTitle>
@@ -655,6 +659,15 @@ const Index = () => {
           onCancel={handleApplyChangesCancel}
         />
 
+        <AddExerciseDuringWorkout
+          open={showAddExercise}
+          onOpenChange={setShowAddExercise}
+          onAdd={(exercise) => {
+            addExercise(exercise);
+            setShowAddExercise(false);
+          }}
+        />
+
         {timerState && (
           <Timer
             initialTime={timerState.timeLeft}
@@ -670,7 +683,7 @@ const Index = () => {
           <div className="max-w-md mx-auto p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-lg font-bold text-foreground">{workoutDay.name}</h1>
+                <h1 className="text-lg font-bold text-foreground uppercase">{workoutDay.name}</h1>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
@@ -700,8 +713,8 @@ const Index = () => {
           {workoutPhase === 'aerobic-before' && workoutDay.aerobic && (
             <div className="space-y-6">
               <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Cardio - {workoutDay.aerobic.type}</h2>
-                <p className="text-muted-foreground">
+                <h2 className="text-2xl font-bold mb-2 uppercase">Cardio - {workoutDay.aerobic.type}</h2>
+                <p className="text-muted-foreground uppercase">
                   {workoutDay.aerobic.duration} minutos • {workoutDay.aerobic.intensity}
                 </p>
               </div>
@@ -732,7 +745,19 @@ const Index = () => {
             </div>
           )}
 
-          {workoutPhase === 'exercises' && currentSession.exercises.map((exercise) => (
+          {workoutPhase === 'exercises' && (
+            <>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-foreground uppercase">Exercícios</h2>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowAddExercise(true)}
+                >
+                  + Adicionar
+                </Button>
+              </div>
+              {currentSession.exercises.map((exercise) => (
             <ExerciseCard
               key={exercise.id}
               exercise={exercise}
@@ -742,11 +767,13 @@ const Index = () => {
               isActive={nextExercise?.id === exercise.id}
             />
           ))}
+            </>
+          )}
 
           {workoutPhase === 'abdominal' && workoutDay.abdominal && workoutDay.abdominal.length > 0 && (
             <div className="space-y-4 mt-8">
               <div className="text-center">
-                <h2 className="text-xl font-bold text-foreground mb-2">Exercícios Abdominais</h2>
+                <h2 className="text-xl font-bold text-foreground mb-2 uppercase">Exercícios Abdominais</h2>
                 <p className="text-sm text-muted-foreground mb-4">Complete os exercícios abdominais para finalizar</p>
                 <Button variant="outline" className="w-full" onClick={() => setAbdominalCompleted(true)}>
                   Pular Abdominais
@@ -803,9 +830,9 @@ const Index = () => {
           {workoutPhase === 'aerobic-after' && workoutDay.aerobic && (
             <div className="space-y-6">
               <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Finalize com Cardio</h2>
-                <p className="text-muted-foreground">
-                  {workoutDay.aerobic.type} - {workoutDay.aerobic.duration} minutos
+                <h2 className="text-2xl font-bold mb-2 uppercase">Finalize com Cardio - {workoutDay.aerobic.type}</h2>
+                <p className="text-muted-foreground uppercase">
+                  {workoutDay.aerobic.duration} minutos • {workoutDay.aerobic.intensity}
                 </p>
               </div>
               
@@ -950,7 +977,7 @@ const Index = () => {
         ) : (
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2 uppercase">
                 <Calendar className="w-5 h-5 text-iron-orange" />
                 Treino de Hoje
               </h2>
@@ -958,7 +985,7 @@ const Index = () => {
                 variant="ghost" 
                 size="sm"
                 onClick={handleToggleRestDay}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground uppercase"
               >
                 Marcar Descanso
               </Button>

@@ -3,25 +3,31 @@ import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Clock, X, MapPin } from 'lucide-react';
+import { Clock, X, MapPin, Pencil } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { AerobicForm } from './AerobicForm';
+import { AerobicExercise } from '../types/workout';
 
 interface AerobicTimerProps {
   duration: number;
   type: string;
   onComplete: (actualMinutes?: number, distance?: number) => void;
   onCancel: () => void;
+  onUpdate?: (updates: Partial<AerobicExercise>) => void;
 }
 
 export const AerobicTimer: React.FC<AerobicTimerProps> = ({ 
   duration, 
   type, 
   onComplete,
-  onCancel
+  onCancel,
+  onUpdate
 }) => {
   const [secondsLeft, setSecondsLeft] = useState(duration * 60);
   const [isActive, setIsActive] = useState(true);
   const [distance, setDistance] = useState<string>('');
   const [showDistanceInput, setShowDistanceInput] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [startTime] = useState(() => {
     try {
       const saved = localStorage.getItem(`aerobic_timer_${type}`);
@@ -143,17 +149,50 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
     onCancel();
   };
 
+  const handleEditSave = (aerobic: Omit<AerobicExercise, 'completed' | 'actualDuration' | 'skipped'>) => {
+    if (onUpdate) {
+      onUpdate(aerobic);
+    }
+    setShowEditDialog(false);
+  };
+
   return (
+    <>
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>EDITAR CARDIO</DialogTitle>
+          </DialogHeader>
+          <AerobicForm
+            aerobic={{
+              type: type as 'esteira' | 'bicicleta' | 'transport' | 'rowing',
+              duration,
+              intensity: 'moderada',
+              timing: 'depois',
+              completed: false
+            }}
+            onSave={handleEditSave}
+            onCancel={() => setShowEditDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     <div className="fixed inset-0 bg-background/95 backdrop-blur-lg z-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-card border border-border rounded-lg p-6 space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
+          <h2 className="text-2xl font-bold flex items-center gap-2 uppercase">
             <Clock className="w-6 h-6 text-iron-orange" />
             {type}
           </h2>
-          <Button variant="ghost" size="icon" onClick={handleCancel}>
-            <X className="w-5 h-5" />
-          </Button>
+          <div className="flex gap-2">
+            {onUpdate && !showDistanceInput && (
+              <Button variant="ghost" size="icon" onClick={() => setShowEditDialog(true)}>
+                <Pencil className="w-4 h-4" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={handleCancel}>
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
         
         <div className="text-center">
@@ -221,5 +260,6 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
         )}
       </div>
     </div>
+    </>
   );
 };

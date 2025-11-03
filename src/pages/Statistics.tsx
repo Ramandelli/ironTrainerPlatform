@@ -593,7 +593,10 @@ const workoutDistribution: Record<string, number> = {};
                 <TrendingUp className="w-5 h-5 text-iron-orange" />
               </div>
               <div className="text-2xl font-bold text-foreground">
-                {periodStats.weeklyVolume.toFixed(0)}kg
+                {selectedPeriod === 'all' 
+                  ? filteredHistory.reduce((total, session) => total + session.totalVolume, 0).toFixed(0)
+                  : periodStats.weeklyVolume.toFixed(0)
+                }kg
               </div>
               <div className="text-sm text-muted-foreground">
                 Volume {selectedPeriod === 'week' ? 'semanal' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? 'mensal' : 'total'}
