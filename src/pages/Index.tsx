@@ -12,6 +12,7 @@ import { Statistics } from './Statistics';
 import { Management } from './Management';
 import { Achievements } from './Achievements';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
+import { useToast } from '../hooks/use-toast';
 import { storage } from '../utils/storage';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { customWorkoutManager } from '../utils/customWorkouts';
@@ -26,6 +27,7 @@ import { ApplyChangesDialog } from '../components/ApplyChangesDialog';
 import { AddExerciseDuringWorkout } from '../components/AddExerciseDuringWorkout';
 
 const Index = () => {
+  const { toast } = useToast();
   const {
     currentSession,
     timerState,
@@ -338,9 +340,15 @@ const Index = () => {
   };
 
   const handleApplyChangesConfirm = async () => {
-    await applyPermanentChanges();
-    setShowApplyChangesDialog(false);
-    await finishWorkoutInternal();
+    try {
+      await applyPermanentChanges();
+      setShowApplyChangesDialog(false);
+      await finishWorkoutInternal();
+    } catch (error) {
+      console.error('Error applying changes:', error);
+      setShowApplyChangesDialog(false);
+      await finishWorkoutInternal();
+    }
   };
 
   const handleApplyChangesCancel = async () => {
@@ -398,11 +406,20 @@ const Index = () => {
     
     if (isCurrentlyRest) {
       await restDayManager.removeRestDay(today);
+      toast({
+        title: "Descanso removido",
+        description: "Você pode treinar hoje!",
+      });
     } else {
       await restDayManager.setRestDay(today);
+      toast({
+        title: "Descanso marcado",
+        description: "Aproveite para recuperar as energias!",
+      });
     }
     
     await checkRestDay();
+    await loadWorkouts();
   };
 
   const getWorkoutPhase = () => {

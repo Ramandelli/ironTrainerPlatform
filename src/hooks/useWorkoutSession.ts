@@ -328,11 +328,11 @@ const loadSession = async () => {
       };
 
       if (currentSession.aerobic && !currentSession.aerobic.completed) {
-      finishedSession.aerobic = {
-        ...currentSession.aerobic,
-        actualDuration: 0
-      };
-    }
+        finishedSession.aerobic = {
+          ...currentSession.aerobic,
+          actualDuration: 0
+        };
+      }
 
       await storage.cleanInvalidSessions();
       await storage.saveToHistory(finishedSession);
@@ -371,10 +371,11 @@ const loadSession = async () => {
     } catch (error) {
       console.error('Failed to finish workout:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível finalizar o treino.",
+        title: "Erro ao salvar",
+        description: "Houve um problema ao finalizar o treino. Tente novamente.",
         variant: "destructive"
       });
+      throw error;
     }
   }, [currentSession, toast]);
 
@@ -475,6 +476,8 @@ const loadSession = async () => {
       };
     });
 
+    setModifiedExercises(prev => new Set(prev).add('aerobic'));
+
     toast({
       title: "Cardio atualizado",
       description: "Alterações serão aplicadas neste treino.",
@@ -489,7 +492,8 @@ const loadSession = async () => {
       const originalWorkout = allWorkouts.find(w => w.id === currentSession.workoutDayId);
       
       if (!originalWorkout) {
-        throw new Error('Workout not found');
+        console.error('Workout not found for permanent changes');
+        return;
       }
 
       let workoutToUpdate = originalWorkout;
@@ -498,11 +502,6 @@ const loadSession = async () => {
       if (!customWorkoutManager.isCustomWorkout(originalWorkout.id)) {
         workoutToUpdate = await customWorkoutManager.convertToCustomWorkout(originalWorkout);
       }
-
-      // Create a map of original exercise IDs to their indices for matching
-      const exerciseMap = new Map(
-        workoutToUpdate.exercises.map((ex, idx) => [idx, ex])
-      );
 
       // Apply changes to the workout exercises
       const updatedExercises = workoutToUpdate.exercises.map((ex, idx) => {
@@ -551,10 +550,23 @@ const loadSession = async () => {
         return ex;
       });
 
+      // Apply changes to aerobic if modified
+      let updatedAerobic = workoutToUpdate.aerobic;
+      if (currentSession.aerobic && workoutToUpdate.aerobic) {
+        updatedAerobic = {
+          type: currentSession.aerobic.type,
+          duration: currentSession.aerobic.duration,
+          intensity: currentSession.aerobic.intensity,
+          timing: currentSession.aerobic.timing,
+          completed: false
+        };
+      }
+
       await customWorkoutManager.saveWorkout({
         ...workoutToUpdate,
         exercises: updatedExercises,
-        abdominal: updatedAbdominal
+        abdominal: updatedAbdominal,
+        aerobic: updatedAerobic
       });
 
       setModifiedExercises(new Set());
