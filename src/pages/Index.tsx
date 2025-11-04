@@ -268,6 +268,16 @@ const Index = () => {
     const isToday = workoutDay.day.toLowerCase() === todayLabel.toLowerCase();
     
     if (isToday) {
+      // Check if today is a rest day
+      if (isRestDay) {
+        toast({
+          title: "Dia de descanso",
+          description: "Cancele o descanso para treinar hoje.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // Reset workout-specific states
       setWarmupCompleted(false);
       setAbdominalCompleted(false);
