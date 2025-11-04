@@ -188,29 +188,21 @@ const Index = () => {
   };
 
   const checkRestDay = async () => {
-    const todayWorkoutId = getTodayWorkoutId();
-    const todaysWorkout = findTodaysWorkout();
-
-    // Priority 1: If there's a workout scheduled for today, it's NOT a rest day
-    if (todaysWorkout) {
-      setIsRestDay(false);
-      return;
-    }
-
-    // Priority 2: Manual rest day
+    // Prioridade 1: Descanso manual SEMPRE bloqueia o treino do dia
     const isManualRest = await restDayManager.isTodayRestDay();
     if (isManualRest) {
       setIsRestDay(true);
       return;
     }
 
-    // Priority 3: Weekend without scheduled workout
+    // Prioridade 2: Fim de semana (se desejar manter como descanso)
+    const todayWorkoutId = getTodayWorkoutId();
     if (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday') {
       setIsRestDay(true);
       return;
     }
 
-    // Not a rest day
+    // Caso contrário, não é dia de descanso
     setIsRestDay(false);
   };
 
