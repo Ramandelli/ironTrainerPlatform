@@ -150,8 +150,37 @@ useEffect(() => {
     );
   }, [history, selectedPeriod]);
 
+  // Calcula Volume Total e Peso Total
   const periodStats = React.useMemo(() => {
-    return calculateWeeklyStats(filteredHistory);
+    let totalVolume = 0;
+    let totalWeight = 0;
+
+    filteredHistory.forEach(session => {
+      session.exercises.forEach(exercise => {
+        exercise.setData.forEach(set => {
+          if (set.completed) {
+            const weight = set.weight || 0;
+            const reps = set.reps || 0;
+            
+            // Volume Total = peso × reps
+            totalVolume += weight * reps;
+            
+            // Peso Total = soma dos pesos (sem reps)
+            totalWeight += weight;
+
+            // Dropsets
+            if (set.dropsetData && set.dropsetData.length > 0) {
+              set.dropsetData.forEach(dropset => {
+                totalVolume += dropset.weight * dropset.reps;
+                totalWeight += dropset.weight;
+              });
+            }
+          }
+        });
+      });
+    });
+
+    return { totalVolume, totalWeight };
   }, [filteredHistory]);
 
   const personalRecords = React.useMemo(() => {
@@ -593,10 +622,7 @@ const workoutDistribution: Record<string, number> = {};
                 <TrendingUp className="w-5 h-5 text-iron-orange" />
               </div>
               <div className="text-2xl font-bold text-foreground">
-                {selectedPeriod === 'all' 
-                  ? filteredHistory.reduce((total, session) => total + session.totalVolume, 0).toFixed(0)
-                  : periodStats.weeklyVolume.toFixed(0)
-                }kg
+                {periodStats.totalVolume.toFixed(0)}kg
               </div>
               <div className="text-sm text-muted-foreground">
                 Volume {selectedPeriod === 'week' ? 'semanal' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? 'mensal' : 'total'}
@@ -669,7 +695,7 @@ const workoutDistribution: Record<string, number> = {};
                 <TrendingUp className="w-4 h-4 text-iron-orange" />
               </div>
               <div className="text-lg font-bold text-foreground">
-                {filteredHistory.reduce((total, session) => total + session.totalVolume, 0).toFixed(0)}kg
+                {periodStats.totalWeight.toFixed(0)}kg
               </div>
               <div className="text-xs text-muted-foreground">
                 Total de peso
