@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { ArrowLeft, TrendingUp, Award, Calendar, BarChart3, Activity, Clock, Target, Flame, RotateCcw, Trash2, Trophy } from 'lucide-react';
 import { storage } from '../utils/storage';
 import { WorkoutSession, WorkoutStats } from '../types/workout';
@@ -26,6 +27,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   const [customRestDays, setCustomRestDays] = useState<string[]>([]);
   const [installDate, setInstallDate] = useState<string | null>(null);
   const [achievements, setAchievements] = useState<UnlockedAchievement[]>([]);
+  const [selectedDayWorkouts, setSelectedDayWorkouts] = useState<{ day: string; workouts: Array<{ date: string; volume: number; startTime: number }> } | null>(null);
 
   
   const formatTime = (totalSeconds: number): string => {
@@ -463,7 +465,7 @@ const workoutDistribution: Record<string, number> = {};
 
   // Volume comparison by day of the week
   const volumeByDayOfWeek = React.useMemo(() => {
-    const dayData: Record<string, { volumes: number[]; dates: string[] }> = {};
+    const dayData: Record<string, { volumes: number[]; dates: string[]; workouts: Array<{ date: string; volume: number; startTime: number }> }> = {};
     
     history.forEach(session => {
       if (!session.completed || session.totalVolume === 0) return;
@@ -485,10 +487,15 @@ const workoutDistribution: Record<string, number> = {};
         if (dayIndex >= 0 && dayIndex < days.length) {
           const dayName = days[dayIndex];
           if (!dayData[dayName]) {
-            dayData[dayName] = { volumes: [], dates: [] };
+            dayData[dayName] = { volumes: [], dates: [], workouts: [] };
           }
           dayData[dayName].volumes.push(session.totalVolume);
           dayData[dayName].dates.push(session.date);
+          dayData[dayName].workouts.push({
+            date: session.date,
+            volume: session.totalVolume,
+            startTime: session.startTime
+          });
         }
       } catch (e) {
         console.error('Erro ao processar data:', session.date, e);
@@ -515,7 +522,8 @@ const workoutDistribution: Record<string, number> = {};
           firstVolume,
           evolution,
           evolutionPercent,
-          count: volumes.length
+          count: volumes.length,
+          workouts: data.workouts.sort((a, b) => b.startTime - a.startTime)
         };
       })
       .filter(d => d.count > 0)
@@ -950,7 +958,11 @@ const workoutDistribution: Record<string, number> = {};
             {volumeByDayOfWeek.length > 0 ? (
               <>
                 {volumeByDayOfWeek.map((dayStats) => (
-                  <div key={dayStats.day} className="p-4 border border-border rounded-lg space-y-2">
+                  <div 
+                    key={dayStats.day} 
+                    className="p-4 border border-border rounded-lg space-y-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelectedDayWorkouts({ day: dayStats.day, workouts: dayStats.workouts })}
+                  >
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-foreground">{dayStats.day}</span>
                       <Badge variant={dayStats.evolutionPercent >= 0 ? "default" : "destructive"}>
@@ -977,7 +989,7 @@ const workoutDistribution: Record<string, number> = {};
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground text-center">
-                      {dayStats.count} treino{dayStats.count > 1 ? 's' : ''} realizado{dayStats.count > 1 ? 's' : ''}
+                      {dayStats.count} treino{dayStats.count > 1 ? 's' : ''} realizado{dayStats.count > 1 ? 's' : ''} • Clique para detalhes
                     </div>
                   </div>
                 ))}
@@ -989,6 +1001,40 @@ const workoutDistribution: Record<string, number> = {};
             )}
           </CardContent>
         </Card>
+
+        {/* Dialog for Day Workouts */}
+        <Dialog open={!!selectedDayWorkouts} onOpenChange={() => setSelectedDayWorkouts(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-iron-orange" />
+                Treinos - {selectedDayWorkouts?.day}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              {selectedDayWorkouts?.workouts.map((workout, index) => {
+                const [year, month, day] = workout.date.split('-');
+                const formattedDate = `${day}/${month}/${year}`;
+                
+                return (
+                  <div key={index} className="p-3 border border-border rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm font-medium text-foreground">
+                        {formattedDate}
+                      </div>
+                      <Badge variant="outline" className="font-bold">
+                        {workout.volume.toFixed(0)}kg
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Volume do treino
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Recent Workouts */}
         <Card>
