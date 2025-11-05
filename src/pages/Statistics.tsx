@@ -28,6 +28,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   const [installDate, setInstallDate] = useState<string | null>(null);
   const [achievements, setAchievements] = useState<UnlockedAchievement[]>([]);
   const [selectedDayWorkouts, setSelectedDayWorkouts] = useState<{ day: string; workouts: Array<{ date: string; volume: number; startTime: number }> } | null>(null);
+  const [selectedWorkoutDetails, setSelectedWorkoutDetails] = useState<WorkoutSession | null>(null);
 
   
   const formatTime = (totalSeconds: number): string => {
@@ -1054,7 +1055,11 @@ const workoutDistribution: Record<string, number> = {};
       : 0;
               
               return (
-      <div key={session.id} className="space-y-2 p-3 border border-border rounded-lg">
+      <div 
+        key={session.id} 
+        className="space-y-2 p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => setSelectedWorkoutDetails(session)}
+      >
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="text-sm font-medium text-foreground">
@@ -1064,7 +1069,7 @@ const workoutDistribution: Record<string, number> = {};
                 `${session.exercises.length} exercícios`}
             </div>
             <div className="text-xs text-muted-foreground">
-              Tempo: {workoutTime}min • Volume: {session.totalVolume.toFixed(0)}kg
+              Tempo: {workoutTime}min • Volume: {session.totalVolume.toFixed(0)}kg • Clique para detalhes
             </div>
           </div>
         </div>
@@ -1074,6 +1079,111 @@ const workoutDistribution: Record<string, number> = {};
 </CardContent>
 
         </Card>
+
+        {/* Dialog for Workout Details */}
+        <Dialog open={!!selectedWorkoutDetails} onOpenChange={() => setSelectedWorkoutDetails(null)}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-iron-orange" />
+                Detalhes do Treino
+              </DialogTitle>
+            </DialogHeader>
+            {selectedWorkoutDetails && (
+              <div className="space-y-4">
+                {/* Data e informações gerais */}
+                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                  <div className="text-sm font-medium text-foreground">
+                    {(() => {
+                      const [year, month, day] = selectedWorkoutDetails.date.split('-');
+                      return `${day}/${month}/${year}`;
+                    })()}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Tempo: {selectedWorkoutDetails.endTime 
+                      ? Math.round((selectedWorkoutDetails.endTime - selectedWorkoutDetails.startTime) / 60000)
+                      : 0}min • Volume Total: {selectedWorkoutDetails.totalVolume.toFixed(0)}kg
+                  </div>
+                </div>
+
+                {/* Exercícios */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Exercícios</h3>
+                  {selectedWorkoutDetails.exercises.map((exercise, idx) => (
+                    <div key={idx} className="border border-border rounded-lg p-3 space-y-2">
+                      <div className="font-medium text-sm text-foreground">{exercise.name}</div>
+                      <div className="space-y-1">
+                        {exercise.setData.filter(set => set.completed).map((set, setIdx) => (
+                          <div key={setIdx} className="flex justify-between items-center text-xs">
+                            <span className="text-muted-foreground">Série {setIdx + 1}</span>
+                            <div className="space-x-2">
+                              <span className="font-medium text-foreground">
+                                {set.weight}kg × {set.reps} reps
+                              </span>
+                              {set.dropsetData && set.dropsetData.length > 0 && (
+                                <span className="text-iron-orange">
+                                  + Drop: {set.dropsetData.map(d => `${d.weight}kg×${d.reps}`).join(', ')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Abdominais */}
+                {selectedWorkoutDetails.abdominal && selectedWorkoutDetails.abdominal.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-foreground">Abdominais</h3>
+                    {selectedWorkoutDetails.abdominal.map((exercise, idx) => (
+                      <div key={idx} className="border border-border rounded-lg p-3 space-y-2">
+                        <div className="font-medium text-sm text-foreground">{exercise.name}</div>
+                        <div className="space-y-1">
+                          {exercise.setData.filter(set => set.completed).map((set, setIdx) => (
+                            <div key={setIdx} className="flex justify-between items-center text-xs">
+                              <span className="text-muted-foreground">Série {setIdx + 1}</span>
+                              <span className="font-medium text-foreground">
+                                {set.timeCompleted ? `${set.timeCompleted}s` : `${set.reps} reps`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Aeróbico */}
+                {selectedWorkoutDetails.aerobic && selectedWorkoutDetails.aerobic.completed && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">Aeróbico</h3>
+                    <div className="border border-border rounded-lg p-3">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground capitalize">{selectedWorkoutDetails.aerobic.type}</span>
+                        <span className="font-medium text-foreground">
+                          {selectedWorkoutDetails.aerobic.actualDuration?.toFixed(1)}min
+                          {selectedWorkoutDetails.aerobic.distance && ` • ${selectedWorkoutDetails.aerobic.distance}km`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notas */}
+                {selectedWorkoutDetails.notes && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">Notas</h3>
+                    <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                      {selectedWorkoutDetails.notes}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Reset Data Section */}
         <Card className="border-destructive/20">

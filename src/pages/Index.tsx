@@ -343,12 +343,20 @@ const Index = () => {
 
   const handleApplyChangesConfirm = async () => {
     try {
-      await applyPermanentChanges();
       setShowApplyChangesDialog(false);
+      await applyPermanentChanges();
       await finishWorkoutInternal();
+      toast({
+        title: "Alterações aplicadas! ✅",
+        description: "O treino foi finalizado e as alterações foram salvas no treino padrão.",
+      });
     } catch (error) {
       console.error('Error applying changes:', error);
-      setShowApplyChangesDialog(false);
+      toast({
+        title: "Erro ao aplicar alterações",
+        description: "O treino foi finalizado, mas houve um problema ao salvar as alterações no treino padrão.",
+        variant: "destructive"
+      });
       await finishWorkoutInternal();
     }
   };
