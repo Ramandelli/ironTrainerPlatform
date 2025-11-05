@@ -288,9 +288,10 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🔢',
     condition: (stats) => {
       const totalReps = stats.history.reduce((sum, session) => {
-        return sum + session.exercises.reduce((exerciseSum, ex) => {
-          return exerciseSum + ex.setsData.reduce((setSum, set) => {
-            return setSum + (set.actualReps || 0);
+        return sum + session.exercises.reduce((exerciseSum, ex: any) => {
+          const sets = Array.isArray(ex.setData) ? ex.setData : [];
+          return exerciseSum + sets.reduce((setSum: number, set: any) => {
+            return setSum + (set.reps || 0);
           }, 0);
         }, 0);
       }, 0);
@@ -304,9 +305,10 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '♾️',
     condition: (stats) => {
       const totalReps = stats.history.reduce((sum, session) => {
-        return sum + session.exercises.reduce((exerciseSum, ex) => {
-          return exerciseSum + ex.setsData.reduce((setSum, set) => {
-            return setSum + (set.actualReps || 0);
+        return sum + session.exercises.reduce((exerciseSum, ex: any) => {
+          const sets = Array.isArray(ex.setData) ? ex.setData : [];
+          return exerciseSum + sets.reduce((setSum: number, set: any) => {
+            return setSum + (set.reps || 0);
           }, 0);
         }, 0);
       }, 0);
