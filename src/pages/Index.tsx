@@ -1008,14 +1008,16 @@ const Index = () => {
                 <Calendar className="w-5 h-5 text-iron-orange" />
                 Treino de Hoje
               </h2>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleToggleRestDay}
-                className="text-muted-foreground hover:text-foreground uppercase"
-              >
-                Marcar Descanso
-              </Button>
+              {todayWorkout && !isTodayWorkoutCompleted(todayWorkout.id) && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={handleToggleRestDay}
+                  className="text-muted-foreground hover:text-foreground uppercase"
+                >
+                  Marcar Descanso
+                </Button>
+              )}
             </div>
             {todayWorkout && (
               <WorkoutCard
