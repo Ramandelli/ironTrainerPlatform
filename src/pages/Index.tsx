@@ -391,6 +391,8 @@ const Index = () => {
   };
 
   const handleDataReset = async () => {
+    await restDayManager.resetRestDays();
+    setIsRestDay(false);
     await loadStats();
     await loadWorkouts();
     await loadHistory();
