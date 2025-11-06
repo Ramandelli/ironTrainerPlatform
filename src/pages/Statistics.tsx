@@ -328,7 +328,7 @@ const restDaysCount = React.useMemo(() => {
     const hasWorkout = workoutDates.has(ymd);
     const isCustom = customSet.has(ymd);
 
-    if (!hasWorkout && (isCustom || isWeekend)) {
+    if (isCustom && !hasWorkout) {
       count++;
     }
   }
@@ -723,9 +723,9 @@ const workoutDistribution: Record<string, number> = {};
             <div className="text-lg font-bold text-foreground">
               {restDaysCount}
             </div>
-            <div className="text-xs text-muted-foreground">
-              Dias de descanso ({selectedPeriod === 'week' ? 'semana' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? 'mês' : 'total'})
-            </div>
+              <div className="text-xs text-muted-foreground">
+                Descansos marcados ({selectedPeriod === 'week' ? 'semana' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? 'mês' : 'total'})
+              </div>
           </CardContent>
         </Card>
 
