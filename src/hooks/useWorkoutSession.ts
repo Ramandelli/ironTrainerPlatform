@@ -514,7 +514,10 @@ const loadSession = async () => {
         workoutToUpdate = await customWorkoutManager.convertToCustomWorkout(workoutToUpdate);
       }
 
-      // ----- Update main exercises (also append new ones added during session) -----
+      // ----- Update main exercises (preserve ids, treat rename as update) -----
+      const idToBaseEx = new Map(
+        (workoutToUpdate.exercises || []).map((ex) => [ex.id, ex])
+      );
       const nameToBaseEx = new Map(
         (workoutToUpdate.exercises || []).map((ex) => [ex.name.toLowerCase(), ex])
       );
@@ -522,14 +525,13 @@ const loadSession = async () => {
       const updatedExercises: Exercise[] = [];
 
       currentSession.exercises.forEach((sessionEx, idx) => {
-        let baseEx = workoutToUpdate!.exercises[idx];
-        if (!baseEx || baseEx.name !== sessionEx.name) {
-          baseEx = nameToBaseEx.get(sessionEx.name.toLowerCase());
-        }
+        // Prefer match by id (original exercise), then by index, then by name
+        let baseEx = idToBaseEx.get(sessionEx.id) || workoutToUpdate!.exercises[idx] || nameToBaseEx.get(sessionEx.name.toLowerCase());
 
         if (baseEx) {
           usedBaseIds.add(baseEx.id);
           if (modifiedExercises.has(sessionEx.id)) {
+            // Update existing exercise (including rename)
             updatedExercises.push({
               ...baseEx,
               name: sessionEx.name,
@@ -544,7 +546,7 @@ const loadSession = async () => {
             updatedExercises.push(baseEx);
           }
         } else if (modifiedExercises.has(sessionEx.id)) {
-          // New exercise added during the session – append to plan
+          // Truly new exercise created during the session – append to plan
           updatedExercises.push({
             id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             name: sessionEx.name,
@@ -568,9 +570,12 @@ const loadSession = async () => {
         }
       });
 
-      // ----- Update abdominal exercises similarly -----
+      // ----- Update abdominal exercises similarly (preserve ids, treat rename as update) -----
       let updatedAbdominal: Exercise[] | undefined = workoutToUpdate.abdominal;
       if (currentSession.abdominal) {
+        const idToBaseAb = new Map(
+          (workoutToUpdate.abdominal || []).map((ex) => [ex.id, ex])
+        );
         const nameToBaseAb = new Map(
           (workoutToUpdate.abdominal || []).map((ex) => [ex.name.toLowerCase(), ex])
         );
@@ -578,10 +583,8 @@ const loadSession = async () => {
         const abdominalResult: Exercise[] = [];
 
         currentSession.abdominal.forEach((sessionAb, idx) => {
-          let baseAb = workoutToUpdate!.abdominal?.[idx];
-          if (!baseAb || baseAb.name !== sessionAb.name) {
-            baseAb = nameToBaseAb.get(sessionAb.name.toLowerCase());
-          }
+          // Prefer match by id, then by index, then by name
+          let baseAb = idToBaseAb.get(sessionAb.id) || workoutToUpdate!.abdominal?.[idx] || nameToBaseAb.get(sessionAb.name.toLowerCase());
 
           if (baseAb) {
             usedAbIds.add(baseAb.id);
@@ -601,6 +604,7 @@ const loadSession = async () => {
               abdominalResult.push(baseAb);
             }
           } else if (modifiedExercises.has(sessionAb.id)) {
+            // Truly new abdominal exercise created during the session
             abdominalResult.push({
               id: `ab_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
               name: sessionAb.name,
