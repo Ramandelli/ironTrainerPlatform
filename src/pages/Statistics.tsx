@@ -538,9 +538,11 @@ const workoutDistribution: Record<string, number> = {};
     try {
       await storage.resetAllData();
       await achievementManager.resetAchievements();
+      await restDayManager.resetRestDays();
       setStats(null);
       setHistory([]);
       setAchievements([]);
+      setCustomRestDays([]);
       await loadData();
       await loadAchievements();
       
@@ -551,7 +553,7 @@ const workoutDistribution: Record<string, number> = {};
       
       toast({
         title: "Dados resetados",
-        description: "Todo o histórico de treinos e conquistas foi removido com sucesso.",
+        description: "Todo o histórico de treinos, conquistas e dias de descanso foi removido com sucesso.",
       });
     } catch (error) {
       toast({
