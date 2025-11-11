@@ -202,6 +202,13 @@ const Index = () => {
       return;
     }
 
+    // Prioridade 3: Não há treino agendado para o dia
+    const todaysWorkout = findTodaysWorkout();
+    if (!todaysWorkout) {
+      setIsRestDay(true);
+      return;
+    }
+
     // Caso contrário, não é dia de descanso
     setIsRestDay(false);
   };
