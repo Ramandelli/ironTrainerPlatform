@@ -13,7 +13,9 @@ import { restDayManager } from '../utils/restDays';
 import { achievementManager } from '../utils/achievements';
 import { UnlockedAchievement } from '../types/achievement';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-
+import { WORKOUT_PLAN } from '../data/workoutPlan';
+import { customWorkoutManager } from '../utils/customWorkouts';
+import { WorkoutDay } from '../types/workout';
 interface StatisticsProps {
   onBack: () => void;
   onDataReset?: () => void;
@@ -29,7 +31,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   const [achievements, setAchievements] = useState<UnlockedAchievement[]>([]);
   const [selectedDayWorkouts, setSelectedDayWorkouts] = useState<{ day: string; workouts: Array<{ date: string; volume: number; startTime: number }> } | null>(null);
   const [selectedWorkoutDetails, setSelectedWorkoutDetails] = useState<WorkoutSession | null>(null);
-
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
   
   const formatTime = (totalSeconds: number): string => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -92,6 +94,19 @@ useEffect(() => {
     }
   };
   loadInstallDate();
+}, []);
+
+// Carregar plano de treinos para avaliar descanso por agendamento
+useEffect(() => {
+  const loadWorkouts = async () => {
+    try {
+      const all = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
+      setWorkoutPlan(all);
+    } catch (e) {
+      console.error('Falha ao carregar plano de treinos:', e);
+    }
+  };
+  loadWorkouts();
 }, []);
 
   const loadData = async () => {
@@ -271,67 +286,77 @@ const restDaysCount = React.useMemo(() => {
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   };
-  const parseSessionDate = (dateStr: string): Date => {
-    if (dateStr.includes('/')) {
-      const [day, month, year] = dateStr.split('/');
-      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    }
-    const [year, month, day] = dateStr.split('-');
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-  };
+
   const oneDay = 24 * 60 * 60 * 1000;
 
+  // Determinar início do período
   const periodStart = getPeriodStart();
   let baseStart: number;
-  
+
   if (periodStart === null) {
-    const historyTimes = history.map(s => parseSessionDate(s.date).getTime());
-    const customTimes = customRestDays.map(d => new Date(`${d}T00:00:00`).getTime());
-    const minHistory = historyTimes.length ? Math.min(...historyTimes) : Number.POSITIVE_INFINITY;
-    const minCustom = customTimes.length ? Math.min(...customTimes) : Number.POSITIVE_INFINITY;
-    const minTime = Math.min(minHistory, minCustom);
-    baseStart = Number.isFinite(minTime) ? minTime : (Date.now() - 30 * oneDay);
+    // Se período é "Geral", usar a data de instalação (se existir) ou últimos 30 dias
+    baseStart = Date.now() - 30 * oneDay;
   } else {
     baseStart = periodStart;
   }
 
-  
-  let start = baseStart;
+  // Considerar data de instalação para não contar antes do app existir
   if (installDate) {
     const installTime = new Date(`${installDate}T00:00:00`).getTime();
     if (Number.isFinite(installTime)) {
-      start = Math.max(baseStart, installTime);
+      baseStart = Math.max(baseStart, installTime);
     }
   }
 
-  const startDate = new Date(start);
+  const startDate = new Date(baseStart);
   startDate.setHours(0, 0, 0, 0);
-  const endDate = new Date();
+
+  // Determinar fim do período
+  const now = new Date();
+  let endDate = new Date();
+  if (selectedPeriod === 'lastMonth') {
+    endDate = new Date(now.getFullYear(), now.getMonth(), 0); // último dia do mês anterior
+  }
   endDate.setHours(0, 0, 0, 0);
 
-  const workoutDates = new Set<string>();
-  history.forEach(s => {
-    const d = parseSessionDate(s.date);
-    if (d.getTime() >= startDate.getTime() && d.getTime() <= endDate.getTime() && s.completed) {
-      workoutDates.add(toYMD(d));
-    }
-  });
-
   const customSet = new Set(customRestDays);
+
+  const getDayLabel = (d: Date) => {
+    const index = d.getDay(); // 0..6
+    const days = [
+      'Domingo',
+      'Segunda-feira',
+      'Terça-feira',
+      'Quarta-feira',
+      'Quinta-feira',
+      'Sexta-feira',
+      'Sábado'
+    ];
+    return days[index];
+  };
 
   let count = 0;
   for (let t = startDate.getTime(); t <= endDate.getTime(); t += oneDay) {
     const d = new Date(t);
     const ymd = toYMD(d);
-    const hasWorkout = workoutDates.has(ymd);
 
-    if (!hasWorkout) {
+    // Regra 1: descanso manual sempre conta
+    if (customSet.has(ymd)) {
+      count++;
+      continue;
+    }
+
+    // Regra 2: se não há treino agendado para o dia -> descanso
+    const label = getDayLabel(d).toLowerCase();
+    const hasScheduledWorkout = workoutPlan.some(w => (w.day || '').toLowerCase() === label);
+
+    if (!hasScheduledWorkout) {
       count++;
     }
   }
 
   return count;
-}, [history, customRestDays, selectedPeriod, installDate]);
+}, [customRestDays, selectedPeriod, installDate, workoutPlan]);
 
   
   const abdominalStats = React.useMemo(() => {
