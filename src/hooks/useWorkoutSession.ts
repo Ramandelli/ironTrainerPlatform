@@ -60,6 +60,11 @@ const loadSession = async () => {
       if (savedTimer) {
         setTimerState(savedTimer);
       }
+
+      const savedModifiedExercises = await storage.loadModifiedExercises();
+      if (savedModifiedExercises.length > 0) {
+        setModifiedExercises(new Set(savedModifiedExercises));
+      }
     } catch (error) {
       console.error('Failed to load session:', error);
       toast({
@@ -81,6 +86,7 @@ const loadSession = async () => {
         totalVolume: calculateTotalVolume(currentSession.exercises)
       };
       await storage.saveCurrentSession(updatedSession);
+      await storage.saveModifiedExercises(Array.from(modifiedExercises));
     } catch (error) {
       console.error('Failed to save session:', error);
     }
@@ -350,9 +356,11 @@ const loadSession = async () => {
 
       await storage.clearCurrentSession();
       await storage.clearTimerState();
+      await storage.clearModifiedExercises();
       
       setCurrentSession(null);
       setTimerState(null);
+      setModifiedExercises(new Set());
 
       const workoutTime = calculateWorkoutTime(finishedSession.startTime, finishedSession.endTime);      
       
@@ -383,8 +391,10 @@ const loadSession = async () => {
     try {
       await storage.clearCurrentSession();
       await storage.clearTimerState();
+      await storage.clearModifiedExercises();
       setCurrentSession(null);
       setTimerState(null);
+      setModifiedExercises(new Set());
       
       toast({
         title: "Treino cancelado",
@@ -671,8 +681,9 @@ const loadSession = async () => {
     setNewAchievements([]);
   };
 
-  const clearModifications = () => {
+  const clearModifications = async () => {
     setModifiedExercises(new Set());
+    await storage.clearModifiedExercises();
   };
 
   return {

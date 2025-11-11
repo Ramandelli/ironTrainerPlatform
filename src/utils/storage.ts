@@ -6,6 +6,7 @@ class StorageManager {
   private readonly WORKOUT_HISTORY_KEY = 'workout_history';
   private readonly WORKOUT_STATS_KEY = 'workout_stats';
   private readonly TIMER_STATE_KEY = 'timer_state';
+  private readonly MODIFIED_EXERCISES_KEY = 'modified_exercises';
 
   
   async saveCurrentSession(session: WorkoutSession): Promise<void> {
@@ -68,6 +69,38 @@ class StorageManager {
       await Preferences.remove({ key: this.TIMER_STATE_KEY });
     } catch (error) {
       console.error('Failed to clear timer state:', error);
+    }
+  }
+
+  
+  async saveModifiedExercises(exerciseIds: string[]): Promise<void> {
+    try {
+      await Preferences.set({
+        key: this.MODIFIED_EXERCISES_KEY,
+        value: JSON.stringify(exerciseIds)
+      });
+    } catch (error) {
+      console.error('Failed to save modified exercises:', error);
+    }
+  }
+
+  
+  async loadModifiedExercises(): Promise<string[]> {
+    try {
+      const { value } = await Preferences.get({ key: this.MODIFIED_EXERCISES_KEY });
+      return value ? JSON.parse(value) : [];
+    } catch (error) {
+      console.error('Failed to load modified exercises:', error);
+      return [];
+    }
+  }
+
+  
+  async clearModifiedExercises(): Promise<void> {
+    try {
+      await Preferences.remove({ key: this.MODIFIED_EXERCISES_KEY });
+    } catch (error) {
+      console.error('Failed to clear modified exercises:', error);
     }
   }
 
@@ -200,6 +233,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
       await Promise.all([
         this.clearCurrentSession(),
         this.clearTimerState(),
+        this.clearModifiedExercises(),
         Preferences.remove({ key: this.WORKOUT_HISTORY_KEY }),
         Preferences.remove({ key: this.WORKOUT_STATS_KEY }),
         Preferences.remove({ key: this.WORKOUT_AVERAGES_KEY }),
