@@ -20,6 +20,10 @@ class CustomWorkoutManager {
   async saveCustomWorkouts(workouts: WorkoutDay[]): Promise<void> {
     try {
       await storage.setItem(this.CUSTOM_WORKOUTS_KEY, JSON.stringify(workouts));
+      // Notify UI that workouts have been updated so dependent screens can refresh
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('custom_workouts_updated'));
+      }
     } catch (error) {
       console.error('Failed to save custom workouts:', error);
       throw error;

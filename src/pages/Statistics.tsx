@@ -98,15 +98,24 @@ useEffect(() => {
 
 // Carregar plano de treinos para avaliar descanso por agendamento
 useEffect(() => {
+  let isMounted = true;
   const loadWorkouts = async () => {
     try {
       const all = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
-      setWorkoutPlan(all);
+      if (isMounted) setWorkoutPlan(all);
     } catch (e) {
       console.error('Falha ao carregar plano de treinos:', e);
     }
   };
   loadWorkouts();
+  const handleUpdated = () => {
+    loadWorkouts();
+  };
+  window.addEventListener('custom_workouts_updated', handleUpdated);
+  return () => {
+    isMounted = false;
+    window.removeEventListener('custom_workouts_updated', handleUpdated);
+  };
 }, []);
 
   const loadData = async () => {
