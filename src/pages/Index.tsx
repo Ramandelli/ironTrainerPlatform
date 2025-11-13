@@ -935,6 +935,7 @@ const Index = () => {
     return <Management onBack={() => { 
       handleBackToHome(); 
       loadWorkouts();
+      checkRestDay();
     }} />;
   }
 

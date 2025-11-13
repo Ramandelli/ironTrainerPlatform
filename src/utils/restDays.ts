@@ -70,6 +70,9 @@ export class RestDayManager {
       if (!restDays.includes(date)) {
         restDays.push(date);
         await storage.setItem(RestDayManager.REST_DAYS_KEY, JSON.stringify(restDays));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('rest_days_updated'));
+        }
       }
     } catch (error) {
       console.error('Failed to set rest day:', error);
@@ -82,6 +85,9 @@ export class RestDayManager {
       const restDays = await this.getCustomRestDays();
       const filteredDays = restDays.filter(day => day !== date);
       await storage.setItem(RestDayManager.REST_DAYS_KEY, JSON.stringify(filteredDays));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('rest_days_updated'));
+      }
     } catch (error) {
       console.error('Failed to remove rest day:', error);
     }
@@ -122,6 +128,9 @@ export class RestDayManager {
         storage.removeItem(RestDayManager.REST_DAYS_KEY),
         storage.removeItem(RestDayManager.REST_DAYS_COUNT_KEY)
       ]);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('rest_days_updated'));
+      }
     } catch (error) {
       console.error('Failed to reset rest days:', error);
     }

@@ -81,6 +81,14 @@ useEffect(() => {
     }
   };
   loadRestDays();
+
+  const handleRestDaysUpdated = () => {
+    loadRestDays();
+  };
+  window.addEventListener('rest_days_updated', handleRestDaysUpdated);
+  return () => {
+    window.removeEventListener('rest_days_updated', handleRestDaysUpdated);
+  };
 }, []);
 
 
@@ -330,41 +338,48 @@ const restDaysCount = React.useMemo(() => {
 
   const customSet = new Set(customRestDays);
 
-  const getDayLabel = (d: Date) => {
-    const index = d.getDay(); // 0..6
-    const days = [
-      'Domingo',
-      'Segunda-feira',
-      'Terça-feira',
-      'Quarta-feira',
-      'Quinta-feira',
-      'Sexta-feira',
-      'Sábado'
-    ];
-    return days[index];
+// Helper: map various day labels to weekday index (0=Domingo..6=Sábado)
+const toIndex = (label: string): number | null => {
+  if (!label) return null;
+  const s = label
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove accents
+    .replace('-feira', '')
+    .trim();
+  const map: Record<string, number> = {
+    domingo: 0, sun: 0, sunday: 0,
+    segunda: 1, mon: 1, monday: 1,
+    terca: 2, tue: 2, tuesday: 2,
+    quarta: 3, wed: 3, wednesday: 3,
+    quinta: 4, thu: 4, thursday: 4,
+    sexta: 5, fri: 5, friday: 5,
+    sabado: 6, saturday: 6, sat: 6,
   };
+  return map[s] ?? null;
+};
 
-  let count = 0;
-  for (let t = startDate.getTime(); t <= endDate.getTime(); t += oneDay) {
-    const d = new Date(t);
-    const ymd = toYMD(d);
+let count = 0;
+for (let t = startDate.getTime(); t <= endDate.getTime(); t += oneDay) {
+  const d = new Date(t);
+  const ymd = toYMD(d);
 
-    // Regra 1: descanso manual sempre conta
-    if (customSet.has(ymd)) {
-      count++;
-      continue;
-    }
-
-    // Regra 2: se não há treino agendado para o dia -> descanso
-    const label = getDayLabel(d).toLowerCase();
-    const hasScheduledWorkout = workoutPlan.some(w => (w.day || '').toLowerCase() === label);
-
-    if (!hasScheduledWorkout) {
-      count++;
-    }
+  // Regra 1: descanso manual sempre conta
+  if (customSet.has(ymd)) {
+    count++;
+    continue;
   }
 
-  return count;
+  // Regra 2: se não há treino agendado para o dia -> descanso
+  const dow = d.getDay();
+  const hasScheduledWorkout = workoutPlan.some(w => toIndex(w.day) === dow);
+
+  if (!hasScheduledWorkout) {
+    count++;
+  }
+}
+
+return count;
 }, [customRestDays, selectedPeriod, installDate, workoutPlan]);
 
   
