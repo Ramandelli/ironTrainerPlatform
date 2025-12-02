@@ -139,51 +139,60 @@ useEffect(() => {
     }
   };
 
-  // Função auxiliar para calcular o início do período
-  const getPeriodStart = () => {
-    if (selectedPeriod === 'all') return null;
-    
+  // Função auxiliar para calcular o início e fim do período
+  const getPeriodRange = React.useCallback(() => {
     const now = new Date();
     
     if (selectedPeriod === 'week') {
-      // Últimos 7 dias
+      // Últimos 7 dias (incluindo hoje)
       const startDate = new Date(now);
-      startDate.setDate(now.getDate() - 6); // 7 dias incluindo hoje
+      startDate.setDate(now.getDate() - 6);
       startDate.setHours(0, 0, 0, 0);
-      return startDate.getTime();
+      const endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      return { start: startDate.getTime(), end: endDate.getTime() };
     } else if (selectedPeriod === 'lastMonth') {
       // Primeiro ao último dia do mês ANTERIOR
       const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       startOfLastMonth.setHours(0, 0, 0, 0);
-      return startOfLastMonth.getTime();
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      return { start: startOfLastMonth.getTime(), end: endOfLastMonth.getTime() };
     } else if (selectedPeriod === 'currentMonth') {
-      // Primeiro dia do mês atual até hoje
+      // Primeiro dia do mês atual até o último treino registrado no mês atual (ou hoje se não houver)
       const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       startOfCurrentMonth.setHours(0, 0, 0, 0);
-      return startOfCurrentMonth.getTime();
+      
+      // Encontrar o último treino registrado no mês atual
+      const currentMonthWorkouts = history.filter(session => {
+        const sessionDate = new Date(session.startTime);
+        return sessionDate.getMonth() === now.getMonth() && sessionDate.getFullYear() === now.getFullYear();
+      });
+      
+      let endDate: Date;
+      if (currentMonthWorkouts.length > 0) {
+        const lastWorkoutTime = Math.max(...currentMonthWorkouts.map(w => w.startTime));
+        endDate = new Date(lastWorkoutTime);
+      } else {
+        endDate = new Date(now);
+      }
+      endDate.setHours(23, 59, 59, 999);
+      
+      return { start: startOfCurrentMonth.getTime(), end: endDate.getTime() };
+    } else {
+      // Geral: todos os treinos registrados
+      return { start: null, end: null };
     }
-    
-    return null;
-  };
+  }, [selectedPeriod, history]);
 
   // Histórico filtrado pelo período
   const filteredHistory = React.useMemo(() => {
-    const periodStart = getPeriodStart();
-    if (periodStart === null) return history;
-    
-    const now = new Date();
-    let periodEnd = now.getTime();
-    
-    // Para o mês anterior, precisamos filtrar até o último dia do mês anterior
-    if (selectedPeriod === 'lastMonth') {
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-      periodEnd = endOfLastMonth.getTime();
-    }
+    const range = getPeriodRange();
+    if (range.start === null || range.end === null) return history;
     
     return history.filter(session => 
-      session.startTime >= periodStart && session.startTime <= periodEnd
+      session.startTime >= range.start! && session.startTime <= range.end!
     );
-  }, [history, selectedPeriod]);
+  }, [history, getPeriodRange]);
 
   // Calcula Volume Total e Peso Total
   const periodStats = React.useMemo(() => {
@@ -305,16 +314,20 @@ const restDaysCount = React.useMemo(() => {
   };
 
   const oneDay = 24 * 60 * 60 * 1000;
+  const range = getPeriodRange();
 
   // Determinar início do período
-  const periodStart = getPeriodStart();
   let baseStart: number;
 
-  if (periodStart === null) {
-    // Se período é "Geral", usar a data de instalação (se existir) ou últimos 30 dias
-    baseStart = Date.now() - 30 * oneDay;
+  if (range.start === null) {
+    // Se período é "Geral", usar a data de instalação (se existir) ou primeiro treino
+    if (history.length > 0) {
+      baseStart = Math.min(...history.map(h => h.startTime));
+    } else {
+      baseStart = Date.now() - 30 * oneDay;
+    }
   } else {
-    baseStart = periodStart;
+    baseStart = range.start;
   }
 
   // Considerar data de instalação para não contar antes do app existir
@@ -329,58 +342,59 @@ const restDaysCount = React.useMemo(() => {
   startDate.setHours(0, 0, 0, 0);
 
   // Determinar fim do período
-  const now = new Date();
-  let endDate = new Date();
-  if (selectedPeriod === 'lastMonth') {
-    endDate = new Date(now.getFullYear(), now.getMonth(), 0); // último dia do mês anterior
+  let endDate: Date;
+  if (range.end === null) {
+    endDate = new Date(); // hoje
+  } else {
+    endDate = new Date(range.end);
   }
   endDate.setHours(0, 0, 0, 0);
 
   const customSet = new Set(customRestDays);
 
-// Helper: map various day labels to weekday index (0=Domingo..6=Sábado)
-const toIndex = (label: string): number | null => {
-  if (!label) return null;
-  const s = label
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // remove accents
-    .replace('-feira', '')
-    .trim();
-  const map: Record<string, number> = {
-    domingo: 0, sun: 0, sunday: 0,
-    segunda: 1, mon: 1, monday: 1,
-    terca: 2, tue: 2, tuesday: 2,
-    quarta: 3, wed: 3, wednesday: 3,
-    quinta: 4, thu: 4, thursday: 4,
-    sexta: 5, fri: 5, friday: 5,
-    sabado: 6, saturday: 6, sat: 6,
+  // Helper: map various day labels to weekday index (0=Domingo..6=Sábado)
+  const toIndex = (label: string): number | null => {
+    if (!label) return null;
+    const s = label
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // remove accents
+      .replace('-feira', '')
+      .trim();
+    const map: Record<string, number> = {
+      domingo: 0, sun: 0, sunday: 0,
+      segunda: 1, mon: 1, monday: 1,
+      terca: 2, tue: 2, tuesday: 2,
+      quarta: 3, wed: 3, wednesday: 3,
+      quinta: 4, thu: 4, thursday: 4,
+      sexta: 5, fri: 5, friday: 5,
+      sabado: 6, saturday: 6, sat: 6,
+    };
+    return map[s] ?? null;
   };
-  return map[s] ?? null;
-};
 
-let count = 0;
-for (let t = startDate.getTime(); t <= endDate.getTime(); t += oneDay) {
-  const d = new Date(t);
-  const ymd = toYMD(d);
+  let count = 0;
+  for (let t = startDate.getTime(); t <= endDate.getTime(); t += oneDay) {
+    const d = new Date(t);
+    const ymd = toYMD(d);
 
-  // Regra 1: descanso manual sempre conta
-  if (customSet.has(ymd)) {
-    count++;
-    continue;
+    // Regra 1: descanso manual sempre conta
+    if (customSet.has(ymd)) {
+      count++;
+      continue;
+    }
+
+    // Regra 2: se não há treino agendado para o dia -> descanso
+    const dow = d.getDay();
+    const hasScheduledWorkout = workoutPlan.some(w => toIndex(w.day) === dow);
+
+    if (!hasScheduledWorkout) {
+      count++;
+    }
   }
 
-  // Regra 2: se não há treino agendado para o dia -> descanso
-  const dow = d.getDay();
-  const hasScheduledWorkout = workoutPlan.some(w => toIndex(w.day) === dow);
-
-  if (!hasScheduledWorkout) {
-    count++;
-  }
-}
-
-return count;
-}, [customRestDays, selectedPeriod, installDate, workoutPlan]);
+  return count;
+}, [customRestDays, getPeriodRange, installDate, workoutPlan, history]);
 
   
   const abdominalStats = React.useMemo(() => {
@@ -682,7 +696,7 @@ const workoutDistribution: Record<string, number> = {};
                 {periodStats.totalVolume.toFixed(0)}kg
               </div>
               <div className="text-sm text-muted-foreground">
-                Volume {selectedPeriod === 'week' ? 'semanal' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? 'mensal' : 'total'}
+                Volume {selectedPeriod === 'week' ? '(últimos 7 dias)' : selectedPeriod === 'lastMonth' ? '(último mês)' : selectedPeriod === 'currentMonth' ? '(mês atual)' : 'total'}
               </div>
             </CardContent>
           </Card>
@@ -770,7 +784,7 @@ const workoutDistribution: Record<string, number> = {};
               {restDaysCount}
             </div>
               <div className="text-xs text-muted-foreground">
-                Dias de descanso ({selectedPeriod === 'week' ? 'semana' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? 'mês' : 'total'})
+                Dias de descanso ({selectedPeriod === 'week' ? 'últimos 7 dias' : selectedPeriod === 'lastMonth' ? 'último mês' : selectedPeriod === 'currentMonth' ? 'mês atual' : 'geral'})
               </div>
           </CardContent>
         </Card>
