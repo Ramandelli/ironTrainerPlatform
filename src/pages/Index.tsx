@@ -351,12 +351,15 @@ const Index = () => {
   const handleApplyChangesConfirm = async () => {
     try {
       setShowApplyChangesDialog(false);
-      await applyPermanentChanges();
+      const success = await applyPermanentChanges();
       await finishWorkoutInternal();
-      toast({
-        title: "Alterações aplicadas! ✅",
-        description: "O treino foi finalizado e as alterações foram salvas no treino padrão.",
-      });
+      
+      if (success) {
+        toast({
+          title: "Treino finalizado! ✅",
+          description: "As alterações foram salvas no treino base.",
+        });
+      }
     } catch (error) {
       console.error('Error applying changes:', error);
       toast({
