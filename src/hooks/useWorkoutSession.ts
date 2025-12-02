@@ -494,8 +494,8 @@ const loadSession = async () => {
     });
   }, [currentSession, toast]);
 
-  const applyPermanentChanges = useCallback(async () => {
-    if (!currentSession || modifiedExercises.size === 0) return;
+  const applyPermanentChanges = useCallback(async (): Promise<boolean> => {
+    if (!currentSession || modifiedExercises.size === 0) return false;
 
     try {
       const allWorkouts = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
@@ -508,57 +508,49 @@ const loadSession = async () => {
       const exactWorkout = allWorkouts.find((w) => w.id === currentSession.workoutDayId);
 
       let workoutToUpdate = overrideWorkout || exactWorkout;
+      let wasConverted = false;
 
       // If nothing found in the merged list, fall back to default plan and convert once
       if (!workoutToUpdate) {
         const basePlanWorkout = WORKOUT_PLAN.find((w) => w.id === currentSession.workoutDayId);
         if (!basePlanWorkout) {
           console.error('Workout not found for permanent changes');
-          return;
+          throw new Error('Treino base não encontrado');
         }
-        workoutToUpdate = await customWorkoutManager.convertToCustomWorkout(basePlanWorkout);
+        // Don't save yet, just create the structure
+        workoutToUpdate = {
+          ...JSON.parse(JSON.stringify(basePlanWorkout)),
+          id: `custom_${basePlanWorkout.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        };
+        wasConverted = true;
       }
 
-      // If it's still a default workout, convert it now (first save)
+      // If it's still a default workout, convert it now (without saving yet)
       if (!customWorkoutManager.isCustomWorkout(workoutToUpdate.id)) {
-        workoutToUpdate = await customWorkoutManager.convertToCustomWorkout(workoutToUpdate);
+        workoutToUpdate = {
+          ...JSON.parse(JSON.stringify(workoutToUpdate)),
+          id: `custom_${workoutToUpdate.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        };
+        wasConverted = true;
       }
 
-      // ----- Update main exercises (preserve ids, treat rename as update) -----
-      const idToBaseEx = new Map(
-        (workoutToUpdate.exercises || []).map((ex) => [ex.id, ex])
-      );
-      const nameToBaseEx = new Map(
+      // ----- Build updated exercises from session data -----
+      // Since we may have converted, use session exercises as the source of truth
+      // but preserve base workout structure for non-modified exercises
+      
+      const baseExercisesByName = new Map(
         (workoutToUpdate.exercises || []).map((ex) => [ex.name.toLowerCase(), ex])
       );
-      const usedBaseIds = new Set<string>();
-      const updatedExercises: Exercise[] = [];
-
-      currentSession.exercises.forEach((sessionEx, idx) => {
-        // Prefer match by id (original exercise), then by index, then by name
-        let baseEx = idToBaseEx.get(sessionEx.id) || workoutToUpdate!.exercises[idx] || nameToBaseEx.get(sessionEx.name.toLowerCase());
-
-        if (baseEx) {
-          usedBaseIds.add(baseEx.id);
-          if (modifiedExercises.has(sessionEx.id)) {
-            // Update existing exercise (including rename)
-            updatedExercises.push({
-              ...baseEx,
-              name: sessionEx.name,
-              sets: sessionEx.sets,
-              targetReps: sessionEx.targetReps,
-              suggestedWeight: sessionEx.suggestedWeight,
-              restTime: sessionEx.restTime,
-              notes: sessionEx.notes,
-              hasDropset: sessionEx.hasDropset,
-            });
-          } else {
-            updatedExercises.push(baseEx);
-          }
-        } else if (modifiedExercises.has(sessionEx.id)) {
-          // Truly new exercise created during the session – append to plan
-          updatedExercises.push({
-            id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      
+      const updatedExercises: Exercise[] = currentSession.exercises.map((sessionEx, idx) => {
+        // Find matching base exercise by name or index
+        const baseEx = baseExercisesByName.get(sessionEx.name.toLowerCase()) || 
+                       (wasConverted ? null : workoutToUpdate!.exercises[idx]);
+        
+        if (modifiedExercises.has(sessionEx.id)) {
+          // This exercise was modified during the session - use session data
+          return {
+            id: baseEx?.id || `ex_${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${idx}`,
             name: sessionEx.name,
             sets: sessionEx.sets,
             targetReps: sessionEx.targetReps,
@@ -569,54 +561,47 @@ const loadSession = async () => {
             completed: false,
             currentSet: 0,
             setData: [],
-          });
+          };
+        } else if (baseEx) {
+          // Not modified and has a base - preserve base data
+          return {
+            ...baseEx,
+            completed: false,
+            currentSet: 0,
+            setData: [],
+          };
+        } else {
+          // Not modified but no base found (shouldn't happen often) - use session data
+          return {
+            id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${idx}`,
+            name: sessionEx.name,
+            sets: sessionEx.sets,
+            targetReps: sessionEx.targetReps,
+            suggestedWeight: sessionEx.suggestedWeight,
+            restTime: sessionEx.restTime,
+            notes: sessionEx.notes,
+            hasDropset: sessionEx.hasDropset,
+            completed: false,
+            currentSet: 0,
+            setData: [],
+          };
         }
       });
 
-      // Keep any remaining base exercises that weren't touched
-      workoutToUpdate.exercises.forEach((ex) => {
-        if (!usedBaseIds.has(ex.id) && !updatedExercises.find((e) => e.id === ex.id)) {
-          updatedExercises.push(ex);
-        }
-      });
-
-      // ----- Update abdominal exercises similarly (preserve ids, treat rename as update) -----
+      // ----- Update abdominal exercises similarly -----
       let updatedAbdominal: Exercise[] | undefined = workoutToUpdate.abdominal;
-      if (currentSession.abdominal) {
-        const idToBaseAb = new Map(
-          (workoutToUpdate.abdominal || []).map((ex) => [ex.id, ex])
-        );
-        const nameToBaseAb = new Map(
+      if (currentSession.abdominal && currentSession.abdominal.length > 0) {
+        const baseAbByName = new Map(
           (workoutToUpdate.abdominal || []).map((ex) => [ex.name.toLowerCase(), ex])
         );
-        const usedAbIds = new Set<string>();
-        const abdominalResult: Exercise[] = [];
 
-        currentSession.abdominal.forEach((sessionAb, idx) => {
-          // Prefer match by id, then by index, then by name
-          let baseAb = idToBaseAb.get(sessionAb.id) || workoutToUpdate!.abdominal?.[idx] || nameToBaseAb.get(sessionAb.name.toLowerCase());
+        updatedAbdominal = currentSession.abdominal.map((sessionAb, idx) => {
+          const baseAb = baseAbByName.get(sessionAb.name.toLowerCase()) ||
+                         (wasConverted ? null : workoutToUpdate!.abdominal?.[idx]);
 
-          if (baseAb) {
-            usedAbIds.add(baseAb.id);
-            if (modifiedExercises.has(sessionAb.id)) {
-              abdominalResult.push({
-                ...baseAb,
-                name: sessionAb.name,
-                sets: sessionAb.sets,
-                targetReps: sessionAb.targetReps,
-                restTime: sessionAb.restTime,
-                notes: sessionAb.notes,
-                isTimeBased: sessionAb.isTimeBased,
-                timePerSet: sessionAb.timePerSet,
-                isBilateral: sessionAb.isBilateral,
-              });
-            } else {
-              abdominalResult.push(baseAb);
-            }
-          } else if (modifiedExercises.has(sessionAb.id)) {
-            // Truly new abdominal exercise created during the session
-            abdominalResult.push({
-              id: `ab_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          if (modifiedExercises.has(sessionAb.id)) {
+            return {
+              id: baseAb?.id || `ab_${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${idx}`,
               name: sessionAb.name,
               sets: sessionAb.sets,
               targetReps: sessionAb.targetReps,
@@ -628,23 +613,36 @@ const loadSession = async () => {
               completed: false,
               currentSet: 0,
               setData: [],
-            });
+            };
+          } else if (baseAb) {
+            return {
+              ...baseAb,
+              completed: false,
+              currentSet: 0,
+              setData: [],
+            };
+          } else {
+            return {
+              id: `ab_${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${idx}`,
+              name: sessionAb.name,
+              sets: sessionAb.sets,
+              targetReps: sessionAb.targetReps,
+              restTime: sessionAb.restTime,
+              notes: sessionAb.notes,
+              isTimeBased: sessionAb.isTimeBased,
+              timePerSet: sessionAb.timePerSet,
+              isBilateral: sessionAb.isBilateral,
+              completed: false,
+              currentSet: 0,
+              setData: [],
+            };
           }
         });
-
-        // Keep remaining base abdominal exercises
-        (workoutToUpdate.abdominal || []).forEach((ex) => {
-          if (!usedAbIds.has(ex.id) && !abdominalResult.find((e) => e.id === ex.id)) {
-            abdominalResult.push(ex);
-          }
-        });
-
-        updatedAbdominal = abdominalResult;
       }
 
-      // ----- Update aerobic if present -----
+      // ----- Update aerobic if modified -----
       let updatedAerobic = workoutToUpdate.aerobic;
-      if (currentSession.aerobic && workoutToUpdate.aerobic) {
+      if (currentSession.aerobic && modifiedExercises.has('aerobic')) {
         updatedAerobic = {
           type: currentSession.aerobic.type,
           duration: currentSession.aerobic.duration,
@@ -654,19 +652,19 @@ const loadSession = async () => {
         } as AerobicExercise;
       }
 
-      await customWorkoutManager.saveWorkout({
+      // Save the updated workout
+      const workoutToSave = {
         ...workoutToUpdate,
         exercises: updatedExercises,
         abdominal: updatedAbdominal,
         aerobic: updatedAerobic,
-      });
+      };
+
+      await customWorkoutManager.saveWorkout(workoutToSave);
 
       setModifiedExercises(new Set());
 
-      toast({
-        title: "Alterações aplicadas! ✅",
-        description: "O treino base foi atualizado permanentemente.",
-      });
+      return true;
     } catch (error) {
       console.error('Failed to apply permanent changes:', error);
       toast({
@@ -674,6 +672,7 @@ const loadSession = async () => {
         description: "Não foi possível aplicar as alterações permanentemente.",
         variant: "destructive",
       });
+      return false;
     }
   }, [currentSession, modifiedExercises, toast]);
 
