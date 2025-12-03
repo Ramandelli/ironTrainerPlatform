@@ -61,6 +61,7 @@ const Index = () => {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
   const [workoutAverages, setWorkoutAverages] = useState<Record<string, number>>({});
   const [isRestDay, setIsRestDay] = useState(false);
+  const [isManualRestDay, setIsManualRestDay] = useState(false); // true = manual rest (can cancel), false = automatic (no workout scheduled)
   const [currentView, setCurrentView] = useState<'home' | 'workout' | 'workout-view' | 'statistics' | 'management' | 'achievements'>('home');
   const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null);
   const [showAerobicTimer, setShowAerobicTimer] = useState(false);
@@ -192,29 +193,34 @@ const Index = () => {
   };
 
   const checkRestDay = async () => {
-    // Prioridade 1: Descanso manual SEMPRE bloqueia o treino do dia
-    const isManualRest = await restDayManager.isTodayRestDay();
-    if (isManualRest) {
-      setIsRestDay(true);
-      return;
-    }
-
-    // Prioridade 2: Fim de semana (se desejar manter como descanso)
     const todayWorkoutId = getTodayWorkoutId();
+    
+    // Prioridade 1: Fim de semana (descanso automático, sem opção de cancelar)
     if (todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday') {
       setIsRestDay(true);
+      setIsManualRestDay(false);
       return;
     }
 
-    // Prioridade 3: Não há treino agendado para o dia
+    // Prioridade 2: Não há treino agendado para o dia (descanso automático, sem opção de cancelar)
     const todaysWorkout = findTodaysWorkout();
     if (!todaysWorkout) {
       setIsRestDay(true);
+      setIsManualRestDay(false);
+      return;
+    }
+
+    // Prioridade 3: Descanso manual (tem opção de cancelar)
+    const isManualRest = await restDayManager.isTodayRestDay();
+    if (isManualRest) {
+      setIsRestDay(true);
+      setIsManualRestDay(true);
       return;
     }
 
     // Caso contrário, não é dia de descanso
     setIsRestDay(false);
+    setIsManualRestDay(false);
   };
 
   const loadWorkouts = async () => {
@@ -406,6 +412,7 @@ const Index = () => {
   const handleDataReset = async () => {
     await restDayManager.resetRestDays();
     setIsRestDay(false);
+    setIsManualRestDay(false);
     await loadStats();
     await loadWorkouts();
     await loadHistory();
@@ -1001,12 +1008,18 @@ const Index = () => {
             <CardContent className="p-6 text-center">
               <div className="text-4xl mb-2">🏖️</div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                {getTodayWorkoutId() === 'saturday' || getTodayWorkoutId() === 'sunday' ? 'Fim de Semana' : 'Dia de Descanso'}
+                {getTodayWorkoutId() === 'saturday' || getTodayWorkoutId() === 'sunday' 
+                  ? 'Fim de Semana' 
+                  : isManualRestDay 
+                    ? 'Dia de Descanso' 
+                    : 'Sem Treino Agendado'}
               </h3>
               <p className="text-muted-foreground mb-4">
-                Aproveite para recuperar as energias!
+                {isManualRestDay 
+                  ? 'Aproveite para recuperar as energias!' 
+                  : 'Nenhum treino configurado para hoje.'}
               </p>
-              {getTodayWorkoutId() !== 'saturday' && getTodayWorkoutId() !== 'sunday' && (
+              {isManualRestDay && (
                 <Button 
                   variant="outline" 
                   onClick={handleToggleRestDay}
