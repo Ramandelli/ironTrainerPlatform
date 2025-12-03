@@ -685,6 +685,16 @@ const loadSession = async () => {
     await storage.clearModifiedExercises();
   };
 
+  const setWarmupCompleted = useCallback((completed: boolean) => {
+    if (!currentSession) return;
+    setCurrentSession(prev => prev ? { ...prev, warmupCompleted: completed } : null);
+  }, [currentSession]);
+
+  const setAbdominalCompleted = useCallback((completed: boolean) => {
+    if (!currentSession) return;
+    setCurrentSession(prev => prev ? { ...prev, abdominalCompleted: completed } : null);
+  }, [currentSession]);
+
   return {
     currentSession,
     timerState,
@@ -709,5 +719,7 @@ const loadSession = async () => {
     clearModifications,
     newAchievements,
     clearAchievements,
+    setWarmupCompleted,
+    setAbdominalCompleted,
   };
 };

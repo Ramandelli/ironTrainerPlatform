@@ -68,6 +68,8 @@ export interface WorkoutSession {
   totalVolume: number;
   notes?: string;
   completed: boolean;
+  warmupCompleted?: boolean;
+  abdominalCompleted?: boolean;
 }
 
 export interface WorkoutStats {
