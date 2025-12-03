@@ -51,7 +51,9 @@ const Index = () => {
     modifiedExercises,
     clearModifications,
     newAchievements,
-    clearAchievements
+    clearAchievements,
+    setWarmupCompleted,
+    setAbdominalCompleted
   } = useWorkoutSession();
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
@@ -62,14 +64,16 @@ const Index = () => {
   const [currentView, setCurrentView] = useState<'home' | 'workout' | 'workout-view' | 'statistics' | 'management' | 'achievements'>('home');
   const [viewingWorkoutId, setViewingWorkoutId] = useState<string | null>(null);
   const [showAerobicTimer, setShowAerobicTimer] = useState(false);
-  const [abdominalCompleted, setAbdominalCompleted] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
   const [aerobicContext, setAerobicContext] = useState<'before' | 'after' | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
-  const [warmupCompleted, setWarmupCompleted] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showApplyChangesDialog, setShowApplyChangesDialog] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
+  
+  // Valores derivados da sessão (persistidos)
+  const warmupCompleted = currentSession?.warmupCompleted ?? false;
+  const abdominalCompleted = currentSession?.abdominalCompleted ?? false;
 
   const getLastWorkoutTime = () => {
     if (history.length === 0) return 0;
@@ -342,7 +346,6 @@ const Index = () => {
     clearModifications();
     setCurrentView('home');
     setShowAerobicTimer(false);
-    setAbdominalCompleted(false);
     await loadStats();
     await loadWorkouts();
     await loadHistory();
