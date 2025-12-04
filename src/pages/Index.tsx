@@ -35,6 +35,7 @@ const Index = () => {
     startWorkout,
     completeSet,
     completeExercise,
+    skipExercise,
     startRestTimer,
     stopTimer,
     finishWorkout,
@@ -43,6 +44,7 @@ const Index = () => {
     skipAerobic, 
     completeAbdominalSet,
     completeAbdominalExercise,
+    skipAbdominalExercise,
     updateExercise,
     updateAbdominalExercise,
     updateAerobic,
@@ -806,6 +808,7 @@ const Index = () => {
               exercise={exercise}
               onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
               onExerciseComplete={() => handleExerciseComplete(exercise.id)}
+              onExerciseSkip={() => skipExercise(exercise.id)}
               onExerciseUpdate={(updates) => updateExercise(exercise.id, updates)}
               isActive={nextExercise?.id === exercise.id}
             />
@@ -836,6 +839,7 @@ const Index = () => {
                       }
                     }}
                     onExerciseComplete={() => completeAbdominalExercise(exercise.id)}
+                    onExerciseSkip={() => skipAbdominalExercise(exercise.id)}
                     onExerciseUpdate={(updates) => updateAbdominalExercise(exercise.id, updates)}
                     isActive={!exercise.completed}
                   />
@@ -851,6 +855,7 @@ const Index = () => {
                       }
                     }}
                     onExerciseComplete={() => completeAbdominalExercise(exercise.id)}
+                    onExerciseSkip={() => skipAbdominalExercise(exercise.id)}
                     onExerciseUpdate={(updates) => updateAbdominalExercise(exercise.id, updates)}
                     isActive={!exercise.completed}
                     hideWeightInputs

@@ -7,6 +7,7 @@ export interface Exercise {
   restTime?: number;
   notes?: string;
   completed: boolean;
+  skipped?: boolean;
   currentSet: number;
   setData: SetData[];
   // Propriedades específicas para abdominais por tempo

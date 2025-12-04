@@ -183,6 +183,27 @@ const loadSession = async () => {
     }
   }, [currentSession, toast]);
 
+  const skipExercise = useCallback(async (exerciseId: string) => {
+    if (!currentSession) return;
+
+    try {
+      // Mark exercise as completed but without any set data
+      const updatedExercises = currentSession.exercises.map(ex => 
+        ex.id === exerciseId 
+          ? { ...ex, completed: true, skipped: true, setData: [] }
+          : ex
+      );
+      setCurrentSession(prev => prev ? { ...prev, exercises: updatedExercises } : null);
+      
+      toast({
+        title: "Exercício pulado",
+        description: "O exercício foi ignorado sem registrar dados.",
+      });
+    } catch (error) {
+      console.error('Failed to skip exercise:', error);
+    }
+  }, [currentSession, toast]);
+
   const startRestTimer = useCallback(async (duration: number, type: TimerState['type'], exerciseId?: string, setIndex?: number) => {
     const timer: TimerState = {
       isActive: true,
@@ -311,6 +332,29 @@ const loadSession = async () => {
       });
     } catch (error) {
       console.error('Failed to complete abdominal exercise:', error);
+    }
+  }, [currentSession, toast]);
+
+  const skipAbdominalExercise = useCallback(async (exerciseId: string) => {
+    if (!currentSession || !currentSession.abdominal) return;
+
+    try {
+      setCurrentSession(prev => {
+        if (!prev || !prev.abdominal) return prev;
+        const updated = prev.abdominal.map(ex => 
+          ex.id === exerciseId 
+            ? { ...ex, completed: true, skipped: true, setData: [] }
+            : ex
+        );
+        return { ...prev, abdominal: updated };
+      });
+
+      toast({
+        title: "Exercício abdominal pulado",
+        description: "O exercício foi ignorado sem registrar dados.",
+      });
+    } catch (error) {
+      console.error('Failed to skip abdominal exercise:', error);
     }
   }, [currentSession, toast]);
 
@@ -702,6 +746,7 @@ const loadSession = async () => {
     startWorkout,
     completeSet,
     completeExercise: completeExerciseHandler,
+    skipExercise,
     startRestTimer,
     stopTimer,
     finishWorkout,
@@ -710,6 +755,7 @@ const loadSession = async () => {
     skipAerobic,
     completeAbdominalSet,
     completeAbdominalExercise,
+    skipAbdominalExercise,
     updateExercise,
     updateAbdominalExercise,
     updateAerobic,

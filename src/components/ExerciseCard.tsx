@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
-import { CheckCircle, Circle, Timer, Weight, RotateCcw, Zap, TrendingUp, Pencil } from 'lucide-react';
+import { CheckCircle, Circle, Timer, Weight, RotateCcw, Zap, TrendingUp, Pencil, SkipForward } from 'lucide-react';
 import { Exercise, SetData, DropsetData, WorkoutSession } from '../types/workout';
 import { DropsetInput } from './DropsetInput';
 import { exerciseSuggestionManager, ExerciseSuggestion } from '../utils/exerciseSuggestions';
@@ -15,6 +15,7 @@ interface ExerciseCardProps {
   exercise: Exercise;
   onSetComplete: (setIndex: number, setData: SetData) => void;
   onExerciseComplete: () => void;
+  onExerciseSkip?: () => void;
   onExerciseUpdate?: (updates: Partial<Exercise>) => void;
   isActive?: boolean;
   hideWeightInputs?: boolean;
@@ -25,6 +26,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   exercise,
   onSetComplete,
   onExerciseComplete,
+  onExerciseSkip,
   onExerciseUpdate,
   isActive = false,
   hideWeightInputs = false,
@@ -299,27 +301,41 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2">
-          {!exercise.completed && exercise.currentSet < exercise.sets && (
-            <Button
-              variant="workout"
-              onClick={handleSetComplete}
-              disabled={!canCompleteSet()}
-              className="flex-1"
-            >
-              <Timer className="w-4 h-4 mr-2" />
-              Finalizar Série
-            </Button>
-          )}
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            {!exercise.completed && exercise.currentSet < exercise.sets && (
+              <Button
+                variant="workout"
+                onClick={handleSetComplete}
+                disabled={!canCompleteSet()}
+                className="flex-1"
+              >
+                <Timer className="w-4 h-4 mr-2" />
+                Finalizar Série
+              </Button>
+            )}
+            
+            {allSetsCompleted && !exercise.completed && (
+              <Button
+                variant="success"
+                onClick={onExerciseComplete}
+                className="flex-1"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Marcar como Concluído
+              </Button>
+            )}
+          </div>
           
-          {allSetsCompleted && !exercise.completed && (
+          {/* Skip Exercise Button */}
+          {!exercise.completed && onExerciseSkip && (
             <Button
-              variant="success"
-              onClick={onExerciseComplete}
-              className="flex-1"
+              variant="ghost"
+              onClick={onExerciseSkip}
+              className="text-muted-foreground hover:text-destructive"
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Marcar como Concluído
+              <SkipForward className="w-4 h-4 mr-2" />
+              Pular Exercício
             </Button>
           )}
         </div>
