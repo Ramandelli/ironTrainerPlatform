@@ -16,6 +16,7 @@ import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { useToast } from './use-toast';
 import { achievementManager } from '../utils/achievements';
 import { UnlockedAchievement } from '../types/achievement';
+import { formatWeightCompact } from '../utils/formatters';
 
 export const useWorkoutSession = () => {
   const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
@@ -154,7 +155,7 @@ const loadSession = async () => {
       setCurrentSession(prev => prev ? { ...prev, exercises: updatedExercises } : null);
       
       const parts: string[] = [];
-      if (typeof setData.weight === 'number') parts.push(`${setData.weight}kg`);
+      if (typeof setData.weight === 'number') parts.push(`${formatWeightCompact(setData.weight)}kg`);
       if (typeof setData.reps === 'number') parts.push(`${setData.reps} reps`);
       if (typeof setData.timeCompleted === 'number') parts.push(`${setData.timeCompleted}s`);
       
@@ -187,17 +188,31 @@ const loadSession = async () => {
     if (!currentSession) return;
 
     try {
-      // Mark exercise as completed but without any set data
-      const updatedExercises = currentSession.exercises.map(ex => 
-        ex.id === exerciseId 
-          ? { ...ex, completed: true, skipped: true, setData: [] }
-          : ex
-      );
+      // Mark exercise as completed but keep any completed set data
+      const updatedExercises = currentSession.exercises.map(ex => {
+        if (ex.id !== exerciseId) return ex;
+        
+        // Keep only completed sets data
+        const completedSets = ex.setData.filter(set => set.completed);
+        const hasCompletedData = completedSets.length > 0;
+        
+        return { 
+          ...ex, 
+          completed: true, 
+          skipped: true,
+          setData: completedSets
+        };
+      });
       setCurrentSession(prev => prev ? { ...prev, exercises: updatedExercises } : null);
+      
+      const exercise = currentSession.exercises.find(ex => ex.id === exerciseId);
+      const completedSetsCount = exercise?.setData.filter(s => s.completed).length || 0;
       
       toast({
         title: "Exercício pulado",
-        description: "O exercício foi ignorado sem registrar dados.",
+        description: completedSetsCount > 0 
+          ? `${completedSetsCount} série(s) registrada(s), restante ignorado.`
+          : "O exercício foi ignorado sem registrar dados.",
       });
     } catch (error) {
       console.error('Failed to skip exercise:', error);
@@ -416,7 +431,7 @@ const loadSession = async () => {
       
       toast({
         title: "Treino finalizado! 🎉",
-        description: `Duração: ${workoutTime}min | Volume: ${finishedSession.totalVolume}kg`,
+        description: `Duração: ${workoutTime}min | Volume: ${formatWeightCompact(finishedSession.totalVolume)}kg`,
       });
       
       return finishedSession;

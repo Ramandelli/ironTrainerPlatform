@@ -10,6 +10,7 @@ import { exerciseSuggestionManager, ExerciseSuggestion } from '../utils/exercise
 import { storage } from '../utils/storage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { ExerciseForm } from './ExerciseForm';
+import { formatWeightCompact } from '../utils/formatters';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -200,7 +201,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         {suggestion && !hideWeightInputs && exercise.currentSet === 0 && !exercise.completed && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded mt-2">
             <TrendingUp className="w-3 h-3 text-iron-orange" />
-            <span>Sugerido: {suggestion.weight}kg × {suggestion.reps} reps</span>
+            <span>Sugerido: {formatWeightCompact(suggestion.weight)}kg × {suggestion.reps} reps</span>
           </div>
         )}
         <div className="space-y-1">
@@ -211,7 +212,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           )}
           {exercise.suggestedWeight && (
             <p className="text-sm text-muted-foreground">
-              Carga sugerida: {exercise.suggestedWeight}kg
+              Carga sugerida: {formatWeightCompact(exercise.suggestedWeight)}kg
             </p>
           )}
           {exercise.notes && (
@@ -256,7 +257,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       {setData.weight && (
                         <span className="flex items-center gap-1">
                           <Weight className="w-4 h-4" />
-                          {setData.weight}kg
+                          {formatWeightCompact(setData.weight)}kg
                         </span>
                       )}
                       <span>{setData.reps} reps</span>
@@ -265,7 +266,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       <div className="text-xs text-iron-orange">
                         <span className="flex items-center gap-1">
                           <Zap className="w-3 h-3" />
-                          Dropsets: {setData.dropsetData.map(drop => `${drop.weight}kg×${drop.reps}`).join(', ')}
+                          Dropsets: {setData.dropsetData.map(drop => `${formatWeightCompact(drop.weight)}kg×${drop.reps}`).join(', ')}
                         </span>
                       </div>
                     )}
