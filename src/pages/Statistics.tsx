@@ -16,6 +16,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { WorkoutDay } from '../types/workout';
+import { formatWeightCompact } from '../utils/formatters';
 interface StatisticsProps {
   onBack: () => void;
   onDataReset?: () => void;
@@ -693,7 +694,7 @@ const workoutDistribution: Record<string, number> = {};
                 <TrendingUp className="w-5 h-5 text-iron-orange" />
               </div>
               <div className="text-2xl font-bold text-foreground">
-                {periodStats.totalVolume.toFixed(0)}kg
+                {formatWeightCompact(periodStats.totalVolume)}kg
               </div>
               <div className="text-sm text-muted-foreground">
                 Volume {selectedPeriod === 'week' ? '(últimos 7 dias)' : selectedPeriod === 'lastMonth' ? '(último mês)' : selectedPeriod === 'currentMonth' ? '(mês atual)' : 'total'}
@@ -766,7 +767,7 @@ const workoutDistribution: Record<string, number> = {};
                 <TrendingUp className="w-4 h-4 text-iron-orange" />
               </div>
               <div className="text-lg font-bold text-foreground">
-                {periodStats.totalWeight.toFixed(0)}kg
+                {formatWeightCompact(periodStats.totalWeight)}kg
               </div>
               <div className="text-xs text-muted-foreground">
                 Total de peso
@@ -901,7 +902,7 @@ const workoutDistribution: Record<string, number> = {};
             <span className="text-sm font-medium text-foreground">{exercise}</span>
             <div className="text-right">
               <div className="text-sm font-bold text-iron-orange">
-                {record.weight}kg × {record.reps}
+                {formatWeightCompact(record.weight)}kg × {record.reps}
               </div>
               <div className="text-xs text-muted-foreground">
                 {formattedDate}
@@ -946,7 +947,7 @@ const workoutDistribution: Record<string, number> = {};
                       borderRadius: '6px'
                     }}
                     labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: number) => [`${value.toFixed(0)}kg`, 'Volume Total']}
+                    formatter={(value: number) => [`${formatWeightCompact(value)}kg`, 'Volume Total']}
                   />
                   <Bar dataKey="totalVolume" fill="hsl(var(--iron-orange))" radius={[0, 4, 4, 0]} />
                 </BarChart>
@@ -1029,25 +1030,25 @@ const workoutDistribution: Record<string, number> = {};
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-foreground">{dayStats.day}</span>
                       <Badge variant={dayStats.evolutionPercent >= 0 ? "default" : "destructive"}>
-                        {dayStats.evolution >= 0 ? '+' : ''}{dayStats.evolution.toFixed(0)}kg 
+                        {dayStats.evolution >= 0 ? '+' : ''}{formatWeightCompact(dayStats.evolution)}kg 
                         ({dayStats.evolutionPercent >= 0 ? '+' : ''}{dayStats.evolutionPercent.toFixed(1)}%)
                       </Badge>
                     </div>
                     <div className="grid grid-cols-4 gap-2 text-xs">
                       <div className="text-center p-2 bg-muted/30 rounded">
-                        <div className="font-medium text-foreground">{dayStats.min.toFixed(0)}kg</div>
+                        <div className="font-medium text-foreground">{formatWeightCompact(dayStats.min)}kg</div>
                         <div className="text-muted-foreground">Mín</div>
                       </div>
                       <div className="text-center p-2 bg-muted/30 rounded">
-                        <div className="font-medium text-foreground">{dayStats.average.toFixed(0)}kg</div>
+                        <div className="font-medium text-foreground">{formatWeightCompact(dayStats.average)}kg</div>
                         <div className="text-muted-foreground">Média</div>
                       </div>
                       <div className="text-center p-2 bg-muted/30 rounded">
-                        <div className="font-medium text-foreground">{dayStats.max.toFixed(0)}kg</div>
+                        <div className="font-medium text-foreground">{formatWeightCompact(dayStats.max)}kg</div>
                         <div className="text-muted-foreground">Máx</div>
                       </div>
                       <div className="text-center p-2 bg-muted/30 rounded">
-                        <div className="font-medium text-foreground">{dayStats.lastVolume.toFixed(0)}kg</div>
+                        <div className="font-medium text-foreground">{formatWeightCompact(dayStats.lastVolume)}kg</div>
                         <div className="text-muted-foreground">Último</div>
                       </div>
                     </div>
@@ -1086,7 +1087,7 @@ const workoutDistribution: Record<string, number> = {};
                         {formattedDate}
                       </div>
                       <Badge variant="outline" className="font-bold">
-                        {workout.volume.toFixed(0)}kg
+                        {formatWeightCompact(workout.volume)}kg
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
@@ -1131,7 +1132,7 @@ const workoutDistribution: Record<string, number> = {};
                 `${session.exercises.length} exercícios`}
             </div>
             <div className="text-xs text-muted-foreground">
-              Tempo: {workoutTime}min • Volume: {session.totalVolume.toFixed(0)}kg • Clique para detalhes
+              Tempo: {workoutTime}min • Volume: {formatWeightCompact(session.totalVolume)}kg • Clique para detalhes
             </div>
           </div>
         </div>
@@ -1164,7 +1165,7 @@ const workoutDistribution: Record<string, number> = {};
                   <div className="text-xs text-muted-foreground">
                     Tempo: {selectedWorkoutDetails.endTime 
                       ? Math.round((selectedWorkoutDetails.endTime - selectedWorkoutDetails.startTime) / 60000)
-                      : 0}min • Volume Total: {selectedWorkoutDetails.totalVolume.toFixed(0)}kg
+                      : 0}min • Volume Total: {formatWeightCompact(selectedWorkoutDetails.totalVolume)}kg
                   </div>
                 </div>
 
@@ -1180,11 +1181,11 @@ const workoutDistribution: Record<string, number> = {};
                             <span className="text-muted-foreground">Série {setIdx + 1}</span>
                             <div className="space-x-2">
                               <span className="font-medium text-foreground">
-                                {set.weight}kg × {set.reps} reps
+                                {formatWeightCompact(set.weight)}kg × {set.reps} reps
                               </span>
                               {set.dropsetData && set.dropsetData.length > 0 && (
                                 <span className="text-iron-orange">
-                                  + Drop: {set.dropsetData.map(d => `${d.weight}kg×${d.reps}`).join(', ')}
+                                  + Drop: {set.dropsetData.map(d => `${formatWeightCompact(d.weight)}kg×${d.reps}`).join(', ')}
                                 </span>
                               )}
                             </div>
