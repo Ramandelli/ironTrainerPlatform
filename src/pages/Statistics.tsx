@@ -10,6 +10,7 @@ import { WorkoutSession, WorkoutStats } from '../types/workout';
 import { calculatePersonalRecords, calculateWeeklyStats } from '../utils/workoutHelpers';
 import { useToast } from '../hooks/use-toast';
 import { restDayManager } from '../utils/restDays';
+import { missedWorkoutManager, MissedWorkout } from '../utils/missedWorkouts';
 import { achievementManager } from '../utils/achievements';
 import { UnlockedAchievement } from '../types/achievement';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -30,6 +31,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   const [customRestDays, setCustomRestDays] = useState<string[]>([]);
   const [installDate, setInstallDate] = useState<string | null>(null);
   const [achievements, setAchievements] = useState<UnlockedAchievement[]>([]);
+  const [missedWorkouts, setMissedWorkouts] = useState<MissedWorkout[]>([]);
   const [selectedDayWorkouts, setSelectedDayWorkouts] = useState<{ day: string; workouts: Array<{ date: string; volume: number; startTime: number }> } | null>(null);
   const [selectedWorkoutDetails, setSelectedWorkoutDetails] = useState<WorkoutSession | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
@@ -60,7 +62,19 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
 
   loadData();
   loadAchievements();
+  loadMissedWorkouts();
 }, []);
+
+const loadMissedWorkouts = async () => {
+  try {
+    // Verificar e atualizar treinos não realizados
+    await missedWorkoutManager.checkMissedWorkouts();
+    const missed = await missedWorkoutManager.getMissedWorkouts();
+    setMissedWorkouts(missed);
+  } catch (error) {
+    console.error('Failed to load missed workouts:', error);
+  }
+};
 
 const loadAchievements = async () => {
   try {
@@ -89,6 +103,17 @@ useEffect(() => {
   window.addEventListener('rest_days_updated', handleRestDaysUpdated);
   return () => {
     window.removeEventListener('rest_days_updated', handleRestDaysUpdated);
+  };
+}, []);
+
+// Listener para treinos não realizados
+useEffect(() => {
+  const handleMissedWorkoutsUpdated = () => {
+    loadMissedWorkouts();
+  };
+  window.addEventListener('missed_workouts_updated', handleMissedWorkoutsUpdated);
+  return () => {
+    window.removeEventListener('missed_workouts_updated', handleMissedWorkoutsUpdated);
   };
 }, []);
 
@@ -600,12 +625,15 @@ const workoutDistribution: Record<string, number> = {};
       await storage.resetAllData();
       await achievementManager.resetAchievements();
       await restDayManager.resetRestDays();
+      await missedWorkoutManager.resetMissedWorkouts();
       setStats(null);
       setHistory([]);
       setAchievements([]);
       setCustomRestDays([]);
+      setMissedWorkouts([]);
       await loadData();
       await loadAchievements();
+      await loadMissedWorkouts();
       
       
       if (onDataReset) {
@@ -789,6 +817,47 @@ const workoutDistribution: Record<string, number> = {};
               </div>
           </CardContent>
         </Card>
+
+        {/* Treinos Não Realizados */}
+        {missedWorkouts.length > 0 && (
+          <Card className="border-amber-500/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-600">
+                <Calendar className="w-5 h-5" />
+                Treinos Não Realizados
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground mb-4">
+                Treinos agendados que não foram finalizados até 23:59 do dia.
+              </p>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {missedWorkouts
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map((missed, idx) => {
+                    const [year, month, day] = missed.date.split('-');
+                    const formattedDate = `${day}/${month}/${year}`;
+                    return (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{formattedDate}</div>
+                          <div className="text-xs text-muted-foreground">{missed.dayOfWeek}</div>
+                        </div>
+                        <Badge variant="outline" className="border-amber-500/50 text-amber-600">
+                          Não realizado
+                        </Badge>
+                      </div>
+                    );
+                  })}
+              </div>
+              <div className="text-center pt-2 border-t border-border">
+                <span className="text-sm font-medium text-amber-600">
+                  Total: {missedWorkouts.length} treino{missedWorkouts.length > 1 ? 's' : ''} não realizado{missedWorkouts.length > 1 ? 's' : ''}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Abdominal Statistics */}
         <Card>

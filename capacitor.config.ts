@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'br.projeto.irontrainer',
   appName: 'Iron Trainer',
   webDir: 'dist',
-  version: '3.2',
+  version: '3.3',
      
   plugins: {
     Preferences: {
