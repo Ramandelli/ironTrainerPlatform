@@ -230,6 +230,7 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
   async resetAllData(): Promise<void> {
     try {
       const { restDayManager } = await import('./restDays');
+      const { missedWorkoutManager } = await import('./missedWorkouts');
       await Promise.all([
         this.clearCurrentSession(),
         this.clearTimerState(),
@@ -237,7 +238,8 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
         Preferences.remove({ key: this.WORKOUT_HISTORY_KEY }),
         Preferences.remove({ key: this.WORKOUT_STATS_KEY }),
         Preferences.remove({ key: this.WORKOUT_AVERAGES_KEY }),
-        restDayManager.resetRestDays()
+        restDayManager.resetRestDays(),
+        missedWorkoutManager.resetMissedWorkouts()
       ]);
     } catch (error) {
       console.error('Failed to reset all data:', error);
