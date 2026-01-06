@@ -819,45 +819,56 @@ const workoutDistribution: Record<string, number> = {};
         </Card>
 
         {/* Treinos Não Realizados */}
-        {missedWorkouts.length > 0 && (
-          <Card className="border-amber-500/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-amber-600">
-                <Calendar className="w-5 h-5" />
-                Treinos Não Realizados
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground mb-4">
-                Treinos agendados que não foram finalizados até 23:59 do dia.
-              </p>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {missedWorkouts
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .map((missed, idx) => {
-                    const [year, month, day] = missed.date.split('-');
-                    const formattedDate = `${day}/${month}/${year}`;
-                    return (
-                      <div key={idx} className="flex justify-between items-center p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                        <div>
-                          <div className="text-sm font-medium text-foreground">{formattedDate}</div>
-                          <div className="text-xs text-muted-foreground">{missed.dayOfWeek}</div>
+        {(() => {
+          const { start, end } = getPeriodRange();
+          const filteredMissedWorkouts = missedWorkouts.filter(missed => {
+            const missedDate = new Date(missed.date + 'T12:00:00').getTime();
+            if (start === null || end === null) return true;
+            return missedDate >= start && missedDate <= end;
+          });
+          
+          if (filteredMissedWorkouts.length === 0) return null;
+          
+          return (
+            <Card className="border-amber-500/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-600">
+                  <Calendar className="w-5 h-5" />
+                  Treinos Não Realizados
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Treinos agendados que não foram realizados.
+                </p>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {filteredMissedWorkouts
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .map((missed, idx) => {
+                      const [year, month, day] = missed.date.split('-');
+                      const formattedDate = `${day}/${month}/${year}`;
+                      return (
+                        <div key={idx} className="flex justify-between items-center p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                          <div>
+                            <div className="text-sm font-medium text-foreground">{formattedDate}</div>
+                            <div className="text-xs text-muted-foreground">{missed.dayOfWeek}</div>
+                          </div>
+                          <Badge variant="outline" className="border-amber-500/50 text-amber-600">
+                            Não realizado
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className="border-amber-500/50 text-amber-600">
-                          Não realizado
-                        </Badge>
-                      </div>
-                    );
-                  })}
-              </div>
-              <div className="text-center pt-2 border-t border-border">
-                <span className="text-sm font-medium text-amber-600">
-                  Total: {missedWorkouts.length} treino{missedWorkouts.length > 1 ? 's' : ''} não realizado{missedWorkouts.length > 1 ? 's' : ''}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                      );
+                    })}
+                </div>
+                <div className="text-center pt-2 border-t border-border">
+                  <span className="text-sm font-medium text-amber-600">
+                    Total: {filteredMissedWorkouts.length} treino{filteredMissedWorkouts.length > 1 ? 's' : ''} não realizado{filteredMissedWorkouts.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Abdominal Statistics */}
         <Card>
