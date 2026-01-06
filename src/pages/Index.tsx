@@ -17,6 +17,7 @@ import { storage } from '../utils/storage';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { restDayManager } from '../utils/restDays';
+import { missedWorkoutManager } from '../utils/missedWorkouts';
 import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
 import { WarmupCard } from '../components/WarmupCard';
 import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame, Trophy } from 'lucide-react';
@@ -195,11 +196,12 @@ const Index = () => {
   };
 
   const checkRestDay = async () => {
-    const todayWorkoutId = getTodayWorkoutId();
     const todaysWorkout = findTodaysWorkout();
-    const isWeekend = todayWorkoutId === 'saturday' || todayWorkoutId === 'sunday';
     
-    // Prioridade 1: Se há treino agendado, verificar descanso manual
+    // Verificar treinos não realizados de dias anteriores
+    await missedWorkoutManager.checkMissedWorkouts();
+    
+    // Se há treino agendado para hoje, verificar descanso manual
     if (todaysWorkout) {
       const isManualRest = await restDayManager.isTodayRestDay();
       if (isManualRest) {
@@ -208,13 +210,14 @@ const Index = () => {
         return;
       }
       // Tem treino agendado e não é descanso manual - mostrar treino
+      // O treino deve ser aguardado até 23:59
       setIsRestDay(false);
       setIsManualRestDay(false);
       return;
     }
 
-    // Prioridade 2: Não há treino agendado - descanso automático
-    // Fim de semana sem treino ou dia de semana sem treino
+    // Não há treino agendado para hoje - descanso automático
+    // Qualquer dia sem treino registrado = dia de descanso (a partir de 00:01)
     setIsRestDay(true);
     setIsManualRestDay(false);
   };

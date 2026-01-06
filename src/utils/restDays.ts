@@ -28,39 +28,9 @@ export class RestDayManager {
 
   
   async updateRestDaysCount(): Promise<void> {
-    try {
-      const installDate = await storage.getInstallDate();
-      if (!installDate) return;
-
-      const today = new Date();
-      const install = new Date(installDate);
-      
-      
-      const daysDiff = Math.floor((today.getTime() - install.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (daysDiff <= 0) return;
-
-      let restDaysCount = 0;
-
-      // Count weekends and custom rest days since installation
-      for (let i = 0; i <= daysDiff; i++) {
-        const checkDate = new Date(install.getTime() + (i * 24 * 60 * 60 * 1000));
-        const dateStr = checkDate.toISOString().split('T')[0];
-        const dayOfWeek = checkDate.getDay();
-        
-        
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        const isCustomRestDay = await this.isRestDay(dateStr);
-        
-        if (isWeekend || isCustomRestDay) {
-          restDaysCount++;
-        }
-      }
-
-      await storage.setItem(RestDayManager.REST_DAYS_COUNT_KEY, restDaysCount.toString());
-    } catch (error) {
-      console.error('Failed to update rest days count:', error);
-    }
+    // Este método agora é deprecado - a contagem de descanso é feita nas estatísticas
+    // com base em dias sem treino agendado
+    console.log('updateRestDaysCount is deprecated - rest days are now calculated based on scheduled workouts');
   }
 
   
