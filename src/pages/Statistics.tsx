@@ -633,7 +633,7 @@ const workoutDistribution: Record<string, number> = {};
       setMissedWorkouts([]);
       await loadData();
       await loadAchievements();
-      await loadMissedWorkouts();
+      // Não chama loadMissedWorkouts() aqui para evitar repopular após reset
       
       
       if (onDataReset) {
