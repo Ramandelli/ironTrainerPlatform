@@ -75,6 +75,21 @@ export class MissedWorkoutManager {
     return map[s] ?? null;
   }
 
+  // IMPORTANT: nunca use new Date('YYYY-MM-DD') aqui.
+  // Esse formato é interpretado como UTC em alguns ambientes e pode “voltar um dia”
+  // em timezones negativos (ex.: Brasil), causando 06/01 aparecer como 07/01.
+  private parseYMDLocal(ymd: string): Date {
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+  }
+
+  private toYMDLocal(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   private getDayOfWeekName(dayIndex: number): string {
     const days = [
       'Domingo',
@@ -97,20 +112,20 @@ export class MissedWorkoutManager {
       const lastCheckStr = await storage.getItem(MissedWorkoutManager.LAST_CHECK_KEY);
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
+
       // Carregar todos os treinos do plano
       const workoutPlan = await customWorkoutManager.getAllWorkouts(WORKOUT_PLAN);
-      
+
       // Carregar histórico de treinos finalizados
       const workoutHistory = await storage.loadWorkoutHistory();
-      
-      // Data inicial: último check ou data de instalação
+
+      // Data inicial: último check ou data de instalação (SEMPRE em horário local)
       let startDate: Date;
       if (lastCheckStr) {
-        startDate = new Date(lastCheckStr);
+        startDate = this.parseYMDLocal(lastCheckStr);
         startDate.setDate(startDate.getDate() + 1); // Dia seguinte ao último check
       } else {
-        startDate = new Date(installDateStr);
+        startDate = this.parseYMDLocal(installDateStr);
       }
       startDate.setHours(0, 0, 0, 0);
 
@@ -118,17 +133,23 @@ export class MissedWorkoutManager {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
 
+      // Se o app foi instalado hoje, não há dias a checar.
+      if (startDate > yesterday) {
+        await storage.setItem(MissedWorkoutManager.LAST_CHECK_KEY, this.toYMDLocal(today));
+        return;
+      }
+
       for (let d = new Date(startDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = this.toYMDLocal(d);
         const dayOfWeek = d.getDay();
 
         // Verificar se havia treino agendado para esse dia
         const scheduledWorkout = workoutPlan.find(w => this.toIndex(w.day) === dayOfWeek);
-        
+
         if (scheduledWorkout) {
           // Verificar se o treino foi finalizado nesse dia
-          const wasCompleted = workoutHistory.some(session => 
-            session.date === dateStr && 
+          const wasCompleted = workoutHistory.some(session =>
+            session.date === dateStr &&
             session.completed
           );
 
@@ -143,8 +164,8 @@ export class MissedWorkoutManager {
         }
       }
 
-      // Atualizar último check para ontem
-      await storage.setItem(MissedWorkoutManager.LAST_CHECK_KEY, yesterday.toISOString().split('T')[0]);
+      // Atualizar último check para ontem (formato local)
+      await storage.setItem(MissedWorkoutManager.LAST_CHECK_KEY, this.toYMDLocal(yesterday));
     } catch (error) {
       console.error('Failed to check missed workouts:', error);
     }
