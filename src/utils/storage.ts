@@ -231,6 +231,11 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
     try {
       const { restDayManager } = await import('./restDays');
       const { missedWorkoutManager } = await import('./missedWorkouts');
+
+      // Ao resetar estatísticas, também “reinicia” a data base do app.
+      // Caso contrário, o cálculo de treinos não realizados pode recontar desde a primeira instalação.
+      const today = new Date().toISOString().split('T')[0];
+
       await Promise.all([
         this.clearCurrentSession(),
         this.clearTimerState(),
@@ -239,7 +244,8 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
         Preferences.remove({ key: this.WORKOUT_STATS_KEY }),
         Preferences.remove({ key: this.WORKOUT_AVERAGES_KEY }),
         restDayManager.resetRestDays(),
-        missedWorkoutManager.resetMissedWorkouts()
+        missedWorkoutManager.resetMissedWorkouts(),
+        Preferences.set({ key: this.INSTALL_DATE_KEY, value: today })
       ]);
     } catch (error) {
       console.error('Failed to reset all data:', error);
