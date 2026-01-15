@@ -227,15 +227,18 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         {/* Sets Progress */}
         <div className="grid grid-cols-1 gap-2">
           {Array.from({ length: exercise.sets }).map((_, index) => {
-            const setData = exercise.setData[index];
+            const setData = exercise.setData[index] || { completed: false };
             const isCurrentSet = index === exercise.currentSet && !exercise.completed;
             const isCompleted = setData?.completed;
+            const isSkipped = setData?.skipped && !isCompleted;
 
             return (
               <div
                 key={index}
                 className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                  isCurrentSet 
+                  isSkipped
+                    ? 'border-muted bg-muted/30 opacity-50'
+                    : isCurrentSet 
                     ? 'border-iron-orange bg-iron-orange/10' 
                     : isCompleted
                     ? 'border-success bg-success/10'
@@ -245,6 +248,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 <div className="flex items-center gap-2">
                   {isCompleted ? (
                     <CheckCircle className="w-5 h-5 text-success" />
+                  ) : isSkipped ? (
+                    <SkipForward className="w-5 h-5 text-muted-foreground" />
                   ) : (
                     <Circle className="w-5 h-5 text-muted-foreground" />
                   )}
@@ -271,6 +276,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       </div>
                     )}
                   </div>
+                ) : isSkipped ? (
+                  <span className="text-sm text-muted-foreground italic">Pulado</span>
                 ) : isCurrentSet ? (
                   <div className="flex items-center gap-2">
                   {(!exercise.isTimeBased && !hideWeightInputs) && (

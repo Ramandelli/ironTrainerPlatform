@@ -22,6 +22,7 @@ export interface SetData {
   weight?: number;
   reps?: number;
   completed: boolean;
+  skipped?: boolean;
   restStartTime?: number;
   timeCompleted?: number; 
   leftSideCompleted?: boolean; 
