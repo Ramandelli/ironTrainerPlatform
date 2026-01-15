@@ -11,6 +11,7 @@ import { storage } from '../utils/storage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { ExerciseForm } from './ExerciseForm';
 import { formatWeightCompact } from '../utils/formatters';
+import { hapticSetComplete, hapticExerciseComplete, hapticSkip } from '../utils/haptics';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -19,6 +20,7 @@ interface ExerciseCardProps {
   onExerciseSkip?: () => void;
   onExerciseUpdate?: (updates: Partial<Exercise>) => void;
   isActive?: boolean;
+  isFuture?: boolean;
   hideWeightInputs?: boolean;
   showSuggestion?: boolean;
 }
@@ -30,6 +32,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onExerciseSkip,
   onExerciseUpdate,
   isActive = false,
+  isFuture = false,
   hideWeightInputs = false,
   showSuggestion = true
 }) => {
@@ -72,6 +75,9 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     const reps = parseInt(currentSetInputs.reps);
     
     if (reps > 0) {
+      // Trigger haptic feedback
+      hapticSetComplete();
+      
       const isLastSet = exercise.currentSet === exercise.sets - 1;
       if (isLastSet && exercise.hasDropset) {
         setMainSetData({ weight, reps });
@@ -135,6 +141,16 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     setShowEditDialog(false);
   };
 
+  const handleExerciseComplete = () => {
+    hapticExerciseComplete();
+    onExerciseComplete();
+  };
+
+  const handleExerciseSkip = () => {
+    hapticSkip();
+    onExerciseSkip?.();
+  };
+
   const completedSets = exercise.setData.filter(set => set.completed).length;
   const allSetsCompleted = completedSets === exercise.sets;
 
@@ -163,7 +179,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           />
         </DialogContent>
       </Dialog>
-    <Card className={`${isActive ? 'border-iron-orange shadow-primary bg-card/80' : 'border-border'} transition-all duration-300`}>
+    <Card className={`transition-all duration-300 ${
+      isActive 
+        ? 'border-iron-orange shadow-lg shadow-iron-orange/20 bg-gradient-to-br from-card to-iron-orange/5 scale-[1.02]' 
+        : isFuture 
+          ? 'border-border/50 bg-muted/30 opacity-60' 
+          : 'border-border'
+    }`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2 flex-1">
@@ -326,8 +348,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             {allSetsCompleted && !exercise.completed && (
               <Button
                 variant="success"
-                onClick={onExerciseComplete}
-                className="flex-1"
+                onClick={handleExerciseComplete}
+                className="flex-1 animate-fade-in"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Marcar como Concluído
@@ -339,7 +361,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {!exercise.completed && onExerciseSkip && (
             <Button
               variant="ghost"
-              onClick={onExerciseSkip}
+              onClick={handleExerciseSkip}
               className="text-muted-foreground hover:text-destructive"
             >
               <SkipForward className="w-4 h-4 mr-2" />

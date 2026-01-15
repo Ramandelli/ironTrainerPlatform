@@ -4,6 +4,7 @@ import { Card } from './ui/card';
 import { Pause, Play, X } from 'lucide-react';
 import { TimerState } from '../types/workout';
 import { storage } from '../utils/storage';
+import { hapticTimerEnd } from '../utils/haptics';
 
 // Create audio context for generating beep sounds
 const createBeepSound = (frequency: number = 800, duration: number = 200, volume: number = 0.5): void => {
@@ -128,6 +129,9 @@ export const Timer: React.FC<TimerProps> = ({
     
     // Play completion sound
     playCompletionSound();
+    
+    // Trigger haptic feedback
+    hapticTimerEnd();
     
     try {
       await storage.clearTimerState();
