@@ -1,9 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Pause, Play, X } from 'lucide-react';
 import { TimerState } from '../types/workout';
 import { storage } from '../utils/storage';
+
+// Create audio context for generating beep sounds
+const createBeepSound = (frequency: number = 800, duration: number = 200, volume: number = 0.5): void => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration / 1000);
+    
+    // Cleanup
+    setTimeout(() => {
+      audioContext.close();
+    }, duration + 100);
+  } catch (error) {
+    console.error('Error playing beep sound:', error);
+  }
+};
+
+// Play completion sound (3 beeps)
+const playCompletionSound = (): void => {
+  createBeepSound(880, 150, 0.6); // First beep
+  setTimeout(() => createBeepSound(880, 150, 0.6), 200); // Second beep
+  setTimeout(() => createBeepSound(1100, 300, 0.7), 400); // Third beep (higher pitch)
+};
 
 interface TimerProps {
   initialTime: number; 
@@ -90,6 +125,10 @@ export const Timer: React.FC<TimerProps> = ({
 
   const handleComplete = async () => {
     setIsActive(false);
+    
+    // Play completion sound
+    playCompletionSound();
+    
     try {
       await storage.clearTimerState();
     } catch (error) {
