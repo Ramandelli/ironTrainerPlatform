@@ -20,6 +20,8 @@ import { restDayManager } from '../utils/restDays';
 import { missedWorkoutManager } from '../utils/missedWorkouts';
 import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
 import { WarmupCard } from '../components/WarmupCard';
+import { WorkoutProgressBar } from '../components/WorkoutProgressBar';
+import { WorkoutCompletionScreen } from '../components/WorkoutCompletionScreen';
 import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame, Trophy } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
@@ -728,7 +730,7 @@ const Index = () => {
         )}
 
         <div className="sticky top-0 bg-background/95 backdrop-blur-lg border-b border-border z-40">
-          <div className="max-w-md mx-auto p-4">
+          <div className="max-w-md mx-auto p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-lg font-bold text-foreground uppercase">{workoutDay.name}</h1>
@@ -747,6 +749,20 @@ const Index = () => {
                 <X className="w-4 h-4" />
               </Button>
             </div>
+            
+            {/* Progress Bar */}
+            <WorkoutProgressBar
+              currentPhase={workoutPhase}
+              exercisesCompleted={completedExercises}
+              totalExercises={currentSession.exercises.length}
+              warmupCompleted={warmupCompleted}
+              hasWarmup={!!workoutDay.warmup && workoutDay.warmup.trim() !== ''}
+              hasAbdominal={!!workoutDay.abdominal && workoutDay.abdominal.length > 0}
+              abdominalCompleted={abdominalCompleted}
+              hasAerobic={!!workoutDay.aerobic}
+              aerobicTiming={workoutDay.aerobic?.timing}
+              aerobicCompleted={!!currentSession.aerobic?.completed || !!currentSession.aerobic?.skipped}
+            />
           </div>
         </div>
 
@@ -805,17 +821,27 @@ const Index = () => {
                   + Adicionar
                 </Button>
               </div>
-              {currentSession.exercises.map((exercise) => (
-            <ExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
-              onExerciseComplete={() => handleExerciseComplete(exercise.id)}
-              onExerciseSkip={() => skipExercise(exercise.id)}
-              onExerciseUpdate={(updates) => updateExercise(exercise.id, updates)}
-              isActive={nextExercise?.id === exercise.id}
-            />
-          ))}
+              {currentSession.exercises.map((exercise, index) => {
+                const isExerciseActive = nextExercise?.id === exercise.id;
+                const isFutureExercise = !exercise.completed && !isExerciseActive;
+                
+                return (
+                  <div 
+                    key={exercise.id} 
+                    className={`transition-all duration-300 ${isExerciseActive ? 'animate-fade-in' : ''}`}
+                  >
+                    <ExerciseCard
+                      exercise={exercise}
+                      onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
+                      onExerciseComplete={() => handleExerciseComplete(exercise.id)}
+                      onExerciseSkip={() => skipExercise(exercise.id)}
+                      onExerciseUpdate={(updates) => updateExercise(exercise.id, updates)}
+                      isActive={isExerciseActive}
+                      isFuture={isFutureExercise}
+                    />
+                  </div>
+                );
+              })}
             </>
           )}
 
@@ -927,14 +953,11 @@ const Index = () => {
           )}
 
           {workoutPhase === 'finished' && (
-            <div className="text-center space-y-4">
-              <div className="text-4xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold text-foreground">Treino Concluído!</h2>
-              <p className="text-muted-foreground">Parabéns pelo seu desempenho!</p>
-              <Button variant="success" className="w-full" onClick={handleFinishWorkout}>
-                Finalizar Treino
-              </Button>
-            </div>
+            <WorkoutCompletionScreen
+              onFinish={handleFinishWorkout}
+              workoutDuration={currentTime}
+              exercisesCompleted={completedExercises}
+            />
           )}
         </div>
       </div>
