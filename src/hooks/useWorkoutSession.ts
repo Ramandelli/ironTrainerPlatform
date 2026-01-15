@@ -188,25 +188,29 @@ const loadSession = async () => {
     if (!currentSession) return;
 
     try {
-      // Mark exercise as completed but keep any completed set data
+      const exercise = currentSession.exercises.find(ex => ex.id === exerciseId);
+      const completedSetsCount = exercise?.setData.filter(s => s.completed).length || 0;
+      
+      // Mark exercise as completed but preserve full setData structure
       const updatedExercises = currentSession.exercises.map(ex => {
         if (ex.id !== exerciseId) return ex;
         
-        // Keep only completed sets data
-        const completedSets = ex.setData.filter(set => set.completed);
-        const hasCompletedData = completedSets.length > 0;
+        // Keep the full setData array but mark non-completed sets as skipped
+        const updatedSetData = ex.setData.map((set, index) => {
+          if (set.completed) return set;
+          // Mark remaining sets as skipped (not completed, but processed)
+          return { ...set, completed: false, skipped: true };
+        });
         
         return { 
           ...ex, 
           completed: true, 
           skipped: true,
-          setData: completedSets
+          currentSet: ex.sets, // Mark all sets as processed
+          setData: updatedSetData
         };
       });
       setCurrentSession(prev => prev ? { ...prev, exercises: updatedExercises } : null);
-      
-      const exercise = currentSession.exercises.find(ex => ex.id === exerciseId);
-      const completedSetsCount = exercise?.setData.filter(s => s.completed).length || 0;
       
       toast({
         title: "Exercício pulado",
@@ -356,11 +360,23 @@ const loadSession = async () => {
     try {
       setCurrentSession(prev => {
         if (!prev || !prev.abdominal) return prev;
-        const updated = prev.abdominal.map(ex => 
-          ex.id === exerciseId 
-            ? { ...ex, completed: true, skipped: true, setData: [] }
-            : ex
-        );
+        const updated = prev.abdominal.map(ex => {
+          if (ex.id !== exerciseId) return ex;
+          
+          // Keep the full setData array but mark non-completed sets as skipped
+          const updatedSetData = ex.setData.map((set) => {
+            if (set.completed) return set;
+            return { ...set, completed: false, skipped: true };
+          });
+          
+          return { 
+            ...ex, 
+            completed: true, 
+            skipped: true,
+            currentSet: ex.sets,
+            setData: updatedSetData
+          };
+        });
         return { ...prev, abdominal: updated };
       });
 
