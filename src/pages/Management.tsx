@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Badge } from '../components/ui/badge';
+import { Switch } from '../components/ui/switch';
+import { Label } from '../components/ui/label';
 import { WorkoutForm } from '../components/WorkoutForm';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { ImportExportGuide } from '../components/ImportExportGuide';
+import { WorkoutListCard } from '../components/WorkoutListCard';
+import { ActionConfirmation } from '../components/ActionConfirmation';
 import { useToast } from '../hooks/use-toast';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
@@ -16,19 +18,28 @@ import { Capacitor } from '@capacitor/core';
 import { 
   ArrowLeft, 
   Plus, 
-  Edit, 
-  Trash2, 
-  Copy, 
   Download, 
   Upload,
-  Dumbbell,
-  Clock,
+  Search,
+  ChevronDown,
+  ChevronUp,
   Calendar
 } from 'lucide-react';
 
 interface ManagementProps {
   onBack: () => void;
 }
+
+// Day order for grouping
+const DAY_ORDER = [
+  'Segunda-feira',
+  'Terça-feira', 
+  'Quarta-feira',
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado',
+  'Domingo'
+];
 
 export const Management: React.FC<ManagementProps> = ({ onBack }) => {
   const [allWorkouts, setAllWorkouts] = useState<WorkoutDay[]>([]);
@@ -37,6 +48,12 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
   const [editingWorkout, setEditingWorkout] = useState<WorkoutDay | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<WorkoutDay | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [groupByDay, setGroupByDay] = useState(true);
+  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+  const [actionConfirmation, setActionConfirmation] = useState<{
+    type: 'duplicate' | 'import' | 'export';
+    show: boolean;
+  } | null>(null);
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -160,6 +177,8 @@ const getWorkoutId = (day: string) => {
       const duplicatedWorkout = await customWorkoutManager.duplicateWorkout(workout);
       await loadWorkouts();
       
+      setActionConfirmation({ type: 'duplicate', show: true });
+      
       toast({
         title: "Treino duplicado!",
         description: `${duplicatedWorkout.name} foi criado com sucesso.`,
@@ -197,6 +216,8 @@ const getWorkoutId = (day: string) => {
           title: "Sucesso",
           description: "Treinos exportados! Escolha onde salvar o arquivo.",
         });
+        
+        setActionConfirmation({ type: 'export', show: true });
       } else {
         // Web platform - use traditional blob download
         const blob = new Blob([jsonData], { type: 'application/json' });
@@ -213,6 +234,8 @@ const getWorkoutId = (day: string) => {
           title: "Sucesso",
           description: "Treinos exportados com sucesso!",
         });
+        
+        setActionConfirmation({ type: 'export', show: true });
       }
     } catch (error) {
       console.error('Export failed:', error);
@@ -240,6 +263,8 @@ const getWorkoutId = (day: string) => {
           title: "Sucesso",
           description: "Treinos importados com sucesso!",
         });
+        
+        setActionConfirmation({ type: 'import', show: true });
       } catch (error) {
         console.error('Import failed:', error);
         toast({
@@ -256,6 +281,22 @@ const getWorkoutId = (day: string) => {
       fileInputRef.current.value = '';
     }
   };
+
+  const toggleDayCollapse = useCallback((day: string) => {
+    setCollapsedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(day)) {
+        next.delete(day);
+      } else {
+        next.add(day);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearActionConfirmation = useCallback(() => {
+    setActionConfirmation(null);
+  }, []);
 
   if (showWorkoutForm) {
     return (
@@ -296,19 +337,25 @@ const getWorkoutId = (day: string) => {
             </div>
           </div>
 
-          <div className="flex gap-3 mb-4">
+          {/* Search bar with icon */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Buscar treinos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
+              className="pl-10"
             />
-            <div className="flex gap-2">
+          </div>
+
+          {/* Action buttons - stacked on mobile for better touch */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2 flex-1">
               <Button 
                 onClick={handleExportWorkouts} 
                 size="sm" 
                 variant="outline"
-                title="Exportar treinos"
+                className="flex-1 sm:flex-none h-10 active:scale-95 transition-transform"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Exportar
@@ -317,16 +364,35 @@ const getWorkoutId = (day: string) => {
                 onClick={() => fileInputRef.current?.click()} 
                 size="sm" 
                 variant="outline"
-                title="Importar treinos"
+                className="flex-1 sm:flex-none h-10 active:scale-95 transition-transform"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Importar
               </Button>
-              <Button onClick={handleCreateWorkout} size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo
-              </Button>
             </div>
+            <Button 
+              onClick={handleCreateWorkout} 
+              size="sm"
+              className="h-10 active:scale-95 transition-transform"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Treino
+            </Button>
+          </div>
+
+          {/* Group by day toggle */}
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="group-by-day" className="text-sm text-muted-foreground">
+                Agrupar por dia
+              </Label>
+            </div>
+            <Switch
+              id="group-by-day"
+              checked={groupByDay}
+              onCheckedChange={setGroupByDay}
+            />
           </div>
           
           {/* Hidden file input */}
@@ -341,7 +407,7 @@ const getWorkoutId = (day: string) => {
       </div>
 
       {/* Content */}
-      <div className="max-w-2xl mx-auto p-4 space-y-6 pb-24">
+      <div className="max-w-2xl mx-auto p-4 space-y-4 pb-24">
         {/* Import/Export Guide */}
         <ImportExportGuide />
 
@@ -350,85 +416,119 @@ const getWorkoutId = (day: string) => {
             <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
             <p className="text-muted-foreground">Carregando treinos...</p>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredWorkouts.map((workout) => (
-              <Card key={workout.id} className="border-border hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-base flex items-center gap-2 mb-1">
-                        {workout.name}
-                        {customWorkoutManager.isCustomWorkout(workout.id) && (
-                          <Badge variant="secondary" className="text-xs">
-                            {customWorkoutManager.getBaseWorkoutId(workout.id) ? 'Personalizado' : 'Customizado'}
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {workout.day}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Dumbbell className="w-3 h-3" />
-                          {workout.exercises.length} exercícios
-                        </span>
-                        {workout.aerobic && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {workout.aerobic.duration}min cardio
-                          </span>
-                        )}
-                      </div>
+        ) : groupByDay ? (
+          // Grouped by day view
+          <div className="space-y-4">
+            {DAY_ORDER.map(day => {
+              const dayWorkouts = filteredWorkouts.filter(w => w.day === day);
+              if (dayWorkouts.length === 0) return null;
+              
+              const isCollapsed = collapsedDays.has(day);
+              
+              return (
+                <div key={day} className="space-y-2">
+                  {/* Day header */}
+                  <button
+                    onClick={() => toggleDayCollapse(day)}
+                    className="w-full flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      <span className="font-medium text-sm">{day}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({dayWorkouts.length} {dayWorkouts.length === 1 ? 'treino' : 'treinos'})
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDuplicateWorkout(workout)}
-                        title="Duplicar treino"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditWorkout(workout)}
-                        title="Editar treino"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteConfirm(workout)}
-                        title="Excluir treino"
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex flex-wrap gap-2">
-                    {workout.exercises.slice(0, 3).map((exercise) => (
-                      <Badge key={exercise.id} variant="outline" className="text-xs">
-                        {exercise.name}
-                      </Badge>
-                    ))}
-                    {workout.exercises.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{workout.exercises.length - 3} mais
-                      </Badge>
+                    {isCollapsed ? (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
                     )}
+                  </button>
+                  
+                  {/* Day workouts */}
+                  {!isCollapsed && (
+                    <div className="space-y-2 pl-2">
+                      {dayWorkouts.map((workout) => (
+                        <WorkoutListCard
+                          key={workout.id}
+                          workout={workout}
+                          isCustom={customWorkoutManager.isCustomWorkout(workout.id)}
+                          isPersonalized={!!customWorkoutManager.getBaseWorkoutId(workout.id)}
+                          onEdit={() => handleEditWorkout(workout)}
+                          onDuplicate={() => handleDuplicateWorkout(workout)}
+                          onDelete={() => setDeleteConfirm(workout)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            
+            {/* Workouts without standard day */}
+            {(() => {
+              const otherWorkouts = filteredWorkouts.filter(w => !DAY_ORDER.includes(w.day));
+              if (otherWorkouts.length === 0) return null;
+              
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium text-sm">Outros</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({otherWorkouts.length})
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="space-y-2 pl-2">
+                    {otherWorkouts.map((workout) => (
+                      <WorkoutListCard
+                        key={workout.id}
+                        workout={workout}
+                        isCustom={customWorkoutManager.isCustomWorkout(workout.id)}
+                        isPersonalized={!!customWorkoutManager.getBaseWorkoutId(workout.id)}
+                        onEdit={() => handleEditWorkout(workout)}
+                        onDuplicate={() => handleDuplicateWorkout(workout)}
+                        onDelete={() => setDeleteConfirm(workout)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        ) : (
+          // Flat list view
+          <div className="space-y-2">
+            {filteredWorkouts.map((workout) => (
+              <WorkoutListCard
+                key={workout.id}
+                workout={workout}
+                isCustom={customWorkoutManager.isCustomWorkout(workout.id)}
+                isPersonalized={!!customWorkoutManager.getBaseWorkoutId(workout.id)}
+                onEdit={() => handleEditWorkout(workout)}
+                onDuplicate={() => handleDuplicateWorkout(workout)}
+                onDelete={() => setDeleteConfirm(workout)}
+              />
             ))}
           </div>
         )}
+
+        {filteredWorkouts.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Nenhum treino encontrado</p>
+          </div>
+        )}
       </div>
+
+      {/* Action Confirmation */}
+      {actionConfirmation && (
+        <ActionConfirmation
+          type={actionConfirmation.type}
+          show={actionConfirmation.show}
+          onComplete={clearActionConfirmation}
+        />
+      )}
 
       {/* Delete Confirmation */}
       {deleteConfirm && (
