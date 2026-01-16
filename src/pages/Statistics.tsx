@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { ArrowLeft, TrendingUp, Award, Calendar, BarChart3, Activity, Clock, Target, Flame, RotateCcw, Trash2, Trophy } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Award, Calendar, BarChart3, Activity, Clock, Target, RotateCcw, Trash2, Trophy, AlertTriangle, Minus, Bike, Footprints } from 'lucide-react';
 import { storage } from '../utils/storage';
 import { WorkoutSession, WorkoutStats } from '../types/workout';
 import { calculatePersonalRecords, calculateWeeklyStats } from '../utils/workoutHelpers';
@@ -13,15 +13,71 @@ import { restDayManager } from '../utils/restDays';
 import { missedWorkoutManager, MissedWorkout } from '../utils/missedWorkouts';
 import { achievementManager } from '../utils/achievements';
 import { UnlockedAchievement } from '../types/achievement';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList } from 'recharts';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { WorkoutDay } from '../types/workout';
 import { formatWeightCompact } from '../utils/formatters';
+import { ScrollArea, ScrollBar } from '../components/ui/scroll-area';
+
 interface StatisticsProps {
   onBack: () => void;
   onDataReset?: () => void;
 }
+
+// Stat Card Component for horizontal scroll
+const StatCard: React.FC<{
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  sublabel?: string;
+  highlight?: boolean;
+}> = ({ icon, value, label, sublabel, highlight }) => (
+  <div className={`flex-shrink-0 w-32 p-4 rounded-xl border transition-all ${
+    highlight 
+      ? 'bg-primary/10 border-primary/30' 
+      : 'bg-card border-border'
+  }`}>
+    <div className="flex items-center justify-center mb-2 text-primary">
+      {icon}
+    </div>
+    <div className={`text-xl font-bold text-center ${highlight ? 'text-primary' : 'text-foreground'}`}>
+      {value}
+    </div>
+    <div className="text-xs text-muted-foreground text-center leading-tight">
+      {label}
+    </div>
+    {sublabel && (
+      <div className="text-xs text-muted-foreground/70 text-center mt-0.5">
+        {sublabel}
+      </div>
+    )}
+  </div>
+);
+
+// Section Header Component
+const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; className?: string }> = ({ 
+  icon, 
+  title,
+  className = ''
+}) => (
+  <div className={`flex items-center gap-2 mb-4 ${className}`}>
+    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+      {icon}
+    </div>
+    <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+  </div>
+);
+
+// Trend Icon Component
+const TrendIcon: React.FC<{ value: number; className?: string }> = ({ value, className = '' }) => {
+  if (value > 0) {
+    return <TrendingUp className={`w-4 h-4 text-accent ${className}`} />;
+  } else if (value < 0) {
+    return <TrendingDown className={`w-4 h-4 text-destructive ${className}`} />;
+  }
+  return <Minus className={`w-4 h-4 text-muted-foreground ${className}`} />;
+};
 
 export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) => {
   const [stats, setStats] = useState<WorkoutStats | null>(null);
@@ -67,7 +123,6 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
 
 const loadMissedWorkouts = async () => {
   try {
-    // Verificar e atualizar treinos não realizados
     await missedWorkoutManager.checkMissedWorkouts();
     const missed = await missedWorkoutManager.getMissedWorkouts();
     setMissedWorkouts(missed);
@@ -106,7 +161,6 @@ useEffect(() => {
   };
 }, []);
 
-// Listener para treinos não realizados
 useEffect(() => {
   const handleMissedWorkoutsUpdated = () => {
     loadMissedWorkouts();
@@ -130,7 +184,6 @@ useEffect(() => {
   loadInstallDate();
 }, []);
 
-// Carregar plano de treinos para avaliar descanso por agendamento
 useEffect(() => {
   let isMounted = true;
   const loadWorkouts = async () => {
@@ -165,12 +218,10 @@ useEffect(() => {
     }
   };
 
-  // Função auxiliar para calcular o início e fim do período
   const getPeriodRange = React.useCallback(() => {
     const now = new Date();
     
     if (selectedPeriod === 'week') {
-      // Últimos 7 dias (incluindo hoje)
       const startDate = new Date(now);
       startDate.setDate(now.getDate() - 6);
       startDate.setHours(0, 0, 0, 0);
@@ -178,17 +229,14 @@ useEffect(() => {
       endDate.setHours(23, 59, 59, 999);
       return { start: startDate.getTime(), end: endDate.getTime() };
     } else if (selectedPeriod === 'lastMonth') {
-      // Primeiro ao último dia do mês ANTERIOR
       const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       startOfLastMonth.setHours(0, 0, 0, 0);
       const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
       return { start: startOfLastMonth.getTime(), end: endOfLastMonth.getTime() };
     } else if (selectedPeriod === 'currentMonth') {
-      // Primeiro dia do mês atual até o último treino registrado no mês atual (ou hoje se não houver)
       const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       startOfCurrentMonth.setHours(0, 0, 0, 0);
       
-      // Encontrar o último treino registrado no mês atual
       const currentMonthWorkouts = history.filter(session => {
         const sessionDate = new Date(session.startTime);
         return sessionDate.getMonth() === now.getMonth() && sessionDate.getFullYear() === now.getFullYear();
@@ -205,12 +253,10 @@ useEffect(() => {
       
       return { start: startOfCurrentMonth.getTime(), end: endDate.getTime() };
     } else {
-      // Geral: todos os treinos registrados
       return { start: null, end: null };
     }
   }, [selectedPeriod, history]);
 
-  // Histórico filtrado pelo período
   const filteredHistory = React.useMemo(() => {
     const range = getPeriodRange();
     if (range.start === null || range.end === null) return history;
@@ -220,7 +266,6 @@ useEffect(() => {
     );
   }, [history, getPeriodRange]);
 
-  // Calcula Volume Total e Peso Total
   const periodStats = React.useMemo(() => {
     let totalVolume = 0;
     let totalWeight = 0;
@@ -232,13 +277,9 @@ useEffect(() => {
             const weight = set.weight || 0;
             const reps = set.reps || 0;
             
-            // Volume Total = peso × reps
             totalVolume += weight * reps;
-            
-            // Peso Total = soma dos pesos (sem reps)
             totalWeight += weight;
 
-            // Dropsets
             if (set.dropsetData && set.dropsetData.length > 0) {
               set.dropsetData.forEach(dropset => {
                 totalVolume += dropset.weight * dropset.reps;
@@ -275,11 +316,9 @@ useEffect(() => {
               set.weight || 0
             );
             
-            
             if (set.weight && set.reps) {
               exerciseData[exercise.name].totalVolume += set.weight * set.reps;
             }
-            
             
             if (set.dropsetData && set.dropsetData.length > 0) {
               set.dropsetData.forEach(dropset => {
@@ -342,11 +381,9 @@ const restDaysCount = React.useMemo(() => {
   const oneDay = 24 * 60 * 60 * 1000;
   const range = getPeriodRange();
 
-  // Determinar início do período
   let baseStart: number;
 
   if (range.start === null) {
-    // Se período é "Geral", usar a data de instalação (se existir) ou primeiro treino
     if (history.length > 0) {
       baseStart = Math.min(...history.map(h => h.startTime));
     } else {
@@ -356,7 +393,6 @@ const restDaysCount = React.useMemo(() => {
     baseStart = range.start;
   }
 
-  // Considerar data de instalação para não contar antes do app existir
   if (installDate) {
     const installTime = new Date(`${installDate}T00:00:00`).getTime();
     if (Number.isFinite(installTime)) {
@@ -367,10 +403,9 @@ const restDaysCount = React.useMemo(() => {
   const startDate = new Date(baseStart);
   startDate.setHours(0, 0, 0, 0);
 
-  // Determinar fim do período
   let endDate: Date;
   if (range.end === null) {
-    endDate = new Date(); // hoje
+    endDate = new Date();
   } else {
     endDate = new Date(range.end);
   }
@@ -378,13 +413,12 @@ const restDaysCount = React.useMemo(() => {
 
   const customSet = new Set(customRestDays);
 
-  // Helper: map various day labels to weekday index (0=Domingo..6=Sábado)
   const toIndex = (label: string): number | null => {
     if (!label) return null;
     const s = label
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // remove accents
+      .replace(/[\u0300-\u036f]/g, '')
       .replace('-feira', '')
       .trim();
     const map: Record<string, number> = {
@@ -404,13 +438,11 @@ const restDaysCount = React.useMemo(() => {
     const d = new Date(t);
     const ymd = toYMD(d);
 
-    // Regra 1: descanso manual sempre conta
     if (customSet.has(ymd)) {
       count++;
       continue;
     }
 
-    // Regra 2: se não há treino agendado para o dia -> descanso
     const dow = d.getDay();
     const hasScheduledWorkout = workoutPlan.some(w => toIndex(w.day) === dow);
 
@@ -474,13 +506,11 @@ const restDaysCount = React.useMemo(() => {
       };
     }
 
-    
     const completedWorkouts = filteredHistory.filter(w => w.endTime);
     const averageWorkoutTime = completedWorkouts.length > 0 
       ? completedWorkouts.reduce((sum, w) => sum + (w.endTime! - w.startTime), 0) / completedWorkouts.length / 60000
       : 0;
 
-    
     let totalSets = 0;
     let totalReps = 0;
     const exerciseFrequency: Record<string, number> = {};
@@ -493,62 +523,58 @@ const restDaysCount = React.useMemo(() => {
       });
     });
 
-    
     const mostFrequentExercise = Object.entries(exerciseFrequency)
       .sort(([,a], [,b]) => b - a)[0]?.[0] || '';
 
-    
-    // Distribuição semanal sempre usa todo o histórico (não filtra por período)
-const workoutDistribution: Record<string, number> = {};
-  history.forEach(session => {
-    try {
-      let sessionDate: Date;
-      
-      
-      if (session.date.includes('/')) {
-        const [day, month, year] = session.date.split('/');
-        sessionDate = new Date(
-          parseInt(year),
-          parseInt(month) - 1, 
-          parseInt(day)
-        );
-      } else {
-        const [year, month, day] = session.date.split('-');
-        sessionDate = new Date(
-          parseInt(year),
-          parseInt(month) - 1, 
-          parseInt(day)
-        );
+    const workoutDistribution: Record<string, number> = {};
+    history.forEach(session => {
+      try {
+        let sessionDate: Date;
+        
+        if (session.date.includes('/')) {
+          const [day, month, year] = session.date.split('/');
+          sessionDate = new Date(
+            parseInt(year),
+            parseInt(month) - 1, 
+            parseInt(day)
+          );
+        } else {
+          const [year, month, day] = session.date.split('-');
+          sessionDate = new Date(
+            parseInt(year),
+            parseInt(month) - 1, 
+            parseInt(day)
+          );
+        }
+        
+        const dayIndex = sessionDate.getDay();
+        const days = [
+          'domingo', 
+          'segunda-feira', 
+          'terça-feira', 
+          'quarta-feira', 
+          'quinta-feira', 
+          'sexta-feira', 
+          'sábado'
+        ];
+        
+        if (dayIndex >= 0 && dayIndex < days.length) {
+          const dayName = days[dayIndex];
+          workoutDistribution[dayName] = (workoutDistribution[dayName] || 0) + 1;
+        }
+      } catch (e) {
+        console.error('Erro ao processar data:', session.date, e);
       }
-      
-      const dayIndex = sessionDate.getDay();
-      const days = [
-        'domingo', 
-        'segunda-feira', 
-        'terça-feira', 
-        'quarta-feira', 
-        'quinta-feira', 
-        'sexta-feira', 
-        'sábado'
-      ];
-      
-      if (dayIndex >= 0 && dayIndex < days.length) {
-        const dayName = days[dayIndex];
-        workoutDistribution[dayName] = (workoutDistribution[dayName] || 0) + 1;
-      }
-    } catch (e) {
-      console.error('Erro ao processar data:', session.date, e);
-    }
-  });
+    });
 
-  return {
-      averageWorkoutTime,
-      totalSets,
-      totalReps,
-      mostFrequentExercise,
-      workoutDistribution
-    };
-  }, [filteredHistory, history]);
+    return {
+        averageWorkoutTime,
+        totalSets,
+        totalReps,
+        mostFrequentExercise,
+        workoutDistribution
+      };
+    }, [filteredHistory, history]);
 
   // Volume comparison by day of the week
   const volumeByDayOfWeek = React.useMemo(() => {
@@ -620,6 +646,34 @@ const workoutDistribution: Record<string, number> = {};
       });
   }, [history]);
 
+  // Chart data with percentages and best day highlight
+  const distributionChartData = React.useMemo(() => {
+    const entries = Object.entries(advancedStats.workoutDistribution);
+    const total = entries.reduce((sum, [, count]) => sum + count, 0);
+    const maxCount = Math.max(...entries.map(([, count]) => count), 0);
+    
+    const dayOrder = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+    const dayAbbrev: Record<string, string> = {
+      'domingo': 'Dom',
+      'segunda-feira': 'Seg',
+      'terça-feira': 'Ter',
+      'quarta-feira': 'Qua',
+      'quinta-feira': 'Qui',
+      'sexta-feira': 'Sex',
+      'sábado': 'Sáb'
+    };
+    
+    return entries
+      .map(([day, count]) => ({
+        day: dayAbbrev[day.toLowerCase()] || day.charAt(0).toUpperCase() + day.slice(1),
+        fullDay: day,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+        isBest: count === maxCount && count > 0
+      }))
+      .sort((a, b) => dayOrder.indexOf(a.fullDay.toLowerCase()) - dayOrder.indexOf(b.fullDay.toLowerCase()));
+  }, [advancedStats.workoutDistribution]);
+
   const handleResetData = async () => {
     try {
       await storage.resetAllData();
@@ -633,8 +687,6 @@ const workoutDistribution: Record<string, number> = {};
       setMissedWorkouts([]);
       await loadData();
       await loadAchievements();
-      // Não chama loadMissedWorkouts() aqui para evitar repopular após reset
-      
       
       if (onDataReset) {
         onDataReset();
@@ -653,6 +705,15 @@ const workoutDistribution: Record<string, number> = {};
     }
   };
 
+  const getPeriodLabel = () => {
+    switch (selectedPeriod) {
+      case 'week': return 'últimos 7 dias';
+      case 'lastMonth': return 'último mês';
+      case 'currentMonth': return 'mês atual';
+      default: return 'geral';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -667,453 +728,342 @@ const workoutDistribution: Record<string, number> = {};
         </div>
       </div>
 
-      <div className="max-w-md mx-auto p-4 space-y-6">
+      <div className="max-w-md mx-auto p-4 space-y-8">
         {/* Period Selector */}
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant={selectedPeriod === 'week' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedPeriod('week')}
-          >
-            Última Semana
-          </Button>
-          <Button
-            variant={selectedPeriod === 'lastMonth' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedPeriod('lastMonth')}
-          >
-            Último Mês
-          </Button>
-          <Button
-            variant={selectedPeriod === 'currentMonth' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedPeriod('currentMonth')}
-          >
-            Mês Atual
-          </Button>
-          <Button
-            variant={selectedPeriod === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedPeriod('all')}
-          >
-            Geral
-          </Button>
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+          {[
+            { key: 'week', label: 'Semana' },
+            { key: 'lastMonth', label: 'Mês Anterior' },
+            { key: 'currentMonth', label: 'Mês Atual' },
+            { key: 'all', label: 'Geral' }
+          ].map(({ key, label }) => (
+            <Button
+              key={key}
+              variant={selectedPeriod === key ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedPeriod(key as typeof selectedPeriod)}
+              className="flex-shrink-0"
+            >
+              {label}
+            </Button>
+          ))}
         </div>
 
-        {/* Overview Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <BarChart3 className="w-5 h-5 text-iron-orange" />
-              </div>
-              <div className="text-2xl font-bold text-foreground">
-                {filteredHistory.length}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Total de treinos
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <TrendingUp className="w-5 h-5 text-iron-orange" />
-              </div>
-              <div className="text-2xl font-bold text-foreground">
-                {formatWeightCompact(periodStats.totalVolume)}kg
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Volume {selectedPeriod === 'week' ? '(últimos 7 dias)' : selectedPeriod === 'lastMonth' ? '(último mês)' : selectedPeriod === 'currentMonth' ? '(mês atual)' : 'total'}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Target className="w-5 h-5 text-iron-orange" />
-              </div>
-              <div className="text-2xl font-bold text-foreground">
-                {abdominalStats.totalAbdominalSets}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Séries abdominais
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Clock className="w-5 h-5 text-iron-orange" />
-              </div>
-              <div className="text-2xl font-bold text-foreground">
-                {advancedStats.averageWorkoutTime.toFixed(0)}min
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Tempo médio
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Additional Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Activity className="w-4 h-4 text-iron-orange" />
-              </div>
-              <div className="text-lg font-bold text-foreground">
-                {advancedStats.totalSets}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Total séries
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Target className="w-4 h-4 text-iron-orange" />
-              </div>
-              <div className="text-lg font-bold text-foreground">
-                {advancedStats.totalReps}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Total reps
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <TrendingUp className="w-4 h-4 text-iron-orange" />
-              </div>
-              <div className="text-lg font-bold text-foreground">
-                {formatWeightCompact(periodStats.totalWeight)}kg
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Total de peso
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center mb-2">
-              <Calendar className="w-4 h-4 text-iron-orange" />
-            </div>
-            <div className="text-lg font-bold text-foreground">
-              {restDaysCount}
-            </div>
-              <div className="text-xs text-muted-foreground">
-                Dias de descanso ({selectedPeriod === 'week' ? 'últimos 7 dias' : selectedPeriod === 'lastMonth' ? 'último mês' : selectedPeriod === 'currentMonth' ? 'mês atual' : 'geral'})
-              </div>
-          </CardContent>
-        </Card>
-
-        {/* Treinos Não Realizados */}
-        {(() => {
-          const { start, end } = getPeriodRange();
-          const filteredMissedWorkouts = missedWorkouts.filter(missed => {
-            const missedDate = new Date(missed.date + 'T12:00:00').getTime();
-            if (start === null || end === null) return true;
-            return missedDate >= start && missedDate <= end;
-          });
+        {/* ========== VISÃO GERAL ========== */}
+        <section>
+          <SectionHeader icon={<BarChart3 className="w-5 h-5" />} title="Visão Geral" />
           
-          if (filteredMissedWorkouts.length === 0) return null;
+          {/* Horizontal Scrollable Stats */}
+          <ScrollArea className="w-full -mx-4 px-4">
+            <div className="flex gap-3 pb-4">
+              <StatCard
+                icon={<BarChart3 className="w-5 h-5" />}
+                value={String(filteredHistory.length)}
+                label="Treinos"
+              />
+              <StatCard
+                icon={<TrendingUp className="w-5 h-5" />}
+                value={`${formatWeightCompact(periodStats.totalVolume)}kg`}
+                label="Volume"
+                highlight
+              />
+              <StatCard
+                icon={<Clock className="w-5 h-5" />}
+                value={`${advancedStats.averageWorkoutTime.toFixed(0)}min`}
+                label="Tempo médio"
+              />
+              <StatCard
+                icon={<Activity className="w-5 h-5" />}
+                value={String(advancedStats.totalSets)}
+                label="Séries"
+              />
+              <StatCard
+                icon={<Target className="w-5 h-5" />}
+                value={String(advancedStats.totalReps)}
+                label="Repetições"
+              />
+              <StatCard
+                icon={<Calendar className="w-5 h-5" />}
+                value={String(restDaysCount)}
+                label="Descanso"
+                sublabel={getPeriodLabel()}
+              />
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </section>
+
+        {/* ========== CARDIO ========== */}
+        <section>
+          <SectionHeader icon={<Activity className="w-5 h-5" />} title="Cardio" />
           
-          return (
-            <Card className="border-amber-500/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-amber-600">
-                  <Calendar className="w-5 h-5" />
-                  Treinos Não Realizados
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Treinos agendados que não foram realizados.
-                </p>
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {filteredMissedWorkouts
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                    .map((missed, idx) => {
-                      const [year, month, day] = missed.date.split('-');
-                      const formattedDate = `${day}/${month}/${year}`;
-                      return (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{formattedDate}</div>
-                            <div className="text-xs text-muted-foreground">{missed.dayOfWeek}</div>
-                          </div>
-                          <Badge variant="outline" className="border-amber-500/50 text-amber-600">
-                            Não realizado
-                          </Badge>
-                        </div>
-                      );
-                    })}
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Footprints className="w-4 h-4" />
+                    <span className="text-xs">Esteira</span>
+                  </div>
+                  <div className="text-lg font-bold text-foreground">
+                    {formatTime(cardioStats.esteiraTotalSeconds)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {cardioStats.esteiraTotalDistance.toFixed(1)} km
+                  </div>
                 </div>
-                <div className="text-center pt-2 border-t border-border">
-                  <span className="text-sm font-medium text-amber-600">
-                    Total: {filteredMissedWorkouts.length} treino{filteredMissedWorkouts.length > 1 ? 's' : ''} não realizado{filteredMissedWorkouts.length > 1 ? 's' : ''}
+                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Bike className="w-4 h-4" />
+                    <span className="text-xs">Bicicleta</span>
+                  </div>
+                  <div className="text-lg font-bold text-foreground">
+                    {formatTime(cardioStats.bicicletaTotalSeconds)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {cardioStats.bicicletaTotalDistance.toFixed(1)} km
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-primary/10 rounded-lg text-center">
+                  <div className="text-lg font-bold text-primary">
+                    {formatTime(cardioStats.esteiraTotalSeconds + cardioStats.bicicletaTotalSeconds)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Total Tempo</div>
+                </div>
+                <div className="p-3 bg-primary/10 rounded-lg text-center">
+                  <div className="text-lg font-bold text-primary">
+                    {(cardioStats.esteiraTotalDistance + cardioStats.bicicletaTotalDistance).toFixed(1)} km
+                  </div>
+                  <div className="text-xs text-muted-foreground">Total Distância</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* ========== ABDOMINAIS ========== */}
+        <section>
+          <SectionHeader icon={<Target className="w-5 h-5" />} title="Abdominais" />
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-lg font-bold text-foreground">
+                    {abdominalStats.totalAbdominalSets}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Séries</div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-lg font-bold text-foreground">
+                    {abdominalStats.totalAbdominalReps}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Reps</div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-lg font-bold text-foreground">
+                    {formatTime(abdominalStats.totalAbdominalTimeSeconds)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Tempo</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* ========== RECORDES ========== */}
+        <section>
+          <SectionHeader icon={<Award className="w-5 h-5" />} title="Recordes Pessoais" />
+          
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              {Object.entries(personalRecords).length > 0 ? (
+                Object.entries(personalRecords)
+                  .sort((a, b) => b[1].weight - a[1].weight)
+                  .slice(0, 5)
+                  .map(([exercise, record], index) => (
+                    <div key={exercise} className={`flex justify-between items-center p-3 rounded-lg ${
+                      index === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-muted/30'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {index === 0 && <Trophy className="w-4 h-4 text-primary" />}
+                        <span className="text-sm font-medium text-foreground">{exercise}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-primary">
+                          {formatWeightCompact(record.weight)}kg × {record.reps}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {record.date}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <p className="text-center text-muted-foreground py-4">
+                  Complete alguns treinos para ver seus recordes!
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* ========== GRÁFICOS ========== */}
+        <section>
+          <SectionHeader icon={<BarChart3 className="w-5 h-5" />} title="Distribuição Semanal" />
+          
+          <Card>
+            <CardContent className="p-4">
+              {distributionChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={distributionChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis 
+                      dataKey="day" 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '11px' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))" 
+                      axisLine={false}
+                      tickLine={false}
+                      width={30}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                      }}
+                      labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
+                      formatter={(value: number, name: string, props: any) => [
+                        <span key="value">
+                          <strong>{value}</strong> treino{value > 1 ? 's' : ''} ({props.payload.percentage}%)
+                        </span>,
+                        null
+                      ]}
+                      labelFormatter={(label) => `${label}`}
+                    />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      <LabelList 
+                        dataKey="percentage" 
+                        position="top" 
+                        formatter={(value: number) => `${value}%`}
+                        style={{ fill: 'hsl(var(--muted-foreground))', fontSize: '10px' }}
+                      />
+                      {distributionChartData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.isBest ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.5)'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  Complete alguns treinos para ver a distribuição!
+                </p>
+              )}
+              
+              {distributionChartData.some(d => d.isBest) && (
+                <div className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Trophy className="w-4 h-4 text-primary" />
+                  <span>
+                    Melhor dia: <strong className="text-foreground">
+                      {distributionChartData.find(d => d.isBest)?.fullDay}
+                    </strong>
                   </span>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
+              )}
+            </CardContent>
+          </Card>
+        </section>
 
-        {/* Abdominal Statistics */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-iron-orange" />
-              Estatísticas Abdominais
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-muted/50 rounded-lg">
-                <div className="text-lg font-bold text-foreground">
-                  {abdominalStats.totalAbdominalSets}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Total séries
-                </div>
-              </div>
-              <div className="text-center p-3 bg-muted/50 rounded-lg">
-                <div className="text-lg font-bold text-foreground">
-                  {abdominalStats.totalAbdominalReps}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Total reps
-                </div>
-              </div>
-              <div className="text-center p-3 bg-muted/50 rounded-lg">
-                <div className="text-lg font-bold text-foreground">
-                  {formatTime(abdominalStats.totalAbdominalTimeSeconds)}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Total tempo
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Top 5 Exercícios */}
+        <section>
+          <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="Top 5 Exercícios" />
+          
+          <Card>
+            <CardContent className="p-4">
+              {exerciseProgress.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={exerciseProgress} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      width={90}
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '11px' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                      }}
+                      labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
+                      formatter={(value: number, name: string, props: any) => [
+                        <span key="value">
+                          Volume: <strong>{formatWeightCompact(value)}kg</strong><br />
+                          Sessões: <strong>{props.payload.sessions}</strong><br />
+                          Carga máx: <strong>{formatWeightCompact(props.payload.maxWeight)}kg</strong>
+                        </span>,
+                        null
+                      ]}
+                    />
+                    <Bar dataKey="totalVolume" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  Complete alguns treinos para ver o progresso!
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
 
-        {/* Cardio Stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-iron-orange" />
-              Estatísticas de Cardio
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-muted/50 rounded-lg">
-                <div className="text-lg font-bold text-foreground">
-                  {formatTime(cardioStats.esteiraTotalSeconds)}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Esteira - Tempo {selectedPeriod === 'week' ? '(semana)' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? '(mês)' : '(total)'}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {cardioStats.esteiraTotalDistance.toFixed(1)} km
-                </div>
-              </div>
-              <div className="text-center p-3 bg-muted/50 rounded-lg">
-                <div className="text-lg font-bold text-foreground">
-                  {formatTime(cardioStats.bicicletaTotalSeconds)}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Bicicleta - Tempo {selectedPeriod === 'week' ? '(semana)' : (selectedPeriod === 'lastMonth' || selectedPeriod === 'currentMonth') ? '(mês)' : '(total)'}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {cardioStats.bicicletaTotalDistance.toFixed(1)} km
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-primary/10 rounded-lg">
-                <div className="text-xl font-bold text-primary">
-                  {formatTime(cardioStats.esteiraTotalSeconds + cardioStats.bicicletaTotalSeconds)}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Total de Tempo
-                </div>
-              </div>
-              <div className="text-center p-3 bg-primary/10 rounded-lg">
-                <div className="text-xl font-bold text-primary">
-                  {(cardioStats.esteiraTotalDistance + cardioStats.bicicletaTotalDistance).toFixed(1)} km
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Total de Distância
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Personal Records */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-iron-orange" />
-              Recordes Pessoais
-            </CardTitle>
-          </CardHeader>
-<CardContent className="space-y-3">
-  {Object.entries(personalRecords).length > 0 ? (
-    Object.entries(personalRecords)
-      .sort((a, b) => b[1].weight - a[1].weight)
-      .slice(0, 5)
-      .map(([exercise, record]) => {
-        const formattedDate = record.date;
-        return (
-          <div key={exercise} className="flex justify-between items-center">
-            <span className="text-sm font-medium text-foreground">{exercise}</span>
-            <div className="text-right">
-              <div className="text-sm font-bold text-iron-orange">
-                {formatWeightCompact(record.weight)}kg × {record.reps}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {formattedDate}
-              </div>
-            </div>
-          </div>
-        );
-      })
-  ) : (
-    <p className="text-center text-muted-foreground py-4">
-      Complete alguns treinos para ver seus recordes!
-    </p>
-  )}
-</CardContent>
-        </Card>
-
-        {/* Exercise Progress with Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-iron-orange" />
-              Top 5 Exercícios por Volume
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {exerciseProgress.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={exerciseProgress} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis 
-                    dataKey="name" 
-                    type="category" 
-                    width={100}
-                    stroke="hsl(var(--muted-foreground))"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '6px'
-                    }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: number) => [`${formatWeightCompact(value)}kg`, 'Volume Total']}
-                  />
-                  <Bar dataKey="totalVolume" fill="hsl(var(--iron-orange))" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-center text-muted-foreground py-4">
-                Complete alguns treinos para ver o progresso!
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Workout Distribution with Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-iron-orange" />
-              Distribuição Semanal
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {Object.entries(advancedStats.workoutDistribution).length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart 
-                  data={Object.entries(advancedStats.workoutDistribution)
-                    .map(([day, count]) => ({ day: day.charAt(0).toUpperCase() + day.slice(1), count }))
-                    .sort((a, b) => {
-                      const dayOrder = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
-                      return dayOrder.indexOf(a.day.toLowerCase()) - dayOrder.indexOf(b.day.toLowerCase());
-                    })
-                  }
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="day" 
-                    stroke="hsl(var(--muted-foreground))"
-                    style={{ fontSize: '11px' }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '6px'
-                    }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: number) => [`${value}`, 'Treinos']}
-                  />
-                  <Bar dataKey="count" fill="hsl(var(--iron-orange))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-center text-muted-foreground py-4">
-                Complete alguns treinos para ver a distribuição!
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Volume Evolution by Day of Week */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-iron-orange" />
-              Evolução de Volume por Dia
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        {/* ========== EVOLUÇÃO SEMANAL ========== */}
+        <section>
+          <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="Evolução por Dia" />
+          
+          <div className="space-y-3">
             {volumeByDayOfWeek.length > 0 ? (
-              <>
-                {volumeByDayOfWeek.map((dayStats) => (
-                  <div 
-                    key={dayStats.day} 
-                    className="p-4 border border-border rounded-lg space-y-2 cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setSelectedDayWorkouts({ day: dayStats.day, workouts: dayStats.workouts })}
-                  >
+              volumeByDayOfWeek.map((dayStats) => (
+                <Card 
+                  key={dayStats.day} 
+                  className="cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => setSelectedDayWorkouts({ day: dayStats.day, workouts: dayStats.workouts })}
+                >
+                  <CardContent className="p-4 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-foreground">{dayStats.day}</span>
-                      <Badge variant={dayStats.evolutionPercent >= 0 ? "default" : "destructive"}>
-                        {dayStats.evolution >= 0 ? '+' : ''}{formatWeightCompact(dayStats.evolution)}kg 
-                        ({dayStats.evolutionPercent >= 0 ? '+' : ''}{dayStats.evolutionPercent.toFixed(1)}%)
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <TrendIcon value={dayStats.evolution} />
+                        <Badge 
+                          variant={dayStats.evolutionPercent >= 0 ? "default" : "destructive"}
+                          className="font-mono"
+                        >
+                          {dayStats.evolution >= 0 ? '+' : ''}{formatWeightCompact(dayStats.evolution)}kg
+                          <span className="ml-1 opacity-75">
+                            ({dayStats.evolutionPercent >= 0 ? '+' : ''}{dayStats.evolutionPercent.toFixed(0)}%)
+                          </span>
+                        </Badge>
+                      </div>
                     </div>
+                    
                     <div className="grid grid-cols-4 gap-2 text-xs">
                       <div className="text-center p-2 bg-muted/30 rounded">
                         <div className="font-medium text-foreground">{formatWeightCompact(dayStats.min)}kg</div>
@@ -1127,31 +1077,186 @@ const workoutDistribution: Record<string, number> = {};
                         <div className="font-medium text-foreground">{formatWeightCompact(dayStats.max)}kg</div>
                         <div className="text-muted-foreground">Máx</div>
                       </div>
-                      <div className="text-center p-2 bg-muted/30 rounded">
-                        <div className="font-medium text-foreground">{formatWeightCompact(dayStats.lastVolume)}kg</div>
+                      <div className="text-center p-2 bg-primary/10 rounded">
+                        <div className="font-medium text-primary">{formatWeightCompact(dayStats.lastVolume)}kg</div>
                         <div className="text-muted-foreground">Último</div>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground text-center">
-                      {dayStats.count} treino{dayStats.count > 1 ? 's' : ''} realizado{dayStats.count > 1 ? 's' : ''} • Clique para detalhes
+                    
+                    <div className="text-xs text-muted-foreground text-center pt-1 border-t border-border">
+                      {dayStats.count} treino{dayStats.count > 1 ? 's' : ''} • Toque para detalhes
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-center text-muted-foreground py-4">
+                    Complete alguns treinos para ver a evolução!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </section>
+
+        {/* ========== HISTÓRICO ========== */}
+        <section>
+          <SectionHeader icon={<Calendar className="w-5 h-5" />} title="Treinos Recentes" />
+          
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              {[...history].sort((a, b) => b.startTime - a.startTime).slice(0, 5).map((session) => {
+                const [year, month, day] = session.date.split('-');
+                const workoutDate = `${day}/${month}/${year}`;
+                const workoutTime = session.endTime 
+                  ? Math.round((session.endTime - session.startTime) / 60000)
+                  : 0;
+                
+                return (
+                  <div 
+                    key={session.id} 
+                    className="p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 hover:border-primary/30 transition-colors"
+                    onClick={() => setSelectedWorkoutDetails(session)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-foreground">
+                          {workoutDate}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {session.exercises[0]?.name ? 
+                            `${session.exercises[0].name.split(' ')[0]} e mais ${session.exercises.length - 1}` : 
+                            `${session.exercises.length} exercícios`}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="outline" className="font-mono">
+                          {formatWeightCompact(session.totalVolume)}kg
+                        </Badge>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {workoutTime}min
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </>
-            ) : (
-              <p className="text-center text-muted-foreground py-4">
-                Complete alguns treinos para ver a evolução!
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                );
+              })}
+              
+              {history.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">
+                  Nenhum treino registrado ainda.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Treinos Não Realizados */}
+        {(() => {
+          const { start, end } = getPeriodRange();
+          const filteredMissedWorkouts = missedWorkouts.filter(missed => {
+            const missedDate = new Date(missed.date + 'T12:00:00').getTime();
+            if (start === null || end === null) return true;
+            return missedDate >= start && missedDate <= end;
+          });
+          
+          if (filteredMissedWorkouts.length === 0) return null;
+          
+          return (
+            <section>
+              <SectionHeader 
+                icon={<Calendar className="w-5 h-5" />} 
+                title="Treinos Não Realizados" 
+              />
+              
+              <Card className="border-warning-amber/30">
+                <CardContent className="p-4 space-y-3">
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {filteredMissedWorkouts
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((missed, idx) => {
+                        const [year, month, day] = missed.date.split('-');
+                        const formattedDate = `${day}/${month}/${year}`;
+                        return (
+                          <div key={idx} className="flex justify-between items-center p-3 bg-warning-amber/10 rounded-lg border border-warning-amber/20">
+                            <div>
+                              <div className="text-sm font-medium text-foreground">{formattedDate}</div>
+                              <div className="text-xs text-muted-foreground">{missed.dayOfWeek}</div>
+                            </div>
+                            <Badge variant="outline" className="border-warning-amber/50 text-warning-amber">
+                              Não realizado
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <div className="text-center pt-2 border-t border-border">
+                    <span className="text-sm font-medium text-warning-amber">
+                      Total: {filteredMissedWorkouts.length} treino{filteredMissedWorkouts.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          );
+        })()}
+
+        {/* ========== DANGER ZONE ========== */}
+        <section className="mt-12 pt-8 border-t-2 border-destructive/20">
+          <div className="bg-destructive/5 -mx-4 px-4 py-6 rounded-xl border border-destructive/20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-destructive">Zona de Perigo</h2>
+                <p className="text-xs text-muted-foreground">Ações irreversíveis</p>
+              </div>
+            </div>
+            
+            <p className="text-sm text-muted-foreground mb-4">
+              Resetar todos os dados irá apagar <strong>permanentemente</strong> todo o histórico de treinos, estatísticas, conquistas e progresso.
+            </p>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="w-full">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Resetar Todos os Dados
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
+                    Confirmar Reset de Dados
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação <strong>não pode ser desfeita</strong>. Todos os seus treinos, estatísticas e progresso serão permanentemente removidos.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleResetData}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Resetar Dados
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </section>
 
         {/* Dialog for Day Workouts */}
         <Dialog open={!!selectedDayWorkouts} onOpenChange={() => setSelectedDayWorkouts(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-iron-orange" />
+                <Calendar className="w-5 h-5 text-primary" />
                 Treinos - {selectedDayWorkouts?.day}
               </DialogTitle>
             </DialogHeader>
@@ -1166,12 +1271,9 @@ const workoutDistribution: Record<string, number> = {};
                       <div className="text-sm font-medium text-foreground">
                         {formattedDate}
                       </div>
-                      <Badge variant="outline" className="font-bold">
+                      <Badge variant="outline" className="font-bold font-mono">
                         {formatWeightCompact(workout.volume)}kg
                       </Badge>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Volume do treino
                     </div>
                   </div>
                 );
@@ -1180,61 +1282,17 @@ const workoutDistribution: Record<string, number> = {};
           </DialogContent>
         </Dialog>
 
-        {/* Recent Workouts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-iron-orange" />
-              Treinos Recentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-  {[...history].sort((a, b) => b.startTime - a.startTime).slice(0, 5).map((session) => {
-    // Converter data do formato yyyy-MM-dd para dd/MM/yyyy
-    const [year, month, day] = session.date.split('-');
-    const workoutDate = `${day}/${month}/${year}`;
-              const workoutTime = session.endTime 
-      ? Math.round((session.endTime - session.startTime) / 60000)
-      : 0;
-              
-              return (
-      <div 
-        key={session.id} 
-        className="space-y-2 p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-        onClick={() => setSelectedWorkoutDetails(session)}
-      >
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <div className="text-sm font-medium text-foreground">
-              {workoutDate} - {/* Data formatada corretamente */}
-              {session.exercises[0]?.name ? 
-                `${session.exercises[0].name.split(' ')[0]} e mais ${session.exercises.length - 1}` : 
-                `${session.exercises.length} exercícios`}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Tempo: {workoutTime}min • Volume: {formatWeightCompact(session.totalVolume)}kg • Clique para detalhes
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  })}
-</CardContent>
-
-        </Card>
-
         {/* Dialog for Workout Details */}
         <Dialog open={!!selectedWorkoutDetails} onOpenChange={() => setSelectedWorkoutDetails(null)}>
           <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-iron-orange" />
+                <Activity className="w-5 h-5 text-primary" />
                 Detalhes do Treino
               </DialogTitle>
             </DialogHeader>
             {selectedWorkoutDetails && (
               <div className="space-y-4">
-                {/* Data e informações gerais */}
                 <div className="p-3 bg-muted/50 rounded-lg space-y-1">
                   <div className="text-sm font-medium text-foreground">
                     {(() => {
@@ -1249,7 +1307,6 @@ const workoutDistribution: Record<string, number> = {};
                   </div>
                 </div>
 
-                {/* Exercícios */}
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-foreground">Exercícios</h3>
                   {selectedWorkoutDetails.exercises.map((exercise, idx) => (
@@ -1264,7 +1321,7 @@ const workoutDistribution: Record<string, number> = {};
                                 {formatWeightCompact(set.weight)}kg × {set.reps} reps
                               </span>
                               {set.dropsetData && set.dropsetData.length > 0 && (
-                                <span className="text-iron-orange">
+                                <span className="text-primary">
                                   + Drop: {set.dropsetData.map(d => `${formatWeightCompact(d.weight)}kg×${d.reps}`).join(', ')}
                                 </span>
                               )}
@@ -1276,7 +1333,6 @@ const workoutDistribution: Record<string, number> = {};
                   ))}
                 </div>
 
-                {/* Abdominais */}
                 {selectedWorkoutDetails.abdominal && selectedWorkoutDetails.abdominal.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-foreground">Abdominais</h3>
@@ -1298,7 +1354,6 @@ const workoutDistribution: Record<string, number> = {};
                   </div>
                 )}
 
-                {/* Aeróbico */}
                 {selectedWorkoutDetails.aerobic && selectedWorkoutDetails.aerobic.completed && (
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-foreground">Aeróbico</h3>
@@ -1314,7 +1369,6 @@ const workoutDistribution: Record<string, number> = {};
                   </div>
                 )}
 
-                {/* Notas */}
                 {selectedWorkoutDetails.notes && (
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-foreground">Notas</h3>
@@ -1327,46 +1381,6 @@ const workoutDistribution: Record<string, number> = {};
             )}
           </DialogContent>
         </Dialog>
-
-        {/* Reset Data Section */}
-        <Card className="border-destructive/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="w-5 h-5" />
-              Zona de Perigo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Resetar todos os dados irá apagar permanentemente todo o histórico de treinos, estatísticas e progresso.
-            </p>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" className="w-full">
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Resetar Todos os Dados
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmar Reset de Dados</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Todos os seus treinos, estatísticas e progresso serão permanentemente removidos.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleResetData}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Resetar Dados
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
