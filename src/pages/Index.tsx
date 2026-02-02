@@ -484,8 +484,11 @@ const Index = () => {
       return 'exercises';
     }
 
-    // Quarta fase: Exercícios abdominais
-    if (workoutDay.abdominal && !abdominalCompleted) {
+    // Quarta fase: Exercícios abdominais (somente se existem exercícios e não estão completos)
+    const hasAbdominalExercises = workoutDay.abdominal && workoutDay.abdominal.length > 0;
+    const sessionHasAbdominal = currentSession.abdominal && currentSession.abdominal.length > 0;
+    
+    if (hasAbdominalExercises && sessionHasAbdominal && !abdominalCompleted) {
       return 'abdominal';
     }
 
@@ -845,7 +848,7 @@ const Index = () => {
             </>
           )}
 
-          {workoutPhase === 'abdominal' && workoutDay.abdominal && workoutDay.abdominal.length > 0 && (
+          {workoutPhase === 'abdominal' && currentSession.abdominal && currentSession.abdominal.length > 0 && (
             <div className="space-y-4 mt-8">
               <div className="text-center">
                 <h2 className="text-xl font-bold text-foreground mb-2 uppercase">Exercícios Abdominais</h2>
@@ -855,7 +858,7 @@ const Index = () => {
                 </Button>
               </div>
               
-              {currentSession.abdominal?.map((exercise) => (
+              {currentSession.abdominal.map((exercise) => (
                 exercise.isTimeBased ? (
                   <AbdominalTimer
                     key={exercise.id}
@@ -889,9 +892,9 @@ const Index = () => {
                     hideWeightInputs
                   />
                 )
-              )) || []}
+              ))}
               
-              {currentSession.abdominal?.every(ex => ex.completed) && (
+              {currentSession.abdominal.every(ex => ex.completed) && (
                 <Button 
                   variant="success" 
                   className="w-full" 
