@@ -146,6 +146,17 @@ const Index = () => {
     checkRestDay();
   }, [workoutPlan]);
 
+  // Escutar evento de atualização de dias de descanso (ex: após reset)
+  useEffect(() => {
+    const handleRestDaysUpdated = () => {
+      checkRestDay();
+    };
+    window.addEventListener('rest_days_updated', handleRestDaysUpdated);
+    return () => {
+      window.removeEventListener('rest_days_updated', handleRestDaysUpdated);
+    };
+  }, []);
+
   const loadHistory = async () => {
     try {
       const historyData = await storage.loadWorkoutHistory();
