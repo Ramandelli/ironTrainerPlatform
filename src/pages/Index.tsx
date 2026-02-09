@@ -871,6 +871,7 @@ const Index = () => {
                       }
                     }}
                     onExerciseComplete={() => completeAbdominalExercise(exercise.id)}
+                    onExerciseSkip={() => skipAbdominalExercise(exercise.id)}
                     onExerciseUpdate={(updates) => updateAbdominalExercise(exercise.id, updates)}
                     isActive={!exercise.completed}
                   />
