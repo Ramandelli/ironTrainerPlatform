@@ -685,6 +685,14 @@ const restDaysCount = React.useMemo(() => {
       setAchievements([]);
       setCustomRestDays([]);
       setMissedWorkouts([]);
+      
+      // Disparar eventos para forçar atualização em tempo real em todas as telas
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('rest_days_updated'));
+        window.dispatchEvent(new CustomEvent('missed_workouts_updated'));
+        window.dispatchEvent(new CustomEvent('custom_workouts_updated'));
+      }
+      
       await loadData();
       await loadAchievements();
       
