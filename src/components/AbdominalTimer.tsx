@@ -2,15 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Play, Pause, RotateCcw, CheckCircle, Timer, Pencil } from 'lucide-react';
+import { Play, Pause, RotateCcw, CheckCircle, Timer, Pencil, SkipForward } from 'lucide-react';
 import { Exercise, SetData } from '../types/workout';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { AbdominalForm } from './AbdominalForm';
+import { hapticSkip } from '../utils/haptics';
 
 interface AbdominalTimerProps {
   exercise: Exercise;
   onSetComplete: (setIndex: number, setData: SetData) => void;
   onExerciseComplete: () => void;
+  onExerciseSkip?: () => void;
   onExerciseUpdate?: (updates: Partial<Exercise>) => void;
   isActive?: boolean;
 }
@@ -19,9 +31,11 @@ export const AbdominalTimer: React.FC<AbdominalTimerProps> = ({
   exercise,
   onSetComplete,
   onExerciseComplete,
+  onExerciseSkip,
   onExerciseUpdate,
   isActive = false
 }) => {
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(exercise.timePerSet || 30);
   const [currentSide, setCurrentSide] = useState<'left' | 'right' | 'both'>('both');
@@ -300,8 +314,46 @@ export const AbdominalTimer: React.FC<AbdominalTimerProps> = ({
             Marcar como Concluído
           </Button>
         )}
+
+        {/* Skip Exercise Button */}
+        {!exercise.completed && onExerciseSkip && (
+          <Button
+            variant="ghost"
+            onClick={() => setShowSkipConfirm(true)}
+            className="w-full text-muted-foreground hover:text-destructive"
+          >
+            <SkipForward className="w-4 h-4 mr-2" />
+            Pular Exercício
+          </Button>
+        )}
       </CardContent>
     </Card>
+
+    <AlertDialog open={showSkipConfirm} onOpenChange={setShowSkipConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Pular exercício?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja pular "{exercise.name}"? 
+            {completedSets > 0 
+              ? ` Você já completou ${completedSets} de ${exercise.sets} séries. As séries feitas serão mantidas.`
+              : ' Nenhuma série será registrada para este exercício.'}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={() => {
+              hapticSkip();
+              onExerciseSkip();
+            }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Pular Exercício
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 };
