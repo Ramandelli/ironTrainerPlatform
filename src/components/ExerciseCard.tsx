@@ -9,6 +9,16 @@ import { DropsetInput } from './DropsetInput';
 import { exerciseSuggestionManager, ExerciseSuggestion } from '../utils/exerciseSuggestions';
 import { storage } from '../utils/storage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { ExerciseForm } from './ExerciseForm';
 import { formatWeightCompact } from '../utils/formatters';
 import { hapticSetComplete, hapticExerciseComplete, hapticSkip } from '../utils/haptics';
@@ -38,6 +48,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 }) => {
   const [suggestion, setSuggestion] = useState<ExerciseSuggestion | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   useEffect(() => {
     if (showSuggestion && !hideWeightInputs) {
@@ -361,7 +372,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {!exercise.completed && onExerciseSkip && (
             <Button
               variant="ghost"
-              onClick={handleExerciseSkip}
+              onClick={() => setShowSkipConfirm(true)}
               className="text-muted-foreground hover:text-destructive"
             >
               <SkipForward className="w-4 h-4 mr-2" />
@@ -371,6 +382,29 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         </div>
       </CardContent>
     </Card>
+
+    <AlertDialog open={showSkipConfirm} onOpenChange={setShowSkipConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Pular exercício?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja pular "{exercise.name}"? 
+            {completedSets > 0 
+              ? ` Você já completou ${completedSets} de ${exercise.sets} séries. As séries feitas serão mantidas.`
+              : ' Nenhuma série será registrada para este exercício.'}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleExerciseSkip}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Pular Exercício
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 };
