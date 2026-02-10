@@ -1076,7 +1076,7 @@ const Index = () => {
                 <Calendar className="w-5 h-5 text-iron-orange" />
                 {todayWorkouts.length > 1 ? 'Treinos de Hoje' : 'Treino de Hoje'}
               </h2>
-              {todayWorkouts.some(w => !isTodayWorkoutCompleted(w.id)) && (
+              {!todayWorkouts.some(w => isTodayWorkoutCompleted(w.id)) && (
                 <Button 
                   variant="ghost" 
                   size="sm"
