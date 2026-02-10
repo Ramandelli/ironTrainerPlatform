@@ -147,19 +147,24 @@ export class MissedWorkoutManager {
         const scheduledWorkout = workoutPlan.find(w => this.toIndex(w.day) === dayOfWeek);
 
         if (scheduledWorkout) {
-          // Verificar se o treino foi finalizado nesse dia
-          const wasCompleted = workoutHistory.some(session =>
-            session.date === dateStr &&
-            session.completed
-          );
+          // Pode haver múltiplos treinos agendados para o mesmo dia
+          const scheduledWorkouts = workoutPlan.filter(w => this.toIndex(w.day) === dayOfWeek);
+          
+          for (const scheduled of scheduledWorkouts) {
+            // Verificar se o treino específico foi finalizado nesse dia
+            const wasCompleted = workoutHistory.some(session =>
+              session.date === dateStr &&
+              session.workoutDayId === scheduled.id &&
+              session.completed
+            );
 
-          if (!wasCompleted) {
-            // Treino não foi realizado
-            await this.addMissedWorkout({
-              date: dateStr,
-              dayOfWeek: this.getDayOfWeekName(dayOfWeek),
-              workoutDayId: scheduledWorkout.id
-            });
+            if (!wasCompleted) {
+              await this.addMissedWorkout({
+                date: dateStr,
+                dayOfWeek: this.getDayOfWeekName(dayOfWeek),
+                workoutDayId: scheduled.id
+              });
+            }
           }
         }
       }
