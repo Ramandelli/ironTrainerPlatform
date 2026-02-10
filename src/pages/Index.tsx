@@ -167,17 +167,18 @@ const Index = () => {
     }
   };
 
-  const findTodaysWorkout = () => {
-    const todayId = getTodayWorkoutId();
+  const findTodaysWorkouts = (): WorkoutDay[] => {
     const todayLabel = getTodayLabel();
     
-    const exactMatch = workoutPlan.find(day => day.id === todayId);
-    if (exactMatch) return exactMatch;
-    
-    return workoutPlan.find(day => 
-      day.day.toLowerCase() === todayLabel.toLowerCase() && 
-      customWorkoutManager.isCustomWorkout(day.id)
+    return workoutPlan.filter(day => 
+      day.day.toLowerCase() === todayLabel.toLowerCase()
     );
+  };
+
+  // Manter compatibilidade - retorna o primeiro treino do dia
+  const findTodaysWorkout = () => {
+    const workouts = findTodaysWorkouts();
+    return workouts.length > 0 ? workouts[0] : undefined;
   };
 
   const getTodayLabel = () => {
@@ -209,13 +210,13 @@ const Index = () => {
   };
 
   const checkRestDay = async () => {
-    const todaysWorkout = findTodaysWorkout();
+    const todaysWorkouts = findTodaysWorkouts();
     
     // Verificar treinos não realizados de dias anteriores
     await missedWorkoutManager.checkMissedWorkouts();
     
-    // Se há treino agendado para hoje, verificar descanso manual
-    if (todaysWorkout) {
+    // Se há treino(s) agendado(s) para hoje, verificar descanso manual
+    if (todaysWorkouts.length > 0) {
       const isManualRest = await restDayManager.isTodayRestDay();
       if (isManualRest) {
         setIsRestDay(true);
@@ -223,14 +224,12 @@ const Index = () => {
         return;
       }
       // Tem treino agendado e não é descanso manual - mostrar treino
-      // O treino deve ser aguardado até 23:59
       setIsRestDay(false);
       setIsManualRestDay(false);
       return;
     }
 
     // Não há treino agendado para hoje - descanso automático
-    // Qualquer dia sem treino registrado = dia de descanso (a partir de 00:01)
     setIsRestDay(true);
     setIsManualRestDay(false);
   };
@@ -280,13 +279,14 @@ const Index = () => {
 
   const todayWorkoutId = getTodayWorkoutId();
   const todayWorkout = findTodaysWorkout();
+  const todayWorkouts = findTodaysWorkouts();
 
   const handleStartWorkout = (workoutDayId: string) => {
     const workoutDay = workoutPlan.find(day => day.id === workoutDayId);
     if (!workoutDay) return;
     
-    const todayLabel = getTodayLabel();
-    const isToday = workoutDay.day.toLowerCase() === todayLabel.toLowerCase();
+    // Verificar se este treino é de hoje
+    const isToday = todayWorkouts.some(w => w.id === workoutDayId);
     
     if (isToday) {
       // Check if today is a rest day
@@ -1074,9 +1074,9 @@ const Index = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-foreground flex items-center gap-2 uppercase">
                 <Calendar className="w-5 h-5 text-iron-orange" />
-                Treino de Hoje
+                {todayWorkouts.length > 1 ? 'Treinos de Hoje' : 'Treino de Hoje'}
               </h2>
-              {todayWorkout && !isTodayWorkoutCompleted(todayWorkout.id) && (
+              {todayWorkouts.some(w => !isTodayWorkoutCompleted(w.id)) && (
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -1087,15 +1087,18 @@ const Index = () => {
                 </Button>
               )}
             </div>
-            {todayWorkout && (
-              <WorkoutCard
-                workoutDay={todayWorkout}
-                onStartWorkout={() => handleStartWorkout(todayWorkout.id)}
-                isToday={true}
-                averageTime={workoutAverages[todayWorkout.id] || 0}
-                isCompleted={isTodayWorkoutCompleted(todayWorkout.id)}
-              />
-            )}
+            <div className="space-y-4">
+              {todayWorkouts.map((workout) => (
+                <WorkoutCard
+                  key={workout.id}
+                  workoutDay={workout}
+                  onStartWorkout={() => handleStartWorkout(workout.id)}
+                  isToday={true}
+                  averageTime={workoutAverages[workout.id] || 0}
+                  isCompleted={isTodayWorkoutCompleted(workout.id)}
+                />
+              ))}
+            </div>
           </div>
         )}
 
