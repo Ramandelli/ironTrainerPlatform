@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { ArrowLeft, TrendingUp, TrendingDown, Award, Calendar, BarChart3, Activity, Clock, Target, RotateCcw, Trash2, Trophy, AlertTriangle, Minus, Bike, Footprints } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Award, Calendar, BarChart3, Activity, Clock, Target, RotateCcw, Trash2, Trophy, AlertTriangle, Minus, Bike, Footprints, Lock } from 'lucide-react';
 import { storage } from '../utils/storage';
 import { WorkoutSession, WorkoutStats } from '../types/workout';
 import { calculatePersonalRecords, calculateWeeklyStats } from '../utils/workoutHelpers';
@@ -19,6 +19,8 @@ import { customWorkoutManager } from '../utils/customWorkouts';
 import { WorkoutDay } from '../types/workout';
 import { formatWeightCompact } from '../utils/formatters';
 import { ScrollArea, ScrollBar } from '../components/ui/scroll-area';
+import { usePremium } from '../contexts/PremiumContext';
+import { PremiumBanner } from '../components/PremiumBadge';
 
 interface StatisticsProps {
   onBack: () => void;
@@ -91,6 +93,10 @@ export const Statistics: React.FC<StatisticsProps> = ({ onBack, onDataReset }) =
   const [selectedDayWorkouts, setSelectedDayWorkouts] = useState<{ day: string; workouts: Array<{ date: string; volume: number; startTime: number }> } | null>(null);
   const [selectedWorkoutDetails, setSelectedWorkoutDetails] = useState<WorkoutSession | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutDay[]>(WORKOUT_PLAN);
+  const { isPremium, openPremiumModal } = usePremium();
+  
+  // Free users: force 'week' period
+  const effectivePeriod = isPremium ? selectedPeriod : 'week';
   
   const formatTime = (totalSeconds: number): string => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -221,19 +227,19 @@ useEffect(() => {
   const getPeriodRange = React.useCallback(() => {
     const now = new Date();
     
-    if (selectedPeriod === 'week') {
+    if (effectivePeriod === 'week') {
       const startDate = new Date(now);
       startDate.setDate(now.getDate() - 6);
       startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(now);
       endDate.setHours(23, 59, 59, 999);
       return { start: startDate.getTime(), end: endDate.getTime() };
-    } else if (selectedPeriod === 'lastMonth') {
+    } else if (effectivePeriod === 'lastMonth') {
       const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       startOfLastMonth.setHours(0, 0, 0, 0);
       const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
       return { start: startOfLastMonth.getTime(), end: endOfLastMonth.getTime() };
-    } else if (selectedPeriod === 'currentMonth') {
+    } else if (effectivePeriod === 'currentMonth') {
       const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       startOfCurrentMonth.setHours(0, 0, 0, 0);
       
@@ -255,7 +261,7 @@ useEffect(() => {
     } else {
       return { start: null, end: null };
     }
-  }, [selectedPeriod, history]);
+  }, [effectivePeriod, history]);
 
   const filteredHistory = React.useMemo(() => {
     const range = getPeriodRange();
@@ -686,7 +692,6 @@ const restDaysCount = React.useMemo(() => {
       setCustomRestDays([]);
       setMissedWorkouts([]);
       
-      // Disparar eventos para forçar atualização em tempo real em todas as telas
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('rest_days_updated'));
         window.dispatchEvent(new CustomEvent('missed_workouts_updated'));
@@ -714,7 +719,7 @@ const restDaysCount = React.useMemo(() => {
   };
 
   const getPeriodLabel = () => {
-    switch (selectedPeriod) {
+    switch (effectivePeriod) {
       case 'week': return 'últimos 7 dias';
       case 'lastMonth': return 'último mês';
       case 'currentMonth': return 'mês atual';
@@ -738,24 +743,46 @@ const restDaysCount = React.useMemo(() => {
 
       <div className="max-w-md mx-auto p-4 space-y-8">
         {/* Period Selector */}
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
-          {[
-            { key: 'week', label: 'Semana' },
-            { key: 'lastMonth', label: 'Mês Anterior' },
-            { key: 'currentMonth', label: 'Mês Atual' },
-            { key: 'all', label: 'Geral' }
-          ].map(({ key, label }) => (
-            <Button
-              key={key}
-              variant={selectedPeriod === key ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedPeriod(key as typeof selectedPeriod)}
-              className="flex-shrink-0"
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
+        {isPremium ? (
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+            {[
+              { key: 'week', label: 'Semana' },
+              { key: 'lastMonth', label: 'Mês Anterior' },
+              { key: 'currentMonth', label: 'Mês Atual' },
+              { key: 'all', label: 'Geral' }
+            ].map(({ key, label }) => (
+              <Button
+                key={key}
+                variant={selectedPeriod === key ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedPeriod(key as typeof selectedPeriod)}
+                className="flex-shrink-0"
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Button variant="default" size="sm" className="flex-shrink-0">
+                Semana
+              </Button>
+              {['Mês Anterior', 'Mês Atual', 'Geral'].map((label) => (
+                <Button
+                  key={label}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openPremiumModal('Filtros por Período')}
+                  className="flex-shrink-0 opacity-50"
+                >
+                  <Lock className="w-3 h-3 mr-1" />
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ========== VISÃO GERAL ========== */}
         <section>
@@ -769,495 +796,514 @@ const restDaysCount = React.useMemo(() => {
                 value={String(filteredHistory.length)}
                 label="Treinos"
               />
-              <StatCard
-                icon={<TrendingUp className="w-5 h-5" />}
-                value={`${formatWeightCompact(periodStats.totalVolume)}kg`}
-                label="Volume"
-                highlight
-              />
+              {isPremium && (
+                <StatCard
+                  icon={<TrendingUp className="w-5 h-5" />}
+                  value={`${formatWeightCompact(periodStats.totalVolume)}kg`}
+                  label="Volume"
+                  highlight
+                />
+              )}
               <StatCard
                 icon={<Clock className="w-5 h-5" />}
                 value={`${advancedStats.averageWorkoutTime.toFixed(0)}min`}
                 label="Tempo médio"
               />
-              <StatCard
-                icon={<Activity className="w-5 h-5" />}
-                value={String(advancedStats.totalSets)}
-                label="Séries"
-              />
-              <StatCard
-                icon={<Target className="w-5 h-5" />}
-                value={String(advancedStats.totalReps)}
-                label="Repetições"
-              />
-              <StatCard
-                icon={<Calendar className="w-5 h-5" />}
-                value={String(restDaysCount)}
-                label="Descanso"
-                sublabel={getPeriodLabel()}
-              />
+              {isPremium && (
+                <>
+                  <StatCard
+                    icon={<Activity className="w-5 h-5" />}
+                    value={String(advancedStats.totalSets)}
+                    label="Séries"
+                  />
+                  <StatCard
+                    icon={<Target className="w-5 h-5" />}
+                    value={String(advancedStats.totalReps)}
+                    label="Repetições"
+                  />
+                  <StatCard
+                    icon={<Calendar className="w-5 h-5" />}
+                    value={String(restDaysCount)}
+                    label="Descanso"
+                    sublabel={getPeriodLabel()}
+                  />
+                </>
+              )}
             </div>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
         </section>
 
-        {/* ========== CARDIO ========== */}
-        <section>
-          <SectionHeader icon={<Activity className="w-5 h-5" />} title="Cardio" />
-          
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Footprints className="w-4 h-4" />
-                    <span className="text-xs">Esteira</span>
-                  </div>
-                  <div className="text-lg font-bold text-foreground">
-                    {formatTime(cardioStats.esteiraTotalSeconds)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {cardioStats.esteiraTotalDistance.toFixed(1)} km
-                  </div>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Bike className="w-4 h-4" />
-                    <span className="text-xs">Bicicleta</span>
-                  </div>
-                  <div className="text-lg font-bold text-foreground">
-                    {formatTime(cardioStats.bicicletaTotalSeconds)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {cardioStats.bicicletaTotalDistance.toFixed(1)} km
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-primary/10 rounded-lg text-center">
-                  <div className="text-lg font-bold text-primary">
-                    {formatTime(cardioStats.esteiraTotalSeconds + cardioStats.bicicletaTotalSeconds)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Total Tempo</div>
-                </div>
-                <div className="p-3 bg-primary/10 rounded-lg text-center">
-                  <div className="text-lg font-bold text-primary">
-                    {(cardioStats.esteiraTotalDistance + cardioStats.bicicletaTotalDistance).toFixed(1)} km
-                  </div>
-                  <div className="text-xs text-muted-foreground">Total Distância</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+        {/* Premium banner for free users */}
+        {!isPremium && (
+          <PremiumBanner 
+            feature="Estatísticas Completas" 
+            message="🔒 Estatísticas completas disponíveis no Iron Trainer Premium"
+          />
+        )}
 
-        {/* ========== ABDOMINAIS ========== */}
-        <section>
-          <SectionHeader icon={<Target className="w-5 h-5" />} title="Abdominais" />
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="text-lg font-bold text-foreground">
-                    {abdominalStats.totalAbdominalSets}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Séries</div>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="text-lg font-bold text-foreground">
-                    {abdominalStats.totalAbdominalReps}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Reps</div>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="text-lg font-bold text-foreground">
-                    {formatTime(abdominalStats.totalAbdominalTimeSeconds)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Tempo</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* ========== RECORDES ========== */}
-        <section>
-          <SectionHeader icon={<Award className="w-5 h-5" />} title="Recordes Pessoais" />
-          
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              {Object.entries(personalRecords).length > 0 ? (
-                Object.entries(personalRecords)
-                  .sort((a, b) => b[1].weight - a[1].weight)
-                  .slice(0, 5)
-                  .map(([exercise, record], index) => (
-                    <div key={exercise} className={`flex justify-between items-center p-3 rounded-lg ${
-                      index === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-muted/30'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        {index === 0 && <Trophy className="w-4 h-4 text-primary" />}
-                        <span className="text-sm font-medium text-foreground">{exercise}</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-bold text-primary">
-                          {formatWeightCompact(record.weight)}kg × {record.reps}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {record.date}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-              ) : (
-                <p className="text-center text-muted-foreground py-4">
-                  Complete alguns treinos para ver seus recordes!
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* ========== GRÁFICOS ========== */}
-        <section>
-          <SectionHeader icon={<BarChart3 className="w-5 h-5" />} title="Distribuição Semanal" />
-          
-          <Card>
-            <CardContent className="p-4">
-              {distributionChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={distributionChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                    <XAxis 
-                      dataKey="day" 
-                      stroke="hsl(var(--muted-foreground))"
-                      style={{ fontSize: '11px' }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis 
-                      stroke="hsl(var(--muted-foreground))" 
-                      axisLine={false}
-                      tickLine={false}
-                      width={30}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                      }}
-                      labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
-                      formatter={(value: number, name: string, props: any) => [
-                        <span key="value">
-                          <strong>{value}</strong> treino{value > 1 ? 's' : ''} ({props.payload.percentage}%)
-                        </span>,
-                        null
-                      ]}
-                      labelFormatter={(label) => `${label}`}
-                    />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                      <LabelList 
-                        dataKey="percentage" 
-                        position="top" 
-                        formatter={(value: number) => `${value}%`}
-                        style={{ fill: 'hsl(var(--muted-foreground))', fontSize: '10px' }}
-                      />
-                      {distributionChartData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={entry.isBest ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.5)'}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  Complete alguns treinos para ver a distribuição!
-                </p>
-              )}
-              
-              {distributionChartData.some(d => d.isBest) && (
-                <div className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Trophy className="w-4 h-4 text-primary" />
-                  <span>
-                    Melhor dia: <strong className="text-foreground">
-                      {distributionChartData.find(d => d.isBest)?.fullDay}
-                    </strong>
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Top 5 Exercícios */}
-        <section>
-          <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="Top 5 Exercícios" />
-          
-          <Card>
-            <CardContent className="p-4">
-              {exerciseProgress.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={exerciseProgress} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                    <YAxis 
-                      dataKey="name" 
-                      type="category" 
-                      width={90}
-                      stroke="hsl(var(--muted-foreground))"
-                      style={{ fontSize: '11px' }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                      }}
-                      labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
-                      formatter={(value: number, name: string, props: any) => [
-                        <span key="value">
-                          Volume: <strong>{formatWeightCompact(value)}kg</strong><br />
-                          Sessões: <strong>{props.payload.sessions}</strong><br />
-                          Carga máx: <strong>{formatWeightCompact(props.payload.maxWeight)}kg</strong>
-                        </span>,
-                        null
-                      ]}
-                    />
-                    <Bar dataKey="totalVolume" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  Complete alguns treinos para ver o progresso!
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* ========== EVOLUÇÃO SEMANAL ========== */}
-        <section>
-          <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="Evolução por Dia" />
-          
-          <div className="space-y-3">
-            {volumeByDayOfWeek.length > 0 ? (
-              volumeByDayOfWeek.map((dayStats) => (
-                <Card 
-                  key={dayStats.day} 
-                  className="cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => setSelectedDayWorkouts({ day: dayStats.day, workouts: dayStats.workouts })}
-                >
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-foreground">{dayStats.day}</span>
-                      <div className="flex items-center gap-2">
-                        <TrendIcon value={dayStats.evolution} />
-                        <Badge 
-                          variant={dayStats.evolutionPercent >= 0 ? "default" : "destructive"}
-                          className="font-mono"
-                        >
-                          {dayStats.evolution >= 0 ? '+' : ''}{formatWeightCompact(dayStats.evolution)}kg
-                          <span className="ml-1 opacity-75">
-                            ({dayStats.evolutionPercent >= 0 ? '+' : ''}{dayStats.evolutionPercent.toFixed(0)}%)
-                          </span>
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-4 gap-2 text-xs">
-                      <div className="text-center p-2 bg-muted/30 rounded">
-                        <div className="font-medium text-foreground">{formatWeightCompact(dayStats.min)}kg</div>
-                        <div className="text-muted-foreground">Mín</div>
-                      </div>
-                      <div className="text-center p-2 bg-muted/30 rounded">
-                        <div className="font-medium text-foreground">{formatWeightCompact(dayStats.average)}kg</div>
-                        <div className="text-muted-foreground">Média</div>
-                      </div>
-                      <div className="text-center p-2 bg-muted/30 rounded">
-                        <div className="font-medium text-foreground">{formatWeightCompact(dayStats.max)}kg</div>
-                        <div className="text-muted-foreground">Máx</div>
-                      </div>
-                      <div className="text-center p-2 bg-primary/10 rounded">
-                        <div className="font-medium text-primary">{formatWeightCompact(dayStats.lastVolume)}kg</div>
-                        <div className="text-muted-foreground">Último</div>
-                      </div>
-                    </div>
-                    
-                    <div className="text-xs text-muted-foreground text-center pt-1 border-t border-border">
-                      {dayStats.count} treino{dayStats.count > 1 ? 's' : ''} • Toque para detalhes
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <Card>
-                <CardContent className="p-4">
-                  <p className="text-center text-muted-foreground py-4">
-                    Complete alguns treinos para ver a evolução!
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </section>
-
-        {/* ========== HISTÓRICO ========== */}
-        <section>
-          <SectionHeader icon={<Calendar className="w-5 h-5" />} title="Treinos Recentes" />
-          
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              {[...history].sort((a, b) => b.startTime - a.startTime).slice(0, 5).map((session) => {
-                const [year, month, day] = session.date.split('-');
-                const workoutDate = `${day}/${month}/${year}`;
-                const workoutTime = session.endTime 
-                  ? Math.round((session.endTime - session.startTime) / 60000)
-                  : 0;
-                
-                return (
-                  <div 
-                    key={session.id} 
-                    className="p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 hover:border-primary/30 transition-colors"
-                    onClick={() => setSelectedWorkoutDetails(session)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-foreground">
-                          {workoutDate}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {session.exercises[0]?.name ? 
-                            `${session.exercises[0].name.split(' ')[0]} e mais ${session.exercises.length - 1}` : 
-                            `${session.exercises.length} exercícios`}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant="outline" className="font-mono">
-                          {formatWeightCompact(session.totalVolume)}kg
-                        </Badge>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {workoutTime}min
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {history.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">
-                  Nenhum treino registrado ainda.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Treinos Não Realizados */}
-        {(() => {
-          const { start, end } = getPeriodRange();
-          const filteredMissedWorkouts = missedWorkouts.filter(missed => {
-            const missedDate = new Date(missed.date + 'T12:00:00').getTime();
-            if (start === null || end === null) return true;
-            return missedDate >= start && missedDate <= end;
-          });
-          
-          if (filteredMissedWorkouts.length === 0) return null;
-          
-          return (
+        {/* ========== SECTIONS ONLY FOR PREMIUM ========== */}
+        {isPremium && (
+          <>
+            {/* ========== CARDIO ========== */}
             <section>
-              <SectionHeader 
-                icon={<Calendar className="w-5 h-5" />} 
-                title="Treinos Não Realizados" 
-              />
+              <SectionHeader icon={<Activity className="w-5 h-5" />} title="Cardio" />
               
-              <Card className="border-warning-amber/30">
-                <CardContent className="p-4 space-y-3">
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {filteredMissedWorkouts
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .map((missed, idx) => {
-                        const [year, month, day] = missed.date.split('-');
-                        const formattedDate = `${day}/${month}/${year}`;
-                        return (
-                          <div key={idx} className="flex justify-between items-center p-3 bg-warning-amber/10 rounded-lg border border-warning-amber/20">
-                            <div>
-                              <div className="text-sm font-medium text-foreground">{formattedDate}</div>
-                              <div className="text-xs text-muted-foreground">{missed.dayOfWeek}</div>
-                            </div>
-                            <Badge variant="outline" className="border-warning-amber/50 text-warning-amber">
-                              Não realizado
-                            </Badge>
-                          </div>
-                        );
-                      })}
+              <Card>
+                <CardContent className="p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Footprints className="w-4 h-4" />
+                        <span className="text-xs">Esteira</span>
+                      </div>
+                      <div className="text-lg font-bold text-foreground">
+                        {formatTime(cardioStats.esteiraTotalSeconds)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {cardioStats.esteiraTotalDistance.toFixed(1)} km
+                      </div>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Bike className="w-4 h-4" />
+                        <span className="text-xs">Bicicleta</span>
+                      </div>
+                      <div className="text-lg font-bold text-foreground">
+                        {formatTime(cardioStats.bicicletaTotalSeconds)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {cardioStats.bicicletaTotalDistance.toFixed(1)} km
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center pt-2 border-t border-border">
-                    <span className="text-sm font-medium text-warning-amber">
-                      Total: {filteredMissedWorkouts.length} treino{filteredMissedWorkouts.length > 1 ? 's' : ''}
-                    </span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-primary/10 rounded-lg text-center">
+                      <div className="text-lg font-bold text-primary">
+                        {formatTime(cardioStats.esteiraTotalSeconds + cardioStats.bicicletaTotalSeconds)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Total Tempo</div>
+                    </div>
+                    <div className="p-3 bg-primary/10 rounded-lg text-center">
+                      <div className="text-lg font-bold text-primary">
+                        {(cardioStats.esteiraTotalDistance + cardioStats.bicicletaTotalDistance).toFixed(1)} km
+                      </div>
+                      <div className="text-xs text-muted-foreground">Total Distância</div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </section>
-          );
-        })()}
 
-        {/* ========== DANGER ZONE ========== */}
-        <section className="mt-12 pt-8 border-t-2 border-destructive/20">
-          <div className="bg-destructive/5 -mx-4 px-4 py-6 rounded-xl border border-destructive/20">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <AlertTriangle className="w-5 h-5 text-destructive" />
+            {/* ========== ABDOMINAIS ========== */}
+            <section>
+              <SectionHeader icon={<Target className="w-5 h-5" />} title="Abdominais" />
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center p-3 bg-muted/50 rounded-lg">
+                      <div className="text-lg font-bold text-foreground">
+                        {abdominalStats.totalAbdominalSets}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Séries</div>
+                    </div>
+                    <div className="text-center p-3 bg-muted/50 rounded-lg">
+                      <div className="text-lg font-bold text-foreground">
+                        {abdominalStats.totalAbdominalReps}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Reps</div>
+                    </div>
+                    <div className="text-center p-3 bg-muted/50 rounded-lg">
+                      <div className="text-lg font-bold text-foreground">
+                        {formatTime(abdominalStats.totalAbdominalTimeSeconds)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Tempo</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* ========== RECORDES ========== */}
+            <section>
+              <SectionHeader icon={<Award className="w-5 h-5" />} title="Recordes Pessoais" />
+              
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  {Object.entries(personalRecords).length > 0 ? (
+                    Object.entries(personalRecords)
+                      .sort((a, b) => b[1].weight - a[1].weight)
+                      .slice(0, 5)
+                      .map(([exercise, record], index) => (
+                        <div key={exercise} className={`flex justify-between items-center p-3 rounded-lg ${
+                          index === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-muted/30'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <Trophy className="w-4 h-4 text-primary" />}
+                            <span className="text-sm font-medium text-foreground">{exercise}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-primary">
+                              {formatWeightCompact(record.weight)}kg × {record.reps}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {record.date}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">
+                      Complete alguns treinos para ver seus recordes!
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* ========== GRÁFICOS ========== */}
+            <section>
+              <SectionHeader icon={<BarChart3 className="w-5 h-5" />} title="Distribuição Semanal" />
+              
+              <Card>
+                <CardContent className="p-4">
+                  {distributionChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={distributionChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis 
+                          dataKey="day" 
+                          stroke="hsl(var(--muted-foreground))"
+                          style={{ fontSize: '11px' }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis 
+                          stroke="hsl(var(--muted-foreground))" 
+                          axisLine={false}
+                          tickLine={false}
+                          width={30}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                          }}
+                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
+                          formatter={(value: number, name: string, props: any) => [
+                            <span key="value">
+                              <strong>{value}</strong> treino{value > 1 ? 's' : ''} ({props.payload.percentage}%)
+                            </span>,
+                            null
+                          ]}
+                          labelFormatter={(label) => `${label}`}
+                        />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                          <LabelList 
+                            dataKey="percentage" 
+                            position="top" 
+                            formatter={(value: number) => `${value}%`}
+                            style={{ fill: 'hsl(var(--muted-foreground))', fontSize: '10px' }}
+                          />
+                          {distributionChartData.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={entry.isBest ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.5)'}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">
+                      Complete alguns treinos para ver a distribuição!
+                    </p>
+                  )}
+                  
+                  {distributionChartData.some(d => d.isBest) && (
+                    <div className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Trophy className="w-4 h-4 text-primary" />
+                      <span>
+                        Melhor dia: <strong className="text-foreground">
+                          {distributionChartData.find(d => d.isBest)?.fullDay}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* Top 5 Exercícios */}
+            <section>
+              <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="Top 5 Exercícios" />
+              
+              <Card>
+                <CardContent className="p-4">
+                  {exerciseProgress.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={exerciseProgress} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                        <XAxis type="number" stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
+                        <YAxis 
+                          dataKey="name" 
+                          type="category" 
+                          width={90}
+                          stroke="hsl(var(--muted-foreground))"
+                          style={{ fontSize: '11px' }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                          }}
+                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
+                          formatter={(value: number, name: string, props: any) => [
+                            <span key="value">
+                              Volume: <strong>{formatWeightCompact(value)}kg</strong><br />
+                              Sessões: <strong>{props.payload.sessions}</strong><br />
+                              Carga máx: <strong>{formatWeightCompact(props.payload.maxWeight)}kg</strong>
+                            </span>,
+                            null
+                          ]}
+                        />
+                        <Bar dataKey="totalVolume" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">
+                      Complete alguns treinos para ver o progresso!
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* ========== EVOLUÇÃO SEMANAL ========== */}
+            <section>
+              <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="Evolução por Dia" />
+              
+              <div className="space-y-3">
+                {volumeByDayOfWeek.length > 0 ? (
+                  volumeByDayOfWeek.map((dayStats) => (
+                    <Card 
+                      key={dayStats.day} 
+                      className="cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => setSelectedDayWorkouts({ day: dayStats.day, workouts: dayStats.workouts })}
+                    >
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-foreground">{dayStats.day}</span>
+                          <div className="flex items-center gap-2">
+                            <TrendIcon value={dayStats.evolution} />
+                            <Badge 
+                              variant={dayStats.evolutionPercent >= 0 ? "default" : "destructive"}
+                              className="font-mono"
+                            >
+                              {dayStats.evolution >= 0 ? '+' : ''}{formatWeightCompact(dayStats.evolution)}kg
+                              <span className="ml-1 opacity-75">
+                                ({dayStats.evolutionPercent >= 0 ? '+' : ''}{dayStats.evolutionPercent.toFixed(0)}%)
+                              </span>
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-4 gap-2 text-xs">
+                          <div className="text-center p-2 bg-muted/30 rounded">
+                            <div className="font-medium text-foreground">{formatWeightCompact(dayStats.min)}kg</div>
+                            <div className="text-muted-foreground">Mín</div>
+                          </div>
+                          <div className="text-center p-2 bg-muted/30 rounded">
+                            <div className="font-medium text-foreground">{formatWeightCompact(dayStats.average)}kg</div>
+                            <div className="text-muted-foreground">Média</div>
+                          </div>
+                          <div className="text-center p-2 bg-muted/30 rounded">
+                            <div className="font-medium text-foreground">{formatWeightCompact(dayStats.max)}kg</div>
+                            <div className="text-muted-foreground">Máx</div>
+                          </div>
+                          <div className="text-center p-2 bg-primary/10 rounded">
+                            <div className="font-medium text-primary">{formatWeightCompact(dayStats.lastVolume)}kg</div>
+                            <div className="text-muted-foreground">Último</div>
+                          </div>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground text-center pt-1 border-t border-border">
+                          {dayStats.count} treino{dayStats.count > 1 ? 's' : ''} • Toque para detalhes
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-center text-muted-foreground py-4">
+                        Complete alguns treinos para ver a evolução!
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-destructive">Zona de Perigo</h2>
-                <p className="text-xs text-muted-foreground">Ações irreversíveis</p>
-              </div>
-            </div>
-            
-            <p className="text-sm text-muted-foreground mb-4">
-              Resetar todos os dados irá apagar <strong>permanentemente</strong> todo o histórico de treinos, estatísticas, conquistas e progresso.
-            </p>
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" className="w-full">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Resetar Todos os Dados
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2">
+            </section>
+
+            {/* ========== HISTÓRICO ========== */}
+            <section>
+              <SectionHeader icon={<Calendar className="w-5 h-5" />} title="Treinos Recentes" />
+              
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  {[...history].sort((a, b) => b.startTime - a.startTime).slice(0, 5).map((session) => {
+                    const [year, month, day] = session.date.split('-');
+                    const workoutDate = `${day}/${month}/${year}`;
+                    const workoutTime = session.endTime 
+                      ? Math.round((session.endTime - session.startTime) / 60000)
+                      : 0;
+                    
+                    return (
+                      <div 
+                        key={session.id} 
+                        className="p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 hover:border-primary/30 transition-colors"
+                        onClick={() => setSelectedWorkoutDetails(session)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-foreground">
+                              {workoutDate}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {session.exercises[0]?.name ? 
+                                `${session.exercises[0].name.split(' ')[0]} e mais ${session.exercises.length - 1}` : 
+                                `${session.exercises.length} exercícios`}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant="outline" className="font-mono">
+                              {formatWeightCompact(session.totalVolume)}kg
+                            </Badge>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {workoutTime}min
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {history.length === 0 && (
+                    <p className="text-center text-muted-foreground py-4">
+                      Nenhum treino registrado ainda.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* Treinos Não Realizados */}
+            {(() => {
+              const { start, end } = getPeriodRange();
+              const filteredMissedWorkouts = missedWorkouts.filter(missed => {
+                const missedDate = new Date(missed.date + 'T12:00:00').getTime();
+                if (start === null || end === null) return true;
+                return missedDate >= start && missedDate <= end;
+              });
+              
+              if (filteredMissedWorkouts.length === 0) return null;
+              
+              return (
+                <section>
+                  <SectionHeader 
+                    icon={<Calendar className="w-5 h-5" />} 
+                    title="Treinos Não Realizados" 
+                  />
+                  
+                  <Card className="border-warning-amber/30">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        {filteredMissedWorkouts
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((missed, idx) => {
+                            const [year, month, day] = missed.date.split('-');
+                            const formattedDate = `${day}/${month}/${year}`;
+                            return (
+                              <div key={idx} className="flex justify-between items-center p-3 bg-warning-amber/10 rounded-lg border border-warning-amber/20">
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">{formattedDate}</div>
+                                  <div className="text-xs text-muted-foreground">{missed.dayOfWeek}</div>
+                                </div>
+                                <Badge variant="outline" className="border-warning-amber/50 text-warning-amber">
+                                  Não realizado
+                                </Badge>
+                              </div>
+                            );
+                          })}
+                      </div>
+                      <div className="text-center pt-2 border-t border-border">
+                        <span className="text-sm font-medium text-warning-amber">
+                          Total: {filteredMissedWorkouts.length} treino{filteredMissedWorkouts.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </section>
+              );
+            })()}
+
+            {/* ========== DANGER ZONE ========== */}
+            <section className="mt-12 pt-8 border-t-2 border-destructive/20">
+              <div className="bg-destructive/5 -mx-4 px-4 py-6 rounded-xl border border-destructive/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-destructive/10">
                     <AlertTriangle className="w-5 h-5 text-destructive" />
-                    Confirmar Reset de Dados
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação <strong>não pode ser desfeita</strong>. Todos os seus treinos, estatísticas e progresso serão permanentemente removidos.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleResetData}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Resetar Dados
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </section>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-destructive">Zona de Perigo</h2>
+                    <p className="text-xs text-muted-foreground">Ações irreversíveis</p>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  Resetar todos os dados irá apagar <strong>permanentemente</strong> todo o histórico de treinos, estatísticas, conquistas e progresso.
+                </p>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="w-full">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Resetar Todos os Dados
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-destructive" />
+                        Confirmar Reset de Dados
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação <strong>não pode ser desfeita</strong>. Todos os seus treinos, estatísticas e progresso serão permanentemente removidos.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleResetData}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Resetar Dados
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </section>
+          </>
+        )}
 
         {/* Dialog for Day Workouts */}
         <Dialog open={!!selectedDayWorkouts} onOpenChange={() => setSelectedDayWorkouts(null)}>

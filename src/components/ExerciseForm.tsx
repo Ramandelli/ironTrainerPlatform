@@ -5,8 +5,9 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Textarea } from './ui/textarea';
 import { Checkbox } from './ui/checkbox';
-import { X } from 'lucide-react';
+import { X, Lock } from 'lucide-react';
 import { Exercise } from '../types/workout';
+import { usePremium } from '../contexts/PremiumContext';
 
 interface ExerciseFormProps {
   exercise?: Exercise;
@@ -19,6 +20,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
   onSave,
   onCancel
 }) => {
+  const { isPremium, openPremiumModal } = usePremium();
   const [formData, setFormData] = useState({
     name: exercise?.name || '',
     sets: exercise?.sets || 3,
@@ -133,16 +135,29 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
             />
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="hasDropset"
-              checked={formData.hasDropset}
-              onCheckedChange={(checked) => handleChange('hasDropset', checked)}
-            />
-            <Label htmlFor="hasDropset" className="text-sm font-medium">
-              Tem dropset na última série
-            </Label>
-          </div>
+          {isPremium ? (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="hasDropset"
+                checked={formData.hasDropset}
+                onCheckedChange={(checked) => handleChange('hasDropset', checked)}
+              />
+              <Label htmlFor="hasDropset" className="text-sm font-medium">
+                Tem dropset na última série
+              </Label>
+            </div>
+          ) : (
+            <div 
+              className="flex items-center space-x-2 opacity-50 cursor-pointer"
+              onClick={() => openPremiumModal('Dropsets')}
+            >
+              <Checkbox id="hasDropset" checked={false} disabled />
+              <Label htmlFor="hasDropset" className="text-sm font-medium">
+                Tem dropset na última série
+              </Label>
+              <Lock className="w-3 h-3 text-primary" />
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <Button type="submit" className="flex-1">

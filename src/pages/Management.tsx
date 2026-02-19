@@ -23,8 +23,10 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  Calendar
+  Calendar,
+  Lock
 } from 'lucide-react';
+import { usePremium } from '../contexts/PremiumContext';
 
 interface ManagementProps {
   onBack: () => void;
@@ -56,6 +58,7 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
   } | null>(null);
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const { isPremium, openPremiumModal } = usePremium();
 
   useEffect(() => {
     loadWorkouts();
@@ -352,20 +355,22 @@ const getWorkoutId = (day: string) => {
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex gap-2 flex-1">
               <Button 
-                onClick={handleExportWorkouts} 
+                onClick={isPremium ? handleExportWorkouts : () => openPremiumModal('Exportar Treinos')} 
                 size="sm" 
                 variant="outline"
                 className="flex-1 sm:flex-none h-10 active:scale-95 transition-transform"
               >
+                {!isPremium && <Lock className="w-3 h-3 mr-1" />}
                 <Download className="w-4 h-4 mr-2" />
                 Exportar
               </Button>
               <Button 
-                onClick={() => fileInputRef.current?.click()} 
+                onClick={isPremium ? () => fileInputRef.current?.click() : () => openPremiumModal('Importar Treinos')} 
                 size="sm" 
                 variant="outline"
                 className="flex-1 sm:flex-none h-10 active:scale-95 transition-transform"
               >
+                {!isPremium && <Lock className="w-3 h-3 mr-1" />}
                 <Upload className="w-4 h-4 mr-2" />
                 Importar
               </Button>
@@ -456,7 +461,7 @@ const getWorkoutId = (day: string) => {
                           isCustom={customWorkoutManager.isCustomWorkout(workout.id)}
                           isPersonalized={!!customWorkoutManager.getBaseWorkoutId(workout.id)}
                           onEdit={() => handleEditWorkout(workout)}
-                          onDuplicate={() => handleDuplicateWorkout(workout)}
+                          onDuplicate={isPremium ? () => handleDuplicateWorkout(workout) : () => openPremiumModal('Duplicar Treinos')}
                           onDelete={() => setDeleteConfirm(workout)}
                         />
                       ))}
@@ -488,7 +493,7 @@ const getWorkoutId = (day: string) => {
                         isCustom={customWorkoutManager.isCustomWorkout(workout.id)}
                         isPersonalized={!!customWorkoutManager.getBaseWorkoutId(workout.id)}
                         onEdit={() => handleEditWorkout(workout)}
-                        onDuplicate={() => handleDuplicateWorkout(workout)}
+                        onDuplicate={isPremium ? () => handleDuplicateWorkout(workout) : () => openPremiumModal('Duplicar Treinos')}
                         onDelete={() => setDeleteConfirm(workout)}
                       />
                     ))}
@@ -507,7 +512,7 @@ const getWorkoutId = (day: string) => {
                 isCustom={customWorkoutManager.isCustomWorkout(workout.id)}
                 isPersonalized={!!customWorkoutManager.getBaseWorkoutId(workout.id)}
                 onEdit={() => handleEditWorkout(workout)}
-                onDuplicate={() => handleDuplicateWorkout(workout)}
+                onDuplicate={isPremium ? () => handleDuplicateWorkout(workout) : () => openPremiumModal('Duplicar Treinos')}
                 onDelete={() => setDeleteConfirm(workout)}
               />
             ))}

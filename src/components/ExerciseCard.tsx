@@ -22,6 +22,7 @@ import {
 import { ExerciseForm } from './ExerciseForm';
 import { formatWeightCompact } from '../utils/formatters';
 import { hapticSetComplete, hapticExerciseComplete, hapticSkip } from '../utils/haptics';
+import { usePremium } from '../contexts/PremiumContext';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -49,6 +50,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const [suggestion, setSuggestion] = useState<ExerciseSuggestion | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  const { isPremium } = usePremium();
 
   useEffect(() => {
     if (showSuggestion && !hideWeightInputs) {
@@ -86,8 +88,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     const reps = parseInt(currentSetInputs.reps);
     
     if (reps > 0) {
-      // Trigger haptic feedback
-      hapticSetComplete();
+      if (isPremium) hapticSetComplete();
       
       const isLastSet = exercise.currentSet === exercise.sets - 1;
       if (isLastSet && exercise.hasDropset) {
@@ -153,12 +154,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   };
 
   const handleExerciseComplete = () => {
-    hapticExerciseComplete();
+    if (isPremium) hapticExerciseComplete();
     onExerciseComplete();
   };
 
   const handleExerciseSkip = () => {
-    hapticSkip();
+    if (isPremium) hapticSkip();
     onExerciseSkip?.();
   };
 
