@@ -8,8 +8,9 @@ import { Badge } from './ui/badge';
 import { ExerciseForm } from './ExerciseForm';
 import { AbdominalForm } from './AbdominalForm';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
-import { Plus, Edit, Trash2, GripVertical, X } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, X, Lock } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types/workout';
+import { usePremium } from '../contexts/PremiumContext';
 
 interface WorkoutFormProps {
   workout?: WorkoutDay;
@@ -43,6 +44,7 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
   onSave,
   onCancel
 }) => {
+  const { isPremium, openPremiumModal } = usePremium();
   
   const mapDayToSelectValue = (dayName: string) => {
     const dayMapping: Record<string, string> = {
@@ -461,61 +463,64 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
       </div>
 
       {/* Abdominal Exercises */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Exercícios Abdominais</h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAbdominalForm(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Abdominal
-          </Button>
-        </div>
+      {isPremium ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Exercícios Abdominais</h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAbdominalForm(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Abdominal
+            </Button>
+          </div>
 
-        {formData.abdominal.map((exercise, index) => (
-          <Card key={exercise.id} className="border-border border-dashed">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="font-medium">{exercise.name}</h4>
-                  <div className="flex gap-4 text-sm text-muted-foreground">
-                    <span>{exercise.sets} séries</span>
-                    <span>{exercise.targetReps}</span>
+          {formData.abdominal.map((exercise, index) => (
+            <Card key={exercise.id} className="border-border border-dashed">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{exercise.name}</h4>
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      <span>{exercise.sets} séries</span>
+                      <span>{exercise.targetReps}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setEditingExercise({ exercise, index, type: 'abdominal' })}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setDeleteConfirm({ index, type: 'abdominal' })}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditingExercise({ exercise, index, type: 'abdominal' })}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDeleteConfirm({ index, type: 'abdominal' })}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))}
 
-        {showAbdominalForm && (
-          <AbdominalForm
-            onSave={(exerciseData) => addExercise(exerciseData, true)}
-            onCancel={() => setShowAbdominalForm(false)}
-          />
-        )}
-      </div>
+          {showAbdominalForm && (
+            <AbdominalForm
+              onSave={(exerciseData) => addExercise(exerciseData, true)}
+              onCancel={() => setShowAbdominalForm(false)}
+            />
+          )}
+        </div>
+      ) : (
+        <div 
+          className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
+          onClick={() => openPremiumModal('Exercícios Abdominais Separados')}
+        >
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-primary" />
+            <span className="text-sm text-primary font-medium">Exercícios Abdominais</span>
+          </div>
+          <Badge variant="outline" className="border-primary/40 text-primary text-xs">Premium</Badge>
+        </div>
+      )}
 
       {/* Submit Buttons */}
       <div className="flex gap-3">

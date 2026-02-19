@@ -22,15 +22,18 @@ import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../uti
 import { WarmupCard } from '../components/WarmupCard';
 import { WorkoutProgressBar } from '../components/WorkoutProgressBar';
 import { WorkoutCompletionScreen } from '../components/WorkoutCompletionScreen';
-import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame, Trophy } from 'lucide-react';
+import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame, Trophy, Lock } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { AchievementModal } from '../components/AchievementModal';
 import { ApplyChangesDialog } from '../components/ApplyChangesDialog';
 import { AddExerciseDuringWorkout } from '../components/AddExerciseDuringWorkout';
+import { usePremium } from '../contexts/PremiumContext';
+import { PremiumBanner } from '../components/PremiumBadge';
 
 const Index = () => {
   const { toast } = useToast();
+  const { isPremium, openPremiumModal } = usePremium();
   const {
     currentSession,
     timerState,
@@ -279,7 +282,9 @@ const Index = () => {
 
   const todayWorkoutId = getTodayWorkoutId();
   const todayWorkout = findTodaysWorkout();
-  const todayWorkouts = findTodaysWorkouts();
+  const allTodayWorkouts = findTodaysWorkouts();
+  // Free users: only 1 workout per day
+  const todayWorkouts = isPremium ? allTodayWorkouts : allTodayWorkouts.slice(0, 1);
 
   const handleStartWorkout = (workoutDayId: string) => {
     const workoutDay = workoutPlan.find(day => day.id === workoutDayId);
@@ -495,11 +500,11 @@ const Index = () => {
       return 'exercises';
     }
 
-    // Quarta fase: Exercícios abdominais (somente se existem exercícios e não estão completos)
+    // Quarta fase: Exercícios abdominais (somente Premium e se existem exercícios)
     const hasAbdominalExercises = workoutDay.abdominal && workoutDay.abdominal.length > 0;
     const sessionHasAbdominal = currentSession.abdominal && currentSession.abdominal.length > 0;
     
-    if (hasAbdominalExercises && sessionHasAbdominal && !abdominalCompleted) {
+    if (isPremium && hasAbdominalExercises && sessionHasAbdominal && !abdominalCompleted) {
       return 'abdominal';
     }
 
@@ -723,14 +728,16 @@ const Index = () => {
           onCancel={handleApplyChangesCancel}
         />
 
-        <AddExerciseDuringWorkout
-          open={showAddExercise}
-          onOpenChange={setShowAddExercise}
-          onAdd={(exercise) => {
-            addExercise(exercise);
-            setShowAddExercise(false);
-          }}
-        />
+        {isPremium && (
+          <AddExerciseDuringWorkout
+            open={showAddExercise}
+            onOpenChange={setShowAddExercise}
+            onAdd={(exercise) => {
+              addExercise(exercise);
+              setShowAddExercise(false);
+            }}
+          />
+        )}
 
         {timerState && (
           <Timer
@@ -827,13 +834,15 @@ const Index = () => {
             <>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-foreground uppercase">Exercícios</h2>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowAddExercise(true)}
-                >
-                  + Adicionar
-                </Button>
+                {isPremium ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowAddExercise(true)}
+                  >
+                    + Adicionar
+                  </Button>
+                ) : null}
               </div>
               {currentSession.exercises.map((exercise, index) => {
                 const isExerciseActive = nextExercise?.id === exercise.id;
@@ -849,9 +858,10 @@ const Index = () => {
                       onSetComplete={(setIndex, setData) => handleSetComplete(exercise.id, setIndex, setData)}
                       onExerciseComplete={() => handleExerciseComplete(exercise.id)}
                       onExerciseSkip={() => skipExercise(exercise.id)}
-                      onExerciseUpdate={(updates) => updateExercise(exercise.id, updates)}
+                      onExerciseUpdate={isPremium ? (updates) => updateExercise(exercise.id, updates) : undefined}
                       isActive={isExerciseActive}
                       isFuture={isFutureExercise}
+                      showSuggestion={isPremium}
                     />
                   </div>
                 );
@@ -859,7 +869,7 @@ const Index = () => {
             </>
           )}
 
-          {workoutPhase === 'abdominal' && currentSession.abdominal && currentSession.abdominal.length > 0 && (
+          {workoutPhase === 'abdominal' && currentSession.abdominal && currentSession.abdominal.length > 0 && isPremium && (
             <div className="space-y-4 mt-8">
               <div className="text-center">
                 <h2 className="text-xl font-bold text-foreground mb-2 uppercase">Exercícios Abdominais</h2>
@@ -968,11 +978,24 @@ const Index = () => {
           )}
 
           {workoutPhase === 'finished' && (
-            <WorkoutCompletionScreen
-              onFinish={handleFinishWorkout}
-              workoutDuration={currentTime}
-              exercisesCompleted={completedExercises}
-            />
+            isPremium ? (
+              <WorkoutCompletionScreen
+                onFinish={handleFinishWorkout}
+                workoutDuration={currentTime}
+                exercisesCompleted={completedExercises}
+              />
+            ) : (
+              <div className="text-center space-y-4 py-8">
+                <div className="bg-success/20 rounded-full p-4 inline-block">
+                  <Dumbbell className="w-12 h-12 text-success" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground">Treino Concluído!</h2>
+                <p className="text-muted-foreground">Bom trabalho! Continue assim.</p>
+                <Button variant="success" className="w-full h-12 text-lg" onClick={handleFinishWorkout}>
+                  Finalizar e Salvar
+                </Button>
+              </div>
+            )
           )}
         </div>
       </div>
@@ -992,6 +1015,28 @@ const Index = () => {
   }
 
   if (currentView === 'achievements') {
+    if (!isPremium) {
+      return (
+        <div className="min-h-screen bg-background p-4">
+          <div className="max-w-md mx-auto text-center py-16 space-y-6">
+            <div className="p-6 rounded-full bg-primary/10 inline-block">
+              <Lock className="w-12 h-12 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">Conquistas Premium</h2>
+            <p className="text-muted-foreground">
+              A aba de conquistas é exclusiva do Iron Trainer Premium. 
+              Desbloqueie para acompanhar suas medalhas e progresso!
+            </p>
+            <Button onClick={() => openPremiumModal('Aba de Conquistas')}>
+              Saiba mais sobre o Premium
+            </Button>
+            <Button variant="ghost" onClick={handleBackToHome}>
+              Voltar
+            </Button>
+          </div>
+        </div>
+      );
+    }
     return <Achievements onBack={handleBackToHome} />;
   }
 
@@ -1098,6 +1143,12 @@ const Index = () => {
                   isCompleted={isTodayWorkoutCompleted(workout.id)}
                 />
               ))}
+              {!isPremium && allTodayWorkouts.length > 1 && (
+                <PremiumBanner 
+                  feature="Múltiplos Treinos por Dia"
+                  message={`🔒 +${allTodayWorkouts.length - 1} treino(s) disponível(is) no Premium`}
+                />
+              )}
             </div>
           </div>
         )}
@@ -1147,11 +1198,13 @@ const Index = () => {
                 variant="ghost"
                 size="sm"
                 onClick={handleNavigateToAchievements}
-                className="flex flex-col items-center gap-1 h-auto py-2"
+                className="flex flex-col items-center gap-1 h-auto py-2 relative"
               >
                 <Trophy className="w-5 h-5" />
                 <span className="text-xs">Conquistas</span>
+                {!isPremium && <Lock className="w-3 h-3 absolute top-1 right-1 text-primary" />}
               </Button>
+              
               
               <Button
                 variant="ghost"
