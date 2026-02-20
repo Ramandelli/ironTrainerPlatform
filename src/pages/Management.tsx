@@ -81,7 +81,16 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
     }
   };
 
+  // Check if all days already have a workout (free users limited to 1 per day)
+  const allDaysHaveWorkout = !isPremium && DAY_ORDER.every(day => 
+    allWorkouts.some(w => w.day === day)
+  );
+
   const handleCreateWorkout = () => {
+    if (!isPremium && allDaysHaveWorkout) {
+      openPremiumModal('Múltiplos Treinos por Dia');
+      return;
+    }
     setEditingWorkout(null);
     setShowWorkoutForm(true);
   };
@@ -119,6 +128,15 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
       ...workoutData,
       id: workoutData.id || getWorkoutId(workoutData.day) 
     };
+
+    // Free users: block if day already has a workout (and it's not editing the same one)
+    if (!isPremium && !editingWorkout) {
+      const dayAlreadyHasWorkout = allWorkouts.some(w => w.day === workout.day);
+      if (dayAlreadyHasWorkout) {
+        openPremiumModal('Múltiplos Treinos por Dia');
+        return;
+      }
+    }
 
     await customWorkoutManager.saveWorkout(workout);
     await loadWorkouts();
@@ -379,8 +397,13 @@ const getWorkoutId = (day: string) => {
               onClick={handleCreateWorkout} 
               size="sm"
               className="h-10 active:scale-95 transition-transform"
+              variant={!isPremium && allDaysHaveWorkout ? "outline" : "default"}
             >
-              <Plus className="w-4 h-4 mr-2" />
+              {!isPremium && allDaysHaveWorkout ? (
+                <Lock className="w-4 h-4 mr-2" />
+              ) : (
+                <Plus className="w-4 h-4 mr-2" />
+              )}
               Novo Treino
             </Button>
           </div>
