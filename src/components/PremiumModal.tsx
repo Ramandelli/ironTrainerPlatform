@@ -12,9 +12,14 @@ const FEATURE_ICONS: Record<string, React.ReactNode> = {
 };
 
 export const PremiumModal: React.FC = () => {
-  const { showPremiumModal, premiumFeature, closePremiumModal } = usePremium();
+  const { showPremiumModal, premiumFeature, closePremiumModal, startPremiumPurchase } = usePremium();
 
   const icon = FEATURE_ICONS[premiumFeature] || FEATURE_ICONS['default'];
+
+  const handlePurchase = async () => {
+    closePremiumModal();
+    await startPremiumPurchase();
+  };
 
   return (
     <Dialog open={showPremiumModal} onOpenChange={closePremiumModal}>
@@ -64,9 +69,9 @@ export const PremiumModal: React.FC = () => {
             ))}
           </div>
 
-          <Button className="w-full" size="lg" disabled>
+          <Button className="w-full" size="lg" onClick={handlePurchase}>
             <Crown className="w-4 h-4 mr-2" />
-            Em breve
+            Comprar Premium
           </Button>
           <Button variant="ghost" className="w-full" onClick={closePremiumModal}>
             Continuar com versão gratuita
