@@ -81,13 +81,11 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
     }
   };
 
-  // Check if all days already have a workout (free users limited to 1 per day)
-  const allDaysHaveWorkout = !isPremium && DAY_ORDER.every(day => 
-    allWorkouts.some(w => w.day === day)
-  );
+  // Free users: only 1 workout total
+  const hasReachedFreeLimit = !isPremium && allWorkouts.length >= 1;
 
   const handleCreateWorkout = () => {
-    if (!isPremium && allDaysHaveWorkout) {
+    if (hasReachedFreeLimit) {
       openPremiumModal('Múltiplos Treinos por Dia');
       return;
     }
@@ -129,13 +127,10 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
       id: workoutData.id || getWorkoutId(workoutData.day) 
     };
 
-    // Free users: block if day already has a workout (and it's not editing the same one)
-    if (!isPremium && !editingWorkout) {
-      const dayAlreadyHasWorkout = allWorkouts.some(w => w.day === workout.day);
-      if (dayAlreadyHasWorkout) {
-        openPremiumModal('Múltiplos Treinos por Dia');
-        return;
-      }
+    // Free users: only 1 workout allowed
+    if (!isPremium && !editingWorkout && allWorkouts.length >= 1) {
+      openPremiumModal('Múltiplos Treinos');
+      return;
     }
 
     await customWorkoutManager.saveWorkout(workout);
@@ -397,9 +392,9 @@ const getWorkoutId = (day: string) => {
               onClick={handleCreateWorkout} 
               size="sm"
               className="h-10 active:scale-95 transition-transform"
-              variant={!isPremium && allDaysHaveWorkout ? "outline" : "default"}
+              variant={hasReachedFreeLimit ? "outline" : "default"}
             >
-              {!isPremium && allDaysHaveWorkout ? (
+              {hasReachedFreeLimit ? (
                 <Lock className="w-4 h-4 mr-2" />
               ) : (
                 <Plus className="w-4 h-4 mr-2" />
