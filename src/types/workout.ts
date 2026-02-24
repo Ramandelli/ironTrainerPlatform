@@ -28,6 +28,7 @@ export interface SetData {
   leftSideCompleted?: boolean; 
   rightSideCompleted?: boolean; 
   dropsetData?: DropsetData[];
+  isEdit?: boolean;
 }
 
 export interface DropsetData {

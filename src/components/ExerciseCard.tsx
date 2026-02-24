@@ -189,7 +189,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         ...existingData,
         weight: weight > 0 ? weight : undefined,
         reps,
-        completed: true
+        completed: true,
+        isEdit: true
       });
     }
     setEditingSetIndex(null);
