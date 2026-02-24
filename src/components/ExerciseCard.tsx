@@ -63,6 +63,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     reps: ''
   });
 
+  const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
+  const [editSetInputs, setEditSetInputs] = useState<{ weight: string; reps: string }>({
+    weight: '',
+    reps: ''
+  });
+
   const loadSuggestion = async () => {
     try {
       const history = await storage.loadWorkoutHistory();
@@ -161,6 +167,36 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const handleExerciseSkip = () => {
     if (isPremium) hapticSkip();
     onExerciseSkip?.();
+  };
+
+  const handleStartEditSet = (index: number) => {
+    const setData = exercise.setData[index];
+    if (!setData?.completed) return;
+    setEditingSetIndex(index);
+    setEditSetInputs({
+      weight: setData.weight?.toString() || '',
+      reps: setData.reps?.toString() || ''
+    });
+  };
+
+  const handleSaveEditSet = () => {
+    if (editingSetIndex === null) return;
+    const reps = parseInt(editSetInputs.reps);
+    if (reps > 0) {
+      const weight = parseFloat(editSetInputs.weight) || 0;
+      const existingData = exercise.setData[editingSetIndex];
+      onSetComplete(editingSetIndex, {
+        ...existingData,
+        weight: weight > 0 ? weight : undefined,
+        reps,
+        completed: true
+      });
+    }
+    setEditingSetIndex(null);
+  };
+
+  const handleCancelEditSet = () => {
+    setEditingSetIndex(null);
   };
 
   const completedSets = exercise.setData.filter(set => set.completed).length;
@@ -291,25 +327,60 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 </div>
                 
                 {isCompleted ? (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {setData.weight && (
-                        <span className="flex items-center gap-1">
-                          <Weight className="w-4 h-4" />
-                          {formatWeightCompact(setData.weight)}kg
-                        </span>
+                  editingSetIndex === index ? (
+                    <div className="flex items-center gap-2">
+                      {!hideWeightInputs && (
+                        <Input
+                          type="number"
+                          placeholder="Peso"
+                          value={editSetInputs.weight}
+                          onChange={(e) => setEditSetInputs(prev => ({ ...prev, weight: e.target.value }))}
+                          className="w-20 h-8 text-sm"
+                          step="0.5"
+                          min="0"
+                        />
                       )}
-                      <span>{setData.reps} reps</span>
+                      <Input
+                        type="number"
+                        placeholder="Reps"
+                        value={editSetInputs.reps}
+                        onChange={(e) => setEditSetInputs(prev => ({ ...prev, reps: e.target.value }))}
+                        className="w-20 h-8 text-sm"
+                        min="1"
+                      />
+                      <Button variant="ghost" size="sm" className="h-8 px-2 text-success" onClick={handleSaveEditSet}>
+                        <CheckCircle className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground" onClick={handleCancelEditSet}>
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
-                    {setData.dropsetData && setData.dropsetData.length > 0 && (
-                      <div className="text-xs text-iron-orange">
-                        <span className="flex items-center gap-1">
-                          <Zap className="w-3 h-3" />
-                          Dropsets: {setData.dropsetData.map(drop => `${formatWeightCompact(drop.weight)}kg×${drop.reps}`).join(', ')}
-                        </span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          {setData.weight && (
+                            <span className="flex items-center gap-1">
+                              <Weight className="w-4 h-4" />
+                              {formatWeightCompact(setData.weight)}kg
+                            </span>
+                          )}
+                          <span>{setData.reps} reps</span>
+                        </div>
+                        {setData.dropsetData && setData.dropsetData.length > 0 && (
+                          <div className="text-xs text-iron-orange">
+                            <span className="flex items-center gap-1">
+                              <Zap className="w-3 h-3" />
+                              Dropsets: {setData.dropsetData.map(drop => `${formatWeightCompact(drop.weight)}kg×${drop.reps}`).join(', ')}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                      <Button variant="ghost" size="sm" className="h-7 px-1.5" onClick={() => handleStartEditSet(index)}>
+                        <Pencil className="w-3 h-3 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  )
                 ) : isSkipped ? (
                   <span className="text-sm text-muted-foreground italic">Pulado</span>
                 ) : isCurrentSet ? (
