@@ -18,11 +18,11 @@ import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { restDayManager } from '../utils/restDays';
 import { missedWorkoutManager } from '../utils/missedWorkouts';
-import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise } from '../utils/workoutHelpers';
+import { getTodayWorkoutId, calculateWorkoutTime, getNextExercise, calculateTotalVolume } from '../utils/workoutHelpers';
 import { WarmupCard } from '../components/WarmupCard';
 import { WorkoutProgressBar } from '../components/WorkoutProgressBar';
 import { WorkoutCompletionScreen } from '../components/WorkoutCompletionScreen';
-import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame, Trophy, Lock } from 'lucide-react';
+import { Clock, TrendingUp, Calendar, Dumbbell, BarChart3, X, Settings, Home, Flame, Trophy, Lock, CheckCircle, Zap, Crown } from 'lucide-react';
 import { WorkoutStats } from '../types/workout';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { AchievementModal } from '../components/AchievementModal';
@@ -988,13 +988,62 @@ const Index = () => {
                 exercisesCompleted={completedExercises}
               />
             ) : (
-              <div className="text-center space-y-4 py-8">
-                <div className="bg-success/20 rounded-full p-4 inline-block">
-                  <Dumbbell className="w-12 h-12 text-success" />
+              <div className="text-center space-y-6 py-8 animate-fade-in">
+                <div className="relative inline-block">
+                  <div className="absolute inset-0 bg-success/20 rounded-full animate-ping" />
+                  <div className="relative bg-gradient-to-br from-success to-success/80 rounded-full p-6 shadow-lg">
+                    <CheckCircle className="w-16 h-16 text-white" />
+                  </div>
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">Treino Concluído!</h2>
-                <p className="text-muted-foreground">Bom trabalho! Continue assim.</p>
-                <Button variant="success" className="w-full h-12 text-lg" onClick={handleFinishWorkout}>
+
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-bold text-foreground">Treino Concluído!</h2>
+                  <p className="text-xl text-iron-orange font-semibold">Bom trabalho! 💪</p>
+                </div>
+
+                {/* Stats com teaser premium */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-card border border-border rounded-xl p-3 space-y-1">
+                    <Flame className="w-5 h-5 text-iron-orange mx-auto" />
+                    <div className="text-xl font-bold text-foreground">{currentTime}min</div>
+                    <div className="text-xs text-muted-foreground">Duração</div>
+                  </div>
+                  <div className="bg-card border border-border rounded-xl p-3 space-y-1">
+                    <Zap className="w-5 h-5 text-iron-orange mx-auto" />
+                    <div className="text-xl font-bold text-foreground">{completedExercises}</div>
+                    <div className="text-xs text-muted-foreground">Exercícios</div>
+                  </div>
+                  <div className="bg-card border border-border rounded-xl p-3 space-y-1">
+                    <TrendingUp className="w-5 h-5 text-iron-orange mx-auto" />
+                    <div className="text-xl font-bold text-foreground">
+                      {calculateTotalVolume(currentSession.exercises).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Volume (kg)</div>
+                  </div>
+                </div>
+
+                {/* Premium teaser */}
+                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-primary">
+                    <Lock className="w-4 h-4" />
+                    <span className="text-sm font-semibold">Versão Premium</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Acompanhe sua evolução completa com <strong className="text-foreground">gráficos, recordes pessoais, tendências</strong> e muito mais na aba de Estatísticas.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="border-primary/30 text-primary hover:bg-primary/10"
+                    onClick={() => openPremiumModal('Estatísticas Completas')}
+                  >
+                    <Crown className="w-3.5 h-3.5 mr-1.5" />
+                    Desbloquear Estatísticas
+                  </Button>
+                </div>
+
+                <Button variant="success" className="w-full h-14 text-lg font-semibold shadow-lg" onClick={handleFinishWorkout}>
+                  <Trophy className="w-5 h-5 mr-2" />
                   Finalizar e Salvar
                 </Button>
               </div>
