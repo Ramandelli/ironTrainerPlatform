@@ -66,10 +66,15 @@ export const updateExerciseSet = (
       const updatedSetData = [...exercise.setData];
       updatedSetData[setIndex] = { ...updatedSetData[setIndex], ...setData };
       
+      // Se for edição, preservar currentSet original
+      const newCurrentSet = setData.isEdit 
+        ? exercise.currentSet 
+        : (setData.completed ? Math.min(setIndex + 1, exercise.sets) : exercise.currentSet);
+      
       return {
         ...exercise,
         setData: updatedSetData,
-        currentSet: setData.completed ? Math.min(setIndex + 1, exercise.sets) : exercise.currentSet
+        currentSet: newCurrentSet
       };
     }
     return exercise;

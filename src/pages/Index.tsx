@@ -325,6 +325,9 @@ const Index = () => {
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: any) => {
     completeSet(exerciseId, setIndex, setData);
     
+    // Não iniciar timer de descanso se for apenas edição de série já completada
+    if (setData.isEdit) return;
+    
     const exercise = currentSession?.exercises.find(e => e.id === exerciseId);
     if (setIndex < (exercise?.sets || 0) - 1) {
       const restTime = exercise?.restTime || 90;
@@ -886,7 +889,7 @@ const Index = () => {
                     exercise={exercise}
                     onSetComplete={(setIndex, setData) => {
                       completeAbdominalSet(exercise.id, setIndex, setData);
-                      if (setIndex < (exercise.sets - 1)) {
+                      if (!setData.isEdit && setIndex < (exercise.sets - 1)) {
                         const restTime = exercise.restTime || 60;
                         startRestTimer(restTime, 'rest-between-sets', exercise.id, setIndex);
                       }
@@ -902,7 +905,7 @@ const Index = () => {
                     exercise={exercise}
                     onSetComplete={(setIndex, setData) => {
                       completeAbdominalSet(exercise.id, setIndex, setData);
-                      if (setIndex < (exercise.sets - 1)) {
+                      if (!setData.isEdit && setIndex < (exercise.sets - 1)) {
                         const restTime = exercise.restTime || 60;
                         startRestTimer(restTime, 'rest-between-sets', exercise.id, setIndex);
                       }
