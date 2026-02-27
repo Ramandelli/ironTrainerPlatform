@@ -28,7 +28,7 @@ const PremiumContext = createContext<PremiumContextType>({
 export const usePremium = () => useContext(PremiumContext);
 
 export const PremiumProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isPremium, setIsPremium] = useState(false);
+  const [isPremium, setIsPremium] = useState(true);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [premiumFeature, setPremiumFeature] = useState('');
 
