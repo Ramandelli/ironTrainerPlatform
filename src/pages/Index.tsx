@@ -1104,14 +1104,14 @@ const Index = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Iron Trainer 💪
           </h1>
+          <p className="text-muted-foreground text-sm">
+            Seu progresso de treino nunca se perde
+          </p>
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${isPremium ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-muted text-muted-foreground border border-border'}`}>
               {isPremium ? '⭐ Premium' : 'Freeware'}
             </span>
           </div>
-          <p className="text-muted-foreground text-sm">
-            Seu progresso de treino nunca se perde
-          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
