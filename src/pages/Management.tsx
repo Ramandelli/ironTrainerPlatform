@@ -8,6 +8,7 @@ import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { ImportExportGuide } from '../components/ImportExportGuide';
 import { WorkoutListCard } from '../components/WorkoutListCard';
 import { ActionConfirmation } from '../components/ActionConfirmation';
+import { AIWorkoutModal } from '../components/AIWorkoutModal';
 import { useToast } from '../hooks/use-toast';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
@@ -24,7 +25,8 @@ import {
   ChevronDown,
   ChevronUp,
   Calendar,
-  Lock
+  Lock,
+  Brain
 } from 'lucide-react';
 import { usePremium } from '../contexts/PremiumContext';
 
@@ -56,6 +58,7 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
     type: 'duplicate' | 'import' | 'export';
     show: boolean;
   } | null>(null);
+  const [showAIModal, setShowAIModal] = useState(false);
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { isPremium, openPremiumModal } = usePremium();
@@ -91,6 +94,22 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
     }
     setEditingWorkout(null);
     setShowWorkoutForm(true);
+  };
+
+  const handleAIWorkoutsGenerated = async (workouts: import('../types/workout').WorkoutDay[]) => {
+    try {
+      for (const workout of workouts) {
+        await customWorkoutManager.saveWorkout(workout);
+      }
+      await loadWorkouts();
+    } catch (error) {
+      console.error('Failed to save AI workouts:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível salvar os treinos gerados.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleEditWorkout = async (workout: WorkoutDay) => {
@@ -388,19 +407,30 @@ const getWorkoutId = (day: string) => {
                 Importar
               </Button>
             </div>
-            <Button 
-              onClick={handleCreateWorkout} 
-              size="sm"
-              className="h-10 active:scale-95 transition-transform"
-              variant={hasReachedFreeLimit ? "outline" : "default"}
-            >
-              {hasReachedFreeLimit ? (
-                <Lock className="w-4 h-4 mr-2" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              Novo Treino
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowAIModal(true)}
+                size="sm"
+                variant="outline"
+                className="h-10 active:scale-95 transition-transform gap-1"
+              >
+                <Brain className="w-4 h-4" />
+                IA
+              </Button>
+              <Button 
+                onClick={handleCreateWorkout} 
+                size="sm"
+                className="h-10 active:scale-95 transition-transform"
+                variant={hasReachedFreeLimit ? "outline" : "default"}
+              >
+                {hasReachedFreeLimit ? (
+                  <Lock className="w-4 h-4 mr-2" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Novo Treino
+              </Button>
+            </div>
           </div>
 
           {/* Group by day toggle */}
@@ -563,6 +593,13 @@ const getWorkoutId = (day: string) => {
           onConfirm={() => handleDeleteWorkout(deleteConfirm)}
         />
       )}
+
+      {/* AI Workout Modal */}
+      <AIWorkoutModal
+        open={showAIModal}
+        onOpenChange={setShowAIModal}
+        onWorkoutsGenerated={handleAIWorkoutsGenerated}
+      />
     </div>
   );
 };
