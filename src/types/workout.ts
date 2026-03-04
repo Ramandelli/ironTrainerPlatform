@@ -49,7 +49,7 @@ export interface WorkoutDay {
 }
 
 export interface AerobicExercise {
-  type: 'esteira' | 'bicicleta' | 'transport' | 'rowing';
+  type: 'esteira' | 'bicicleta';
   duration: number;
   actualDuration?: number;
   distance?: number; 
