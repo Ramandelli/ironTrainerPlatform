@@ -51,6 +51,15 @@ export const AIWorkoutModal: React.FC<AIWorkoutModalProps> = ({
   };
 
   const handleGenerate = async () => {
+    if (!navigator.onLine) {
+      toast({
+        title: '📡 Sem conexão com a internet',
+        description: 'É necessário conexão com a internet para gerar treino com I.A.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (diasSelecionados.length === 0) {
       toast({
         title: 'Selecione ao menos um dia',
