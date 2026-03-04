@@ -174,7 +174,7 @@ Responda APENAS em JSON válido no seguinte formato:
 Não escreva nada antes ou depois do JSON.`;
 
   const response = await fetch(
-    'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
+    'https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2',
     {
       method: 'POST',
       headers: {
