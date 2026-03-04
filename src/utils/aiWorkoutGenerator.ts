@@ -50,11 +50,9 @@ interface AIRawDay {
 const VALID_CARDIO_TYPES: Record<string, AerobicExercise['type']> = {
   'esteira': 'esteira',
   'treadmill': 'esteira',
-  'transport': 'transport',
-  'elíptico': 'transport',
-  'eliptico': 'transport',
-  'rowing': 'rowing',
-  'remo': 'rowing',
+  'bicicleta': 'bicicleta',
+  'bike': 'bicicleta',
+  'cycling': 'bicicleta',
 };
 
 const VALID_INTENSITIES: AerobicExercise['intensity'][] = ['leve', 'moderada', 'intensa'];
@@ -69,9 +67,9 @@ function generateId(prefix: string): string {
 function sanitizeCardioType(raw?: string): AerobicExercise['type'] {
   if (!raw) return 'esteira';
   const key = raw.toLowerCase().trim();
-  // Block bicicleta
+  // Block "bicicleta ergométrica" variants — normalize to "bicicleta"
   if (key.includes('bicicleta') || key.includes('bike') || key.includes('cycling')) {
-    return 'esteira';
+    return 'bicicleta';
   }
   return VALID_CARDIO_TYPES[key] || 'esteira';
 }
@@ -183,7 +181,7 @@ Você DEVE responder APENAS com um JSON válido. Nenhum texto, explicação ou c
 Regras absolutas:
 - Responda SOMENTE JSON puro.
 - Não use markdown, não use codeblocks, não adicione texto antes ou depois.
-- Os únicos tipos de cardio permitidos são: "Esteira", "Transport", "Remo". NÃO use "Bicicleta" ou "Bicicleta ergométrica".
+- Os únicos tipos de cardio permitidos são: "Esteira" ou "Bicicleta". NÃO use "Bicicleta ergométrica", "Transport", "Remo" ou qualquer outro tipo.
 - intensity deve ser: "leve", "moderada" ou "intensa".
 - moment deve ser: "antes" ou "depois".
 - Se isTimeBased for true, repetitions deve ser null e secondsPerSet deve ter valor.

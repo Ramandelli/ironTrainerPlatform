@@ -165,7 +165,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
           </DialogHeader>
           <AerobicForm
             aerobic={{
-              type: type as 'esteira' | 'bicicleta' | 'transport' | 'rowing',
+              type: type as 'esteira' | 'bicicleta',
               duration,
               intensity: 'moderada',
               timing: 'depois',

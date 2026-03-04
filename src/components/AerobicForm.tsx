@@ -19,7 +19,7 @@ export const AerobicForm: React.FC<AerobicFormProps> = ({
   onCancel
 }) => {
   const [formData, setFormData] = useState({
-    type: aerobic?.type || 'esteira' as 'esteira' | 'bicicleta' | 'transport' | 'rowing',
+    type: aerobic?.type || 'esteira' as 'esteira' | 'bicicleta',
     duration: aerobic?.duration || 15,
     intensity: aerobic?.intensity || 'moderada' as 'leve' | 'moderada' | 'intensa',
     timing: aerobic?.timing || 'depois' as 'antes' | 'depois'
@@ -55,8 +55,6 @@ export const AerobicForm: React.FC<AerobicFormProps> = ({
               <SelectContent>
                 <SelectItem value="esteira">ESTEIRA</SelectItem>
                 <SelectItem value="bicicleta">BICICLETA</SelectItem>
-                <SelectItem value="transport">TRANSPORT</SelectItem>
-                <SelectItem value="rowing">REMADA</SelectItem>
               </SelectContent>
             </Select>
           </div>
