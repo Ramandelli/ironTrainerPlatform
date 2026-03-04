@@ -107,14 +107,12 @@ function extractJSON(text: string): string {
 }
 
 export async function gerarTreinoIA(dados: AIGenerationParams): Promise<WorkoutDay[]> {
-  const token = import.meta.env.VITE_HF_TOKEN;
+  const token = import.meta.env.VITE_GROQ_KEY;
   if (!token) {
-    throw new Error('Token da Hugging Face não configurado. Adicione VITE_HF_TOKEN ao ambiente.');
+    throw new Error('Chave da Groq não configurada. Adicione VITE_GROQ_KEY ao ambiente.');
   }
 
-  const prompt = `Você é um personal trainer profissional especializado em divisão inteligente de grupos musculares e hipertrofia.
-
-Crie um plano de treino APENAS para os seguintes dias:
+  const prompt = `Crie um plano de treino APENAS para os seguintes dias:
 ${dados.diasSelecionados.join(", ")}
 
 Regras obrigatórias:
@@ -174,7 +172,7 @@ Responda APENAS em JSON válido no seguinte formato:
 Não escreva nada antes ou depois do JSON.`;
 
   const response = await fetch(
-    'https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2',
+    'https://api.groq.com/openai/v1/chat/completions',
     {
       method: 'POST',
       headers: {
@@ -182,27 +180,33 @@ Não escreva nada antes ou depois do JSON.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 4096,
-          temperature: 0.7,
-          return_full_text: false,
-        },
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Você é um personal trainer profissional especializado em divisão inteligente de treinos e hipertrofia.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
       }),
     }
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('HuggingFace API error:', response.status, errorText);
-    if (response.status === 503) {
-      throw new Error('O modelo está carregando. Tente novamente em alguns segundos.');
+    console.error('Groq API error:', response.status, errorText);
+    if (response.status === 429) {
+      throw new Error('Limite de requisições atingido. Tente novamente em alguns segundos.');
     }
     throw new Error(`Erro na API da IA (${response.status}). Tente novamente.`);
   }
 
   const data = await response.json();
-  const generatedText = data?.[0]?.generated_text;
+  const generatedText = data?.choices?.[0]?.message?.content;
 
   if (!generatedText) {
     throw new Error('A IA não retornou uma resposta válida. Tente novamente.');
