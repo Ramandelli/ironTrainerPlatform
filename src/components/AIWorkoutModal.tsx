@@ -33,6 +33,8 @@ export const AIWorkoutModal: React.FC<AIWorkoutModalProps> = ({
 }) => {
   const [idade, setIdade] = useState<number>(25);
   const [peso, setPeso] = useState<number>(75);
+  const [sexo, setSexo] = useState<string>('masculino');
+  const [nivel, setNivel] = useState<string>('intermediario');
   const [objetivo, setObjetivo] = useState<string>('hipertrofia');
   const [diasSelecionados, setDiasSelecionados] = useState<string[]>([
     'Segunda-feira',
@@ -70,7 +72,7 @@ export const AIWorkoutModal: React.FC<AIWorkoutModalProps> = ({
 
     setLoading(true);
     try {
-      const workouts = await gerarTreinoIA({ idade, peso, objetivo, diasSelecionados });
+      const workouts = await gerarTreinoIA({ idade, peso, sexo, nivel, objetivo, diasSelecionados });
       onWorkoutsGenerated(workouts);
       onOpenChange(false);
       toast({
@@ -100,6 +102,20 @@ export const AIWorkoutModal: React.FC<AIWorkoutModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-5 pt-2">
+          {/* Sexo */}
+          <div className="space-y-1.5">
+            <Label>Sexo</Label>
+            <Select value={sexo} onValueChange={setSexo}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="masculino">Masculino</SelectItem>
+                <SelectItem value="feminino">Feminino</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Idade */}
           <div className="space-y-1.5">
             <Label htmlFor="ai-idade">Idade</Label>
@@ -124,6 +140,21 @@ export const AIWorkoutModal: React.FC<AIWorkoutModalProps> = ({
               value={peso}
               onChange={(e) => setPeso(Number(e.target.value))}
             />
+          </div>
+
+          {/* Nível */}
+          <div className="space-y-1.5">
+            <Label>Nível</Label>
+            <Select value={nivel} onValueChange={setNivel}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="iniciante">Iniciante</SelectItem>
+                <SelectItem value="intermediario">Intermediário</SelectItem>
+                <SelectItem value="avancado">Avançado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Objetivo */}
