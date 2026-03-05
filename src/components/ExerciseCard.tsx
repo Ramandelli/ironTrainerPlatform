@@ -23,6 +23,7 @@ import { ExerciseForm } from './ExerciseForm';
 import { formatWeightCompact } from '../utils/formatters';
 import { hapticSetComplete, hapticExerciseComplete, hapticSkip } from '../utils/haptics';
 import { usePremium } from '../contexts/PremiumContext';
+import { PlateauAlert } from './PlateauAlert';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -274,6 +275,14 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <TrendingUp className="w-3 h-3 text-iron-orange" />
             <span>Sugerido: {formatWeightCompact(suggestion.weight)}kg × {suggestion.reps} reps</span>
           </div>
+        )}
+        {isActive && !exercise.completed && (
+          <PlateauAlert
+            exerciseName={exercise.name}
+            isCompleted={exercise.completed}
+            onApplyDropset={onExerciseUpdate ? () => onExerciseUpdate({ hasDropset: true }) : undefined}
+            onApplyRestPause={onExerciseUpdate ? () => onExerciseUpdate({ restPause: true }) : undefined}
+          />
         )}
         <div className="space-y-1">
           {exercise.targetReps && (
