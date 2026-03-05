@@ -16,6 +16,7 @@ export interface Exercise {
   isBilateral?: boolean; 
   // Propriedades para dropset
   hasDropset?: boolean; 
+  restPause?: boolean;
 }
 
 export interface SetData {
