@@ -88,7 +88,8 @@ Responda APENAS com JSON puro. Nenhum texto, markdown, codeblock ou comentário 
 
 Regras obrigatórias:
 - Use SOMENTE exercícios da lista fornecida. NÃO invente exercícios.
-- O campo "name" deve ser EXATAMENTE igual ao nome da lista fornecida (em inglês).
+- O campo "name" deve ser o nome do exercício TRADUZIDO para português. Exemplo: "bench press" → "Supino Reto com Barra".
+- Traduza TODOS os nomes de exercícios para português de forma clara e natural.
 - Exercícios compostos (bench press, squat, deadlift, row) devem ser os principais de cada dia.
 - Use drop-set APENAS em exercícios de isolamento (ex: curl, extension, fly).
 - Use rest-pause na última série quando apropriado para intermediários e avançados.
@@ -113,7 +114,7 @@ Perfil do aluno:
 - Nível: ${dados.nivel}
 - Objetivo: ${dados.objetivo}
 
-Exercícios disponíveis (use APENAS estes nomes):
+Exercícios disponíveis (use APENAS exercícios desta lista, mas TRADUZA os nomes para português):
 ${exerciseList}
 
 Responda APENAS com JSON neste formato exato:
@@ -124,7 +125,7 @@ Responda APENAS com JSON neste formato exato:
       "muscles": ["Peito", "Tríceps"],
       "exercises": [
         {
-          "name": "bench press",
+          "name": "Supino Reto com Barra",
           "sets": 4,
           "reps": "8-10",
           "dropSet": false,
