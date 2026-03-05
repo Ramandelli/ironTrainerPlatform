@@ -1,4 +1,5 @@
-import { WorkoutDay, Exercise, AerobicExercise } from '../types/workout';
+import { WorkoutDay, Exercise } from '../types/workout';
+import { getAllExercisesGrouped, buildExerciseListForPrompt } from './exerciseDB';
 
 // ---------- Types ----------
 
@@ -11,52 +12,20 @@ interface AIGenerationParams {
   diasSelecionados: string[];
 }
 
-interface AIRawCardio {
-  enabled: boolean;
-  type?: string;
-  intensity?: string;
-  durationMinutes?: number;
-  moment?: string;
-}
-
-interface AIRawMainExercise {
-  stimulus: string;
+interface AIRawExercise {
+  name: string;
   sets: number;
-  targetReps: string;
-  restSeconds: number;
-  hasDropSet?: boolean;
-}
-
-interface AIRawAbs {
-  enabled: boolean;
-  nameSuggestion?: string;
-  sets?: number;
-  repetitions?: number | null;
-  isTimeBased?: boolean;
-  secondsPerSet?: number;
-  isBilateral?: boolean;
-  restSeconds?: number;
+  reps: string;
+  dropSet: boolean;
+  restPause: boolean;
+  notes: string;
 }
 
 interface AIRawDay {
   day: string;
-  cardio?: AIRawCardio;
-  mainExercises: AIRawMainExercise[];
-  abs?: AIRawAbs;
+  muscles: string[];
+  exercises: AIRawExercise[];
 }
-
-// ---------- Constants ----------
-
-const VALID_CARDIO_TYPES: Record<string, AerobicExercise['type']> = {
-  'esteira': 'esteira',
-  'treadmill': 'esteira',
-  'bicicleta': 'bicicleta',
-  'bike': 'bicicleta',
-  'cycling': 'bicicleta',
-};
-
-const VALID_INTENSITIES: AerobicExercise['intensity'][] = ['leve', 'moderada', 'intensa'];
-const VALID_TIMINGS: AerobicExercise['timing'][] = ['antes', 'depois'];
 
 // ---------- Helpers ----------
 
@@ -64,186 +33,110 @@ function generateId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-function sanitizeCardioType(raw?: string): AerobicExercise['type'] {
-  if (!raw) return 'esteira';
-  const key = raw.toLowerCase().trim();
-  // Block "bicicleta ergométrica" variants — normalize to "bicicleta"
-  if (key.includes('bicicleta') || key.includes('bike') || key.includes('cycling')) {
-    return 'bicicleta';
-  }
-  return VALID_CARDIO_TYPES[key] || 'esteira';
-}
-
-function sanitizeIntensity(raw?: string): AerobicExercise['intensity'] {
-  if (!raw) return 'moderada';
-  const lower = raw.toLowerCase().trim();
-  if (VALID_INTENSITIES.includes(lower as AerobicExercise['intensity'])) {
-    return lower as AerobicExercise['intensity'];
-  }
-  return 'moderada';
-}
-
-function sanitizeTiming(raw?: string): AerobicExercise['timing'] {
-  if (!raw) return 'antes';
-  const lower = raw.toLowerCase().trim();
-  if (VALID_TIMINGS.includes(lower as AerobicExercise['timing'])) {
-    return lower as AerobicExercise['timing'];
-  }
-  return 'antes';
-}
-
-// ---------- Builders ----------
-
-function buildExerciseFromStimulus(raw: AIRawMainExercise): Exercise {
+function buildExercise(raw: AIRawExercise): Exercise {
   return {
     id: generateId('ex'),
-    name: raw.stimulus || 'Exercício',
+    name: raw.name || 'Exercício',
     sets: raw.sets || 3,
-    targetReps: raw.targetReps || '10-12',
-    restTime: raw.restSeconds || 90,
-    hasDropset: raw.hasDropSet || false,
-    notes: '',
+    targetReps: raw.reps || '10-12',
+    restTime: 90,
+    hasDropset: raw.dropSet || false,
+    restPause: raw.restPause || false,
+    notes: raw.notes || '',
     completed: false,
     currentSet: 0,
     setData: [],
-  };
-}
-
-function buildAbdominal(raw: AIRawAbs): Exercise | null {
-  if (!raw.enabled) return null;
-
-  const isTime = raw.isTimeBased === true;
-
-  return {
-    id: generateId('ab'),
-    name: raw.nameSuggestion || 'Abdominal',
-    sets: raw.sets || 3,
-    targetReps: isTime
-      ? `${raw.secondsPerSet || 30}s`
-      : `${raw.repetitions || 15}`,
-    restTime: raw.restSeconds || 60,
-    isTimeBased: isTime,
-    timePerSet: isTime ? (raw.secondsPerSet || 30) : undefined,
-    isBilateral: raw.isBilateral || false,
-    notes: '',
-    completed: false,
-    currentSet: 0,
-    setData: [],
-  };
-}
-
-function buildAerobic(raw: AIRawCardio): AerobicExercise | null {
-  if (!raw.enabled) return null;
-
-  return {
-    type: sanitizeCardioType(raw.type),
-    duration: raw.durationMinutes || 15,
-    intensity: sanitizeIntensity(raw.intensity),
-    timing: sanitizeTiming(raw.moment),
-    completed: false,
   };
 }
 
 function buildWorkoutDay(raw: AIRawDay, index: number): WorkoutDay {
-  const exercises = (raw.mainExercises || []).map(buildExerciseFromStimulus);
-  const abExercise = raw.abs ? buildAbdominal(raw.abs) : null;
-  const aerobic = raw.cardio ? buildAerobic(raw.cardio) : undefined;
+  const exercises = (raw.exercises || []).map(buildExercise);
+  const muscleLabel = raw.muscles?.join(' / ') || raw.day;
 
   return {
     id: generateId('custom'),
-    name: `Treino ${String.fromCharCode(65 + index)} - ${raw.day}`,
+    name: `Treino ${String.fromCharCode(65 + index)} - ${muscleLabel}`,
     day: raw.day,
     warmup: 'Aquecimento geral: 5 min de mobilidade articular',
     exercises,
-    abdominal: abExercise ? [abExercise] : undefined,
-    aerobic: aerobic || undefined,
   };
 }
 
-// ---------- JSON Extraction ----------
-
 function extractJSON(text: string): string {
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (jsonMatch) return jsonMatch[0];
+  const match = text.match(/\{[\s\S]*\}/);
+  if (match) return match[0];
   throw new Error('Nenhum JSON válido encontrado na resposta da IA.');
 }
 
 // ---------- Main ----------
 
-export async function gerarTreinoIA(dados: AIGenerationParams): Promise<WorkoutDay[]> {
+export async function gerarTreinoIA(
+  dados: AIGenerationParams
+): Promise<WorkoutDay[]> {
   const token = import.meta.env.VITE_GROQ_KEY;
   if (!token) {
     throw new Error('Chave da Groq não configurada. Adicione VITE_GROQ_KEY ao ambiente.');
   }
 
+  // 1. Buscar exercícios da ExerciseDB (com cache)
+  const exercisesByBodyPart = await getAllExercisesGrouped();
+  const exerciseList = buildExerciseListForPrompt(exercisesByBodyPart);
+
+  // 2. Montar prompts
   const systemPrompt = `Você é um personal trainer com 15 anos de experiência.
-Você DEVE responder APENAS com um JSON válido. Nenhum texto, explicação ou comentário é permitido fora do JSON.
-Regras absolutas:
-- Responda SOMENTE JSON puro.
-- Não use markdown, não use codeblocks, não adicione texto antes ou depois.
-- Os únicos tipos de cardio permitidos são: "Esteira" ou "Bicicleta". NÃO use "Bicicleta ergométrica", "Transport", "Remo" ou qualquer outro tipo.
-- intensity deve ser: "leve", "moderada" ou "intensa".
-- moment deve ser: "antes" ou "depois".
-- Se isTimeBased for true, repetitions deve ser null e secondsPerSet deve ter valor.
-- Se isTimeBased for false, secondsPerSet deve ser null e repetitions deve ter valor.
-- Não repita o mesmo padrão de movimento (stimulus) no mesmo dia.
+Responda APENAS com JSON puro. Nenhum texto, markdown, codeblock ou comentário fora do JSON.
+
+Regras obrigatórias:
+- Use SOMENTE exercícios da lista fornecida. NÃO invente exercícios.
+- O campo "name" deve ser EXATAMENTE igual ao nome da lista fornecida (em inglês).
+- Exercícios compostos (bench press, squat, deadlift, row) devem ser os principais de cada dia.
+- Use drop-set APENAS em exercícios de isolamento (ex: curl, extension, fly).
+- Use rest-pause na última série quando apropriado para intermediários e avançados.
+- Sempre preencha "notes" com instruções de execução em português.
+- Para iniciantes: 4-5 exercícios por dia, sem drop-set, sem rest-pause. Evite exercícios complexos.
+- Para intermediários: 5-6 exercícios por dia.
+- Para avançados: 6-8 exercícios por dia.
+- Para idosos (>60 anos): evite exercícios de alto impacto, cargas pesadas e movimentos acima da cabeça.
+- Para mulheres: priorize glúteos (upper legs), pernas e core (waist).
+- Para homens: distribua equilibradamente entre todos os grupos.
+- Não repita o mesmo exercício em dias diferentes.
 - Varie os estímulos entre os dias.
-- Adapte volume e intensidade ao nível e sexo do aluno.`;
+- Divida grupos musculares de forma inteligente entre os dias.
+- Não coloque grupos musculares sinérgicos juntos em excesso.`;
 
-  const userPrompt = `Crie um plano de treino para os seguintes dias: ${dados.diasSelecionados.join(', ')}
+  const userPrompt = `Crie um plano de treino para: ${dados.diasSelecionados.join(', ')}
 
-Dados do aluno:
+Perfil do aluno:
 - Sexo: ${dados.sexo}
 - Idade: ${dados.idade} anos
 - Peso: ${dados.peso} kg
 - Nível: ${dados.nivel}
 - Objetivo: ${dados.objetivo}
 
-Regras:
-1. Gere treinos APENAS para os dias listados.
-2. Divida grupos musculares de forma inteligente.
-3. Não repita o mesmo grupo muscular em dias consecutivos.
-4. Inclua abdominal em pelo menos 2 dias.
-5. Inclua cardio em pelo menos 2 dias.
-6. Para iniciantes: 3-4 exercícios por dia, séries menores.
-7. Para avançados: 5-7 exercícios por dia, séries maiores.
-8. Para mulheres: maior foco em glúteos, pernas e core.
+Exercícios disponíveis (use APENAS estes nomes):
+${exerciseList}
 
 Responda APENAS com JSON neste formato exato:
 {
   "days": [
     {
       "day": "Segunda-feira",
-      "cardio": {
-        "enabled": true,
-        "type": "Esteira",
-        "intensity": "moderada",
-        "durationMinutes": 20,
-        "moment": "antes"
-      },
-      "mainExercises": [
+      "muscles": ["Peito", "Tríceps"],
+      "exercises": [
         {
-          "stimulus": "Supino reto com barra",
+          "name": "bench press",
           "sets": 4,
-          "targetReps": "8-12",
-          "restSeconds": 90,
-          "hasDropSet": false
+          "reps": "8-10",
+          "dropSet": false,
+          "restPause": false,
+          "notes": "Deitar no banco plano, descer a barra controladamente até o peito e empurrar de volta."
         }
-      ],
-      "abs": {
-        "enabled": true,
-        "nameSuggestion": "Prancha",
-        "sets": 3,
-        "repetitions": null,
-        "isTimeBased": true,
-        "secondsPerSet": 40,
-        "isBilateral": false,
-        "restSeconds": 45
-      }
+      ]
     }
   ]
 }`;
 
+  // 3. Chamar Groq
   const response = await fetch(
     'https://api.groq.com/openai/v1/chat/completions',
     {
@@ -279,6 +172,7 @@ Responda APENAS com JSON neste formato exato:
     throw new Error('A IA não retornou uma resposta válida. Tente novamente.');
   }
 
+  // 4. Extrair e parsear JSON
   const jsonStr = extractJSON(generatedText);
   let parsed: { days: AIRawDay[] };
 
@@ -292,5 +186,6 @@ Responda APENAS com JSON neste formato exato:
     throw new Error('Formato de resposta inválido. Tente novamente.');
   }
 
+  // 5. Converter para formato interno
   return parsed.days.map((day, i) => buildWorkoutDay(day, i));
 }
