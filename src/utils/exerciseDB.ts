@@ -24,6 +24,55 @@ const BODY_PARTS = [
   'waist',
 ];
 
+// ---------- Equipment translation map ----------
+
+export const EQUIPMENT_MAP: Record<string, string> = {
+  barbell: 'barra',
+  dumbbell: 'halteres',
+  machine: 'máquina',
+  cable: 'cabo',
+  'body weight': 'peso corporal',
+  kettlebell: 'kettlebell',
+  band: 'elástico',
+  'ez barbell': 'barra EZ',
+  'olympic barbell': 'barra olímpica',
+  'smith machine': 'Smith',
+  leverage: 'máquina alavanca',
+  'assisted': 'assistido',
+  'medicine ball': 'bola medicinal',
+  'stability ball': 'bola de estabilidade',
+  roller: 'rolo',
+  rope: 'corda',
+  'weighted': 'com peso',
+  trap_bar: 'barra hexagonal',
+};
+
+export function translateEquipment(equipment: string): string {
+  return EQUIPMENT_MAP[equipment.toLowerCase()] || equipment;
+}
+
+// ---------- Level-based equipment filter ----------
+
+const BEGINNER_ALLOWED_EQUIPMENT = [
+  'machine', 'cable', 'dumbbell', 'body weight',
+  'leverage', 'assisted', 'band', 'stability ball',
+];
+
+export function filterExercisesByLevel(
+  exercises: Record<string, ExerciseDBItem[]>,
+  nivel: string
+): Record<string, ExerciseDBItem[]> {
+  if (nivel !== 'iniciante') return exercises;
+
+  const filtered: Record<string, ExerciseDBItem[]> = {};
+  for (const [bodyPart, exList] of Object.entries(exercises)) {
+    filtered[bodyPart] = exList.filter((e) =>
+      BEGINNER_ALLOWED_EQUIPMENT.includes(e.equipment.toLowerCase())
+    );
+  }
+  return filtered;
+}
+
 // ---------- Cache ----------
 
 interface CachedData {
@@ -112,7 +161,7 @@ export async function getAllExercisesGrouped(): Promise<
 
 /**
  * Monta uma lista compacta de exercícios agrupados por bodyPart
- * para incluir no prompt da IA.
+ * para incluir no prompt da IA — inclui equipamento traduzido.
  */
 export function buildExerciseListForPrompt(
   exercises: Record<string, ExerciseDBItem[]>
@@ -121,7 +170,7 @@ export function buildExerciseListForPrompt(
     .map(([bodyPart, exList]) => {
       const names = exList
         .slice(0, 20)
-        .map((e) => e.name)
+        .map((e) => `${e.name} (${translateEquipment(e.equipment)})`)
         .join(', ');
       return `- ${bodyPart}: ${names}`;
     })

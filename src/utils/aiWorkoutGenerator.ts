@@ -1,5 +1,5 @@
 import { WorkoutDay, Exercise } from '../types/workout';
-import { getAllExercisesGrouped, buildExerciseListForPrompt } from './exerciseDB';
+import { getAllExercisesGrouped, buildExerciseListForPrompt, filterExercisesByLevel, translateEquipment, ExerciseDBItem } from './exerciseDB';
 
 // ---------- Types ----------
 
@@ -19,6 +19,7 @@ interface AIRawExercise {
   dropSet: boolean;
   restPause: boolean;
   notes: string;
+  equipment?: string;
 }
 
 interface AIRawDay {
@@ -68,6 +69,61 @@ function extractJSON(text: string): string {
   throw new Error('Nenhum JSON válido encontrado na resposta da IA.');
 }
 
+// ---------- Split logic ----------
+
+function getSplitInstruction(nivel: string, numDias: number): string {
+  if (nivel === 'iniciante') {
+    if (numDias <= 3) {
+      return `DIVISÃO OBRIGATÓRIA: Full Body. Cada dia treina todos os grupos musculares principais (peito, costas, ombros, pernas, core). Distribua exercícios compostos em cada sessão.`;
+    }
+    return `DIVISÃO OBRIGATÓRIA: Upper/Lower (Alternado). Dias alternados entre membros superiores (peito, costas, ombros, braços) e membros inferiores (quadríceps, glúteos, isquiotibiais, panturrilha, core).`;
+  }
+
+  if (nivel === 'intermediario') {
+    if (numDias <= 3) {
+      return `DIVISÃO SUGERIDA: Push/Pull/Legs ou Full Body, conforme melhor se encaixar.`;
+    }
+    if (numDias === 4) {
+      return `DIVISÃO SUGERIDA: Upper/Lower (2x cada) ou Push/Pull/Legs + Full Body.`;
+    }
+    return `DIVISÃO OBRIGATÓRIA: Divisão muscular clássica. Cada dia foca em 1-2 grupos musculares específicos (ex: Peito/Tríceps, Costas/Bíceps, Pernas, Ombros/Abdômen, etc).`;
+  }
+
+  // avançado
+  if (numDias <= 3) {
+    return `DIVISÃO SUGERIDA: Push/Pull/Legs.`;
+  }
+  if (numDias === 4) {
+    return `DIVISÃO SUGERIDA: Upper/Lower (2x cada).`;
+  }
+  return `DIVISÃO OBRIGATÓRIA: Divisão muscular clássica avançada. Cada dia foca em 1-2 grupos musculares com alto volume (ex: Peito, Costas, Pernas, Ombros/Trapézio, Braços).`;
+}
+
+// ---------- Techniques ----------
+
+function getTechniqueInstruction(nivel: string): string {
+  if (nivel === 'iniciante') {
+    return `TÉCNICAS: NÃO use drop-set nem rest-pause. Foque em execução correta com carga moderada. Todos os exercícios devem ter dropSet: false e restPause: false.`;
+  }
+
+  return `TÉCNICAS OBRIGATÓRIAS:
+- Inclua pelo menos 1 exercício com restPause: true por dia de treino (preferencialmente no último exercício composto).
+- Inclua 1 ou 2 exercícios com dropSet: true por dia de treino (APENAS em exercícios isoladores como curl, extension, fly, raise, pushdown).
+- NÃO aplique drop-set em exercícios compostos (squat, deadlift, bench press, row).`;
+}
+
+// ---------- Validation ----------
+
+function buildExerciseNameSet(exercises: Record<string, ExerciseDBItem[]>): Set<string> {
+  const names = new Set<string>();
+  for (const exList of Object.values(exercises)) {
+    for (const ex of exList) {
+      names.add(ex.name.toLowerCase());
+    }
+  }
+  return names;
+}
+
 // ---------- Main ----------
 
 export async function gerarTreinoIA(
@@ -78,32 +134,41 @@ export async function gerarTreinoIA(
     throw new Error('Chave da Groq não configurada. Adicione VITE_GROQ_KEY ao ambiente.');
   }
 
-  // 1. Buscar exercícios da ExerciseDB (com cache)
-  const exercisesByBodyPart = await getAllExercisesGrouped();
-  const exerciseList = buildExerciseListForPrompt(exercisesByBodyPart);
+  // 1. Buscar exercícios da ExerciseDB (com cache) e filtrar por nível
+  const allExercises = await getAllExercisesGrouped();
+  const filteredExercises = filterExercisesByLevel(allExercises, dados.nivel);
+  const exerciseList = buildExerciseListForPrompt(filteredExercises);
+  const validNames = buildExerciseNameSet(filteredExercises);
+
+  const numDias = dados.diasSelecionados.length;
+  const splitInstruction = getSplitInstruction(dados.nivel, numDias);
+  const techniqueInstruction = getTechniqueInstruction(dados.nivel);
 
   // 2. Montar prompts
   const systemPrompt = `Você é um personal trainer com 15 anos de experiência.
 Responda APENAS com JSON puro. Nenhum texto, markdown, codeblock ou comentário fora do JSON.
 
-Regras obrigatórias:
-- Use SOMENTE exercícios da lista fornecida. NÃO invente exercícios.
-- O campo "name" deve ser o nome do exercício TRADUZIDO para português. Exemplo: "bench press" → "Supino Reto com Barra".
-- Traduza TODOS os nomes de exercícios para português de forma clara e natural.
+REGRA DE SEGURANÇA ABSOLUTA:
+- Use SOMENTE exercícios da lista fornecida abaixo. NÃO INVENTE exercícios.
+- Se precisar de um exercício que não está na lista, escolha o mais próximo que ESTIVER na lista.
+- O campo "name" deve conter o nome ORIGINAL em inglês do exercício (exatamente como aparece na lista).
+- O campo "notes" deve conter o nome traduzido para português + instruções de execução.
+- Cada exercício na lista inclui o equipamento entre parênteses. Use essa informação para evitar combinações impossíveis.
+
+${splitInstruction}
+
+${techniqueInstruction}
+
+Regras adicionais:
 - Exercícios compostos (bench press, squat, deadlift, row) devem ser os principais de cada dia.
-- Use drop-set APENAS em exercícios de isolamento (ex: curl, extension, fly).
-- Use rest-pause na última série quando apropriado para intermediários e avançados.
-- Sempre preencha "notes" com instruções de execução em português.
-- Para iniciantes: 4-5 exercícios por dia, sem drop-set, sem rest-pause. Evite exercícios complexos.
+- Para iniciantes: 4-5 exercícios por dia.
 - Para intermediários: 5-6 exercícios por dia.
 - Para avançados: 6-8 exercícios por dia.
 - Para idosos (>60 anos): evite exercícios de alto impacto, cargas pesadas e movimentos acima da cabeça.
 - Para mulheres: priorize glúteos (upper legs), pernas e core (waist).
 - Para homens: distribua equilibradamente entre todos os grupos.
 - Não repita o mesmo exercício em dias diferentes.
-- Varie os estímulos entre os dias.
-- Divida grupos musculares de forma inteligente entre os dias.
-- Não coloque grupos musculares sinérgicos juntos em excesso.`;
+- Varie os estímulos entre os dias.`;
 
   const userPrompt = `Crie um plano de treino para: ${dados.diasSelecionados.join(', ')}
 
@@ -114,7 +179,7 @@ Perfil do aluno:
 - Nível: ${dados.nivel}
 - Objetivo: ${dados.objetivo}
 
-Exercícios disponíveis (use APENAS exercícios desta lista, mas TRADUZA os nomes para português):
+Exercícios disponíveis (use APENAS exercícios desta lista, com o nome EXATO em inglês):
 ${exerciseList}
 
 Responda APENAS com JSON neste formato exato:
@@ -125,12 +190,12 @@ Responda APENAS com JSON neste formato exato:
       "muscles": ["Peito", "Tríceps"],
       "exercises": [
         {
-          "name": "Supino Reto com Barra",
+          "name": "barbell bench press",
           "sets": 4,
           "reps": "8-10",
           "dropSet": false,
           "restPause": false,
-          "notes": "Deitar no banco plano, descer a barra controladamente até o peito e empurrar de volta."
+          "notes": "Supino Reto com Barra — Deitar no banco plano, descer a barra controladamente até o peito e empurrar de volta."
         }
       ]
     }
@@ -152,7 +217,7 @@ Responda APENAS com JSON neste formato exato:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.7,
+        temperature: 0.6,
       }),
     }
   );
@@ -187,6 +252,37 @@ Responda APENAS com JSON neste formato exato:
     throw new Error('Formato de resposta inválido. Tente novamente.');
   }
 
-  // 5. Converter para formato interno
+  // 5. Validar e traduzir exercícios — remover inventados, traduzir nomes
+  const allExercisesFlat = Object.values(filteredExercises).flat();
+
+  for (const day of parsed.days) {
+    day.exercises = day.exercises.filter((ex) => {
+      const isValid = validNames.has(ex.name.toLowerCase());
+      if (!isValid) {
+        console.warn(`[AI Generator] Exercício removido (não encontrado na ExerciseDB): "${ex.name}"`);
+      }
+      return isValid;
+    });
+
+    // Traduzir nomes para português
+    for (const ex of day.exercises) {
+      const dbMatch = allExercisesFlat.find(
+        (db) => db.name.toLowerCase() === ex.name.toLowerCase()
+      );
+      if (dbMatch) {
+        const equipPt = translateEquipment(dbMatch.equipment);
+        // Usar o nome traduzido do notes se disponível, senão capitalizar o original
+        const notesMatch = ex.notes?.match(/^([^—–\-]+)/);
+        const translatedName = notesMatch?.[1]?.trim() || capitalizeWords(ex.name);
+        ex.name = `${translatedName} (${equipPt})`;
+      }
+    }
+  }
+
+  // 6. Converter para formato interno
   return parsed.days.map((day, i) => buildWorkoutDay(day, i));
+}
+
+function capitalizeWords(str: string): string {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
 }
