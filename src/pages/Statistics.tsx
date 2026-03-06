@@ -13,7 +13,7 @@ import { restDayManager } from '../utils/restDays';
 import { missedWorkoutManager, MissedWorkout } from '../utils/missedWorkouts';
 import { achievementManager } from '../utils/achievements';
 import { UnlockedAchievement } from '../types/achievement';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList, LineChart, Line } from 'recharts';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { WorkoutDay } from '../types/workout';
@@ -305,22 +305,25 @@ useEffect(() => {
   }, [history]);
 
   const exerciseProgress = React.useMemo(() => {
-    const exerciseData: Record<string, { sessions: number; maxWeight: number; totalVolume: number }> = {};
+    const exerciseData: Record<string, { sessions: number; maxWeight: number; totalVolume: number; weightHistory: Array<{ date: string; weight: number }> }> = {};
     
-    history.forEach(session => {
+    // Sort history chronologically for proper chart ordering
+    const sortedHistory = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    sortedHistory.forEach(session => {
       session.exercises.forEach(exercise => {
         if (!exerciseData[exercise.name]) {
-          exerciseData[exercise.name] = { sessions: 0, maxWeight: 0, totalVolume: 0 };
+          exerciseData[exercise.name] = { sessions: 0, maxWeight: 0, totalVolume: 0, weightHistory: [] };
         }
         
         exerciseData[exercise.name].sessions++;
         
+        let sessionMaxWeight = 0;
         exercise.setData.forEach(set => {
           if (set.completed) {
-            exerciseData[exercise.name].maxWeight = Math.max(
-              exerciseData[exercise.name].maxWeight,
-              set.weight || 0
-            );
+            const w = set.weight || 0;
+            sessionMaxWeight = Math.max(sessionMaxWeight, w);
+            exerciseData[exercise.name].maxWeight = Math.max(exerciseData[exercise.name].maxWeight, w);
             
             if (set.weight && set.reps) {
               exerciseData[exercise.name].totalVolume += set.weight * set.reps;
@@ -329,14 +332,18 @@ useEffect(() => {
             if (set.dropsetData && set.dropsetData.length > 0) {
               set.dropsetData.forEach(dropset => {
                 exerciseData[exercise.name].totalVolume += dropset.weight * dropset.reps;
-                exerciseData[exercise.name].maxWeight = Math.max(
-                  exerciseData[exercise.name].maxWeight,
-                  dropset.weight
-                );
+                exerciseData[exercise.name].maxWeight = Math.max(exerciseData[exercise.name].maxWeight, dropset.weight);
               });
             }
           }
         });
+        
+        if (sessionMaxWeight > 0) {
+          exerciseData[exercise.name].weightHistory.push({
+            date: session.date,
+            weight: sessionMaxWeight,
+          });
+        }
       });
     });
     
@@ -344,6 +351,66 @@ useEffect(() => {
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.totalVolume - a.totalVolume)
       .slice(0, 5);
+  }, [history]);
+
+  // Detect new personal records in the latest session
+  const newRecords = React.useMemo(() => {
+    if (history.length < 2) return [];
+    
+    const sortedHistory = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const latestSession = sortedHistory[0];
+    const previousSessions = sortedHistory.slice(1);
+    
+    const records: Array<{ exercise: string; type: 'weight' | 'volume' | 'reps'; value: number }> = [];
+    
+    if (!latestSession?.completed) return [];
+    
+    latestSession.exercises.forEach(exercise => {
+      exercise.setData.forEach(set => {
+        if (!set.completed) return;
+        
+        const weight = set.weight || 0;
+        const reps = set.reps || 0;
+        const volume = weight * reps;
+        
+        // Check against all previous sessions
+        let prevMaxWeight = 0;
+        let prevMaxReps = 0;
+        let prevMaxVolume = 0;
+        
+        previousSessions.forEach(session => {
+          session.exercises.forEach(ex => {
+            if (ex.name.toLowerCase() === exercise.name.toLowerCase()) {
+              ex.setData.forEach(s => {
+                if (s.completed) {
+                  prevMaxWeight = Math.max(prevMaxWeight, s.weight || 0);
+                  prevMaxReps = Math.max(prevMaxReps, s.reps || 0);
+                  prevMaxVolume = Math.max(prevMaxVolume, (s.weight || 0) * (s.reps || 0));
+                }
+              });
+            }
+          });
+        });
+        
+        if (weight > prevMaxWeight && prevMaxWeight > 0) {
+          if (!records.find(r => r.exercise === exercise.name && r.type === 'weight')) {
+            records.push({ exercise: exercise.name, type: 'weight', value: weight });
+          }
+        }
+        if (reps > prevMaxReps && prevMaxReps > 0) {
+          if (!records.find(r => r.exercise === exercise.name && r.type === 'reps')) {
+            records.push({ exercise: exercise.name, type: 'reps', value: reps });
+          }
+        }
+        if (volume > prevMaxVolume && prevMaxVolume > 0) {
+          if (!records.find(r => r.exercise === exercise.name && r.type === 'volume')) {
+            records.push({ exercise: exercise.name, type: 'volume', value: volume });
+          }
+        }
+      });
+    });
+    
+    return records;
   }, [history]);
 
   
@@ -926,6 +993,30 @@ const restDaysCount = React.useMemo(() => {
               </Card>
             </section>
 
+            {/* ========== NOVOS RECORDES ========== */}
+            {newRecords.length > 0 && (
+              <section>
+                <SectionHeader icon={<Trophy className="w-5 h-5" />} title="🏆 Novos Recordes!" />
+                <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
+                  <CardContent className="p-4 space-y-2">
+                    {newRecords.map((record, i) => (
+                      <div key={`${record.exercise}-${record.type}-${i}`} className="flex items-center gap-3 p-3 rounded-lg bg-background/60">
+                        <div className="text-2xl">🏆</div>
+                        <div className="flex-1">
+                          <div className="text-sm font-bold text-foreground">{record.exercise}</div>
+                          <div className="text-xs text-primary font-medium">
+                            {record.type === 'weight' && `Novo recorde de peso: ${formatWeightCompact(record.value)}kg`}
+                            {record.type === 'reps' && `Novo recorde de repetições: ${record.value} reps`}
+                            {record.type === 'volume' && `Novo recorde de volume: ${formatWeightCompact(record.value)}kg`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </section>
+            )}
+
             {/* ========== RECORDES ========== */}
             <section>
               <SectionHeader icon={<Award className="w-5 h-5" />} title="Recordes Pessoais" />
@@ -1038,53 +1129,97 @@ const restDaysCount = React.useMemo(() => {
               </Card>
             </section>
 
-            {/* Top 5 Exercícios */}
+            {/* Top 5 Exercícios - Gráfico de Progressão */}
             <section>
-              <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="Top 5 Exercícios" />
+              <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="Top 5 - Progressão de Carga" />
               
-              <Card>
-                <CardContent className="p-4">
-                  {exerciseProgress.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={exerciseProgress} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                        <XAxis type="number" stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                        <YAxis 
-                          dataKey="name" 
-                          type="category" 
-                          width={90}
-                          stroke="hsl(var(--muted-foreground))"
-                          style={{ fontSize: '11px' }}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                          }}
-                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
-                          formatter={(value: number, name: string, props: any) => [
-                            <span key="value">
-                              Volume: <strong>{formatWeightCompact(value)}kg</strong><br />
-                              Sessões: <strong>{props.payload.sessions}</strong><br />
-                              Carga máx: <strong>{formatWeightCompact(props.payload.maxWeight)}kg</strong>
-                            </span>,
-                            null
-                          ]}
-                        />
-                        <Bar dataKey="totalVolume" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
+              {exerciseProgress.length > 0 ? (
+                <div className="space-y-4">
+                  {exerciseProgress.map((ex) => (
+                    <Card key={ex.name}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h3 className="text-sm font-semibold text-foreground">{ex.name}</h3>
+                            <p className="text-xs text-muted-foreground">
+                              {ex.sessions} sessões · Máx: {formatWeightCompact(ex.maxWeight)}kg
+                            </p>
+                          </div>
+                          {ex.weightHistory.length >= 2 && (
+                            <div className={`text-xs font-medium px-2 py-1 rounded ${
+                              ex.weightHistory[ex.weightHistory.length - 1].weight > ex.weightHistory[0].weight
+                                ? 'bg-success/10 text-success'
+                                : ex.weightHistory[ex.weightHistory.length - 1].weight < ex.weightHistory[0].weight
+                                ? 'bg-destructive/10 text-destructive'
+                                : 'bg-muted text-muted-foreground'
+                            }`}>
+                              {ex.weightHistory[ex.weightHistory.length - 1].weight > ex.weightHistory[0].weight ? '↑' : 
+                               ex.weightHistory[ex.weightHistory.length - 1].weight < ex.weightHistory[0].weight ? '↓' : '→'}
+                              {' '}{ex.weightHistory[ex.weightHistory.length - 1].weight}kg
+                            </div>
+                          )}
+                        </div>
+                        {ex.weightHistory.length >= 2 ? (
+                          <ResponsiveContainer width="100%" height={120}>
+                            <LineChart data={ex.weightHistory}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                              <XAxis 
+                                dataKey="date" 
+                                stroke="hsl(var(--muted-foreground))"
+                                style={{ fontSize: '9px' }}
+                                axisLine={false}
+                                tickLine={false}
+                                tickFormatter={(d) => {
+                                  const parts = d.split('-');
+                                  return parts.length === 3 ? `${parts[2]}/${parts[1]}` : d;
+                                }}
+                              />
+                              <YAxis 
+                                stroke="hsl(var(--muted-foreground))"
+                                axisLine={false}
+                                tickLine={false}
+                                width={35}
+                                style={{ fontSize: '10px' }}
+                                domain={['dataMin - 2', 'dataMax + 2']}
+                              />
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: 'hsl(var(--card))',
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '8px',
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                }}
+                                labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold', fontSize: '11px' }}
+                                formatter={(value: number) => [`${value}kg`, 'Carga']}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="weight" 
+                                stroke="hsl(var(--primary))" 
+                                strokeWidth={2}
+                                dot={{ r: 3, fill: 'hsl(var(--primary))' }}
+                                activeDot={{ r: 5 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="text-center py-4 text-xs text-muted-foreground">
+                            Precisa de pelo menos 2 sessões para gerar gráfico
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-4">
                     <p className="text-center text-muted-foreground py-8">
                       Complete alguns treinos para ver o progresso!
                     </p>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </section>
 
             {/* ========== EVOLUÇÃO SEMANAL ========== */}

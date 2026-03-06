@@ -271,9 +271,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           )}
         </div>
         {suggestion && !hideWeightInputs && exercise.currentSet === 0 && !exercise.completed && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded mt-2">
-            <TrendingUp className="w-3 h-3 text-iron-orange" />
-            <span>Sugerido: {formatWeightCompact(suggestion.weight)}kg × {suggestion.reps} reps</span>
+          <div className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded mt-2 ${
+            suggestion.action === 'increase' ? 'bg-success/10 text-success' :
+            suggestion.action === 'decrease' ? 'bg-destructive/10 text-destructive' :
+            'bg-muted/30 text-muted-foreground'
+          }`}>
+            <TrendingUp className="w-3 h-3 flex-shrink-0" />
+            <span>{suggestion.message}</span>
           </div>
         )}
         {isActive && !exercise.completed && (
