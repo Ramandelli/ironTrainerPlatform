@@ -4,9 +4,9 @@ import {
   buildExerciseListForPrompt,
   getExerciseNames,
   getSplitForProfile,
+  getSplitLabel,
   getMuscleGroupsForSplit,
   rules,
-  LocalExercise,
 } from '../services/exerciseDatabase';
 
 // ---------- Types ----------
@@ -89,6 +89,18 @@ function mapLevel(nivel: string): string {
   return map[nivel] || 'intermediate';
 }
 
+function mapGoal(objetivo: string): string {
+  const map: Record<string, string> = {
+    hipertrofia: 'hypertrophy',
+    emagrecimento: 'fat_loss',
+    forca: 'strength',
+    hypertrophy: 'hypertrophy',
+    fat_loss: 'fat_loss',
+    strength: 'strength',
+  };
+  return map[objetivo] || 'hypertrophy';
+}
+
 // ---------- Main ----------
 
 export async function gerarTreinoIA(
@@ -100,6 +112,7 @@ export async function gerarTreinoIA(
   }
 
   const level = mapLevel(dados.nivel);
+  const goalKey = mapGoal(dados.objetivo);
   const numDias = dados.diasSelecionados.length;
 
   // 1. Filter exercises for user profile
@@ -108,15 +121,30 @@ export async function gerarTreinoIA(
   const validNames = getExerciseNames();
 
   // 2. Get split and rules
-  const split = getSplitForProfile(level, numDias);
-  const muscleGroups = getMuscleGroupsForSplit(split.type, numDias);
-  const distribution = rules.exerciseDistribution[level] || rules.exerciseDistribution['intermediate'];
-  const techniqueRules = rules.techniqueRules[level] || rules.techniqueRules['intermediate'];
-  const goalKey = rules.goalMapping[dados.objetivo] || 'hypertrophy';
-  const repRanges = rules.repRanges[goalKey] || rules.repRanges['hypertrophy'];
+  const splitType = getSplitForProfile(level, numDias);
+  const splitLabel = getSplitLabel(splitType);
+  const muscleGroups = getMuscleGroupsForSplit(splitType, numDias);
 
-  // 3. Build prompts
-  const splitDescription = muscleGroups.map((g, i) => `Dia ${i + 1} (${dados.diasSelecionados[i]}): ${g.label} — músculos: ${g.muscles.join(', ')}`).join('\n');
+  const r = rules.rules;
+  const sel = r.exerciseSelection;
+  const techs = r.techniques[level] || r.techniques['intermediate'];
+  const setsReps = r.setsReps[goalKey] || r.setsReps['hypertrophy'];
+
+  // 3. Build technique instruction
+  let techniqueInstruction: string;
+  if (techs.allow === false) {
+    techniqueInstruction = 'NÃO use técnicas avançadas (technique: null para todos).';
+  } else {
+    techniqueInstruction = `Inclua exatamente:
+- ${techs.restPause || 0} exercício(s) com "technique": "rest_pause" (em compound_secondary ou compound_main)
+- ${techs.dropSetIsolation || 0} exercício(s) com "technique": "drop_set" (SOMENTE em isolation)
+- drop_set NUNCA em compound_main.`;
+  }
+
+  // 4. Build split description
+  const splitDescription = muscleGroups.map((g, i) =>
+    `Dia ${i + 1} (${dados.diasSelecionados[i]}): ${g.label} — músculos: ${g.muscles.join(', ')}`
+  ).join('\n');
 
   const systemPrompt = `Você é um personal trainer com 15 anos de experiência.
 Responda APENAS com JSON puro. Nenhum texto, markdown, codeblock ou comentário fora do JSON.
@@ -126,32 +154,35 @@ REGRA ABSOLUTA:
 - O campo "name" deve conter o nome EXATO do exercício como aparece na lista.
 - Se precisar de um exercício que não está na lista, escolha o mais próximo que ESTIVER na lista.
 
-DIVISÃO DE TREINO: ${split.label} (${split.description})
+DIVISÃO DE TREINO: ${splitLabel} (${splitType})
 ${splitDescription}
 
 DISTRIBUIÇÃO POR DIA:
-- Exercícios compostos principais: ${distribution.compound_main}
-- Exercícios compostos secundários: ${distribution.compound_secondary}
-- Exercícios isoladores: ${distribution.isolation}
-- Total: ${distribution.total} exercícios por dia
+- Exercícios compostos principais: ${sel.compoundMainPerWorkout}
+- Exercícios compostos secundários: ${sel.compoundSecondaryPerWorkout}
+- Exercícios isoladores: ${sel.isolationPerWorkout}
+- Total: ${sel.minExercisesPerWorkout}-${sel.maxExercisesPerWorkout} exercícios por dia
+- Máximo 2 exercícios para o mesmo músculo por treino.
+- Adicione 1 exercício de core ao final de cada treino quando possível.
+
+LIMITES:
+- Estímulo total máximo por treino: ${r.stimulusControl.maxTotalStimulusPerWorkout}
+- Fadiga total máxima por treino: ${r.stimulusControl.maxTotalFatiguePerWorkout}
+- Evitar múltiplos exercícios com fadiga 5 no mesmo treino.
 
 FAIXAS DE REPETIÇÃO (objetivo: ${goalKey}):
-- Compostos principais: ${repRanges.compound_main}
-- Compostos secundários: ${repRanges.compound_secondary}
-- Isoladores: ${repRanges.isolation}
+- Compostos principais: ${setsReps.compoundMain.sets} séries x ${setsReps.compoundMain.reps} reps
+- Compostos secundários: ${setsReps.compoundSecondary.sets} séries x ${setsReps.compoundSecondary.reps} reps
+- Isoladores: ${setsReps.isolation.sets} séries x ${setsReps.isolation.reps} reps
 
 TÉCNICAS AVANÇADAS:
-- rest_pause permitidos por treino: ${techniqueRules.rest_pause}
-- drop_set permitidos por treino: ${techniqueRules.drop_set}
-- drop_set SOMENTE em exercícios isolation. NUNCA em compound_main.
-- Se o nível é beginner, NÃO use técnicas (technique: null para todos).
+${techniqueInstruction}
 
 REGRAS ADICIONAIS:
 - Para mulheres: priorize exercícios de glúteos, pernas e core.
-- Para idosos (>60 anos): evite exercícios com alta fadiga, prefira máquinas.
+- Para idosos (>40 anos): evite exercícios com fadiga 5, prefira máquinas.
 - Não repita o mesmo exercício em dias diferentes.
-- Compostos principais sempre primeiro no dia.
-- Cada exercício na lista inclui [categoria, equipamento, S:stimulus/F:fatigue]. Respeite os limites.`;
+- Compostos principais sempre primeiro no dia.`;
 
   const userPrompt = `Crie um plano de treino para: ${dados.diasSelecionados.join(', ')}
 
@@ -167,14 +198,14 @@ ${exerciseList}
 
 Responda APENAS com JSON neste formato:
 {
-  "split": "${split.type}",
+  "split": "${splitType}",
   "workouts": [
     {
       "day": "${dados.diasSelecionados[0]}",
       "muscles": ["Peito", "Tríceps"],
       "exercises": [
         {
-          "name": "Supino reto barra",
+          "name": "Supino reto com barra",
           "sets": 4,
           "reps": "6-10",
           "technique": null
@@ -184,7 +215,7 @@ Responda APENAS com JSON neste formato:
   ]
 }`;
 
-  // 4. Call Groq
+  // 5. Call Groq
   const response = await fetch(
     'https://api.groq.com/openai/v1/chat/completions',
     {
@@ -220,7 +251,7 @@ Responda APENAS com JSON neste formato:
     throw new Error('A IA não retornou uma resposta válida. Tente novamente.');
   }
 
-  // 5. Parse JSON
+  // 6. Parse JSON
   const jsonStr = extractJSON(generatedText);
   let parsed: { split?: string; workouts?: AIRawDay[]; days?: AIRawDay[] };
 
@@ -235,7 +266,7 @@ Responda APENAS com JSON neste formato:
     throw new Error('Formato de resposta inválido. Tente novamente.');
   }
 
-  // 6. Validate — remove exercises not in local database
+  // 7. Validate — remove exercises not in local database
   for (const day of workouts) {
     day.exercises = day.exercises.filter((ex) => {
       const isValid = validNames.has(ex.name.toLowerCase());
@@ -246,6 +277,6 @@ Responda APENAS com JSON neste formato:
     });
   }
 
-  // 7. Convert to internal format
+  // 8. Convert to internal format
   return workouts.map((day, i) => buildWorkoutDay(day, i));
 }
