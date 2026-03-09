@@ -1,143 +1,100 @@
 {
   "rules": {
-
     "exerciseSelection": {
-
       "compoundMainPerWorkout": 1,
       "compoundSecondaryPerWorkout": 2,
       "isolationPerWorkout": 2,
-
       "maxExercisesPerWorkout": 6,
       "minExercisesPerWorkout": 4,
-
       "avoidRepeatingSameExerciseInWeek": true,
       "avoidSameMovementPatternSequential": true
     },
-
     "stimulusControl": {
-
       "maxTotalStimulusPerWorkout": 18,
       "maxTotalFatiguePerWorkout": 20,
-
       "avoidMultipleFatigue5Exercises": true
     },
-
     "techniques": {
-
       "beginner": {
         "allow": false
       },
-
       "intermediate": {
         "restPause": 1,
         "dropSetIsolation": 1
       },
-
       "advanced": {
         "restPause": 2,
         "dropSetIsolation": 2
       }
     },
-
     "trainingSplit": {
-
       "beginner": {
         "1-3_days": "full_body",
         "4_days": "upper_lower"
       },
-
       "intermediate": {
         "3_days": "full_body",
         "4_days": "upper_lower",
         "5_days": "classic_bodybuilding"
       },
-
       "advanced": {
         "4_days": "upper_lower",
         "5_days": "classic_bodybuilding",
         "6_days": "push_pull_legs"
       }
     },
-
     "setsReps": {
-
       "hypertrophy": {
         "compoundMain": { "sets": 4, "reps": "6-10" },
         "compoundSecondary": { "sets": 3, "reps": "8-12" },
         "isolation": { "sets": 3, "reps": "10-15" }
       },
-
       "strength": {
         "compoundMain": { "sets": 5, "reps": "3-6" },
         "compoundSecondary": { "sets": 4, "reps": "5-8" },
         "isolation": { "sets": 3, "reps": "8-12" }
       },
-
       "fat_loss": {
         "compoundMain": { "sets": 4, "reps": "8-12" },
         "compoundSecondary": { "sets": 3, "reps": "10-12" },
         "isolation": { "sets": 3, "reps": "12-15" }
       }
     },
-
     "femaleBias": {
-
       "hypertrophy": {
-
-        "prioritizeMuscles": [
-          "gluteos",
-          "quadriceps",
-          "posterior_coxa"
-        ],
-
-        "deprioritizeMuscles": [
-          "peito",
-          "triceps"
-        ]
+        "prioritizeMuscles": ["gluteos", "quadriceps", "posterior_coxa"],
+        "deprioritizeMuscles": ["peito", "triceps"]
       }
     },
-
     "ageAdaptation": {
-
       "under18": {
         "maxFatigue": 3,
         "avoidAdvancedTechniques": true
       },
-
       "40plus": {
         "reduceTotalVolume": true,
         "avoidFatigue5": true,
         "preferMachines": true
       }
     },
-
     "weightAdaptation": {
-
       "obese": {
         "avoidHighImpact": true,
         "preferMachines": true
       },
-
       "underweight": {
         "prioritizeCompound": true
       }
     },
-
     "muscleBalance": {
-
       "pushPullBalance": true,
-
       "upperLowerBalance": true,
-
       "maxExercisesPerMusclePerWorkout": 2
     },
-
     "exerciseRestrictions": {
-
       "beginner": {
         "avoidFatigue5": true
       },
-
       "general": {
         "avoidDuplicateExercises": true
       }
