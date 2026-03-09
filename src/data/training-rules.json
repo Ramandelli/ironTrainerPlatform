@@ -1,0 +1,102 @@
+{
+  "trainingSplits": {
+    "beginner": {
+      "2-3": {"type":"full_body","label":"Full Body","description":"Treino de corpo inteiro em cada sessão"},
+      "4": {"type":"upper_lower","label":"Upper/Lower","description":"Alternância entre superiores e inferiores"},
+      "5-6": {"type":"upper_lower","label":"Upper/Lower","description":"Alternância entre superiores e inferiores com maior frequência"}
+    },
+    "intermediate": {
+      "2-3": {"type":"full_body","label":"Full Body","description":"Full body com maior volume"},
+      "4": {"type":"upper_lower","label":"Upper/Lower","description":"2x Upper + 2x Lower por semana"},
+      "5": {"type":"push_pull_legs","label":"Push/Pull/Legs","description":"Divisão por padrão de movimento"},
+      "6": {"type":"push_pull_legs_2x","label":"Push/Pull/Legs 2x","description":"PPL com dobro de frequência"}
+    },
+    "advanced": {
+      "2-3": {"type":"push_pull_legs","label":"Push/Pull/Legs","description":"PPL compacto"},
+      "4": {"type":"upper_lower","label":"Upper/Lower 2x","description":"2x Upper + 2x Lower com alto volume"},
+      "5": {"type":"muscle_group","label":"Divisão Muscular","description":"Cada dia foca em 1-2 grupos"},
+      "6": {"type":"push_pull_legs_2x","label":"Push/Pull/Legs 2x","description":"PPL com frequência máxima"}
+    }
+  },
+  "splitMuscleGroups": {
+    "full_body": [
+      {"muscles":["chest","back","quadriceps","shoulders","biceps","triceps"],"label":"Full Body"}
+    ],
+    "upper_lower": [
+      {"muscles":["chest","back","shoulders","biceps","triceps"],"label":"Upper"},
+      {"muscles":["quadriceps","hamstrings","glutes","calves","abs"],"label":"Lower"}
+    ],
+    "push_pull_legs": [
+      {"muscles":["chest","shoulders","triceps"],"label":"Push"},
+      {"muscles":["back","biceps","rear_delts"],"label":"Pull"},
+      {"muscles":["quadriceps","hamstrings","glutes","calves"],"label":"Legs"}
+    ],
+    "push_pull_legs_2x": [
+      {"muscles":["chest","shoulders","triceps"],"label":"Push A"},
+      {"muscles":["back","biceps","rear_delts"],"label":"Pull A"},
+      {"muscles":["quadriceps","hamstrings","glutes","calves"],"label":"Legs A"},
+      {"muscles":["chest","shoulders","triceps"],"label":"Push B"},
+      {"muscles":["back","biceps","rear_delts"],"label":"Pull B"},
+      {"muscles":["quadriceps","hamstrings","glutes","calves"],"label":"Legs B"}
+    ],
+    "muscle_group": [
+      {"muscles":["chest","triceps"],"label":"Peito e Tríceps"},
+      {"muscles":["back","biceps"],"label":"Costas e Bíceps"},
+      {"muscles":["quadriceps","hamstrings","calves"],"label":"Pernas"},
+      {"muscles":["shoulders","traps","abs"],"label":"Ombros e Abdômen"},
+      {"muscles":["glutes","hamstrings","calves"],"label":"Glúteos e Posterior"}
+    ]
+  },
+  "exerciseDistribution": {
+    "beginner": {"compound_main":1,"compound_secondary":1,"isolation":2,"total":4},
+    "intermediate": {"compound_main":1,"compound_secondary":2,"isolation":2,"total":5},
+    "advanced": {"compound_main":2,"compound_secondary":2,"isolation":3,"total":7}
+  },
+  "stimulusLimits": {
+    "beginner": {"maxPerWorkout": 14, "maxPerMuscle": 8},
+    "intermediate": {"maxPerWorkout": 18, "maxPerMuscle": 12},
+    "advanced": {"maxPerWorkout": 24, "maxPerMuscle": 16}
+  },
+  "fatigueLimits": {
+    "beginner": {"maxPerWorkout": 10, "maxPerMuscle": 6},
+    "intermediate": {"maxPerWorkout": 16, "maxPerMuscle": 10},
+    "advanced": {"maxPerWorkout": 22, "maxPerMuscle": 14}
+  },
+  "techniqueRules": {
+    "beginner": {"rest_pause": 0, "drop_set": 0},
+    "intermediate": {"rest_pause": 1, "drop_set": 1},
+    "advanced": {"rest_pause": 2, "drop_set": 2}
+  },
+  "repRanges": {
+    "hypertrophy": {"compound_main":"6-10","compound_secondary":"8-12","isolation":"10-15"},
+    "strength": {"compound_main":"3-6","compound_secondary":"5-8","isolation":"8-12"},
+    "fat_loss": {"compound_main":"8-12","compound_secondary":"10-15","isolation":"12-20"}
+  },
+  "setsPerCategory": {
+    "compound_main": 4,
+    "compound_secondary": 3,
+    "isolation": 3
+  },
+  "femalePrioritization": {
+    "enabled": true,
+    "priorityMuscles": ["glutes","quadriceps","hamstrings","abs"],
+    "boostPriorityExercises": true
+  },
+  "ageAdaptation": {
+    "40+": {"avoidHighFatigue": true, "maxFatigue": 3, "preferEquipment": ["machine","cable"], "avoidEquipment": []},
+    "60+": {"avoidHighFatigue": true, "maxFatigue": 2, "preferEquipment": ["machine"], "avoidEquipment": ["barbell"]}
+  },
+  "levelEquipmentFilter": {
+    "beginner": {"allowed": ["machine","cable","dumbbell","bodyweight"], "excluded": ["barbell"]},
+    "intermediate": {"allowed": ["machine","cable","dumbbell","bodyweight","barbell"], "excluded": []},
+    "advanced": {"allowed": ["machine","cable","dumbbell","bodyweight","barbell"], "excluded": []}
+  },
+  "goalMapping": {
+    "hipertrofia": "hypertrophy",
+    "forca": "strength",
+    "emagrecimento": "fat_loss",
+    "hypertrophy": "hypertrophy",
+    "strength": "strength",
+    "fat_loss": "fat_loss"
+  }
+}
