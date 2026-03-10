@@ -189,13 +189,16 @@ function buildAbsInstruction(coreExercises: LocalExercise[]): string {
   return `SEÇÃO DE ABDOMINAIS (absExercises):
 - Exercícios de core/abdominal NUNCA devem aparecer em "exercises" (musculação principal).
 - Coloque-os APENAS na seção "absExercises" de cada dia.
-- Escolha 2-3 exercícios de core por dia da lista: ${names}
-- Cada exercício abdominal pode ser:
+- Escolha entre 1 e 2 exercícios de core por dia (NUNCA mais que 2).
+- Cada exercício abdominal deve ter exatamente 3 séries.
+- Exercícios disponíveis: ${names}
+- Formato:
   a) Por repetição: { "name": "...", "sets": 3, "reps": 15 }
   b) Por tempo: { "name": "Prancha", "sets": 3, "duration_seconds": 30 }
 - Se o exercício for unilateral, adicione "per_side": true.
 - Exercícios de tempo sugeridos: Prancha.
-- Demais exercícios de core: usar repetição.`;
+- Demais exercícios de core: usar repetição.
+- Varie os exercícios de core entre os dias.`;
 }
 
 // ---------- Main ----------
