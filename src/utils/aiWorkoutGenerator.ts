@@ -156,7 +156,7 @@ function mapGoal(objetivo: string): string {
 
 // ---------- Cardio instruction ----------
 
-function buildCardioInstruction(goalKey: string, level: string, peso: number, idade: number): string {
+function buildCardioInstruction(goalKey: string, level: string, peso: number, idade: number, numDias: number): string {
   if (goalKey === 'fat_loss') {
     let durationHint: string;
     if (level === 'beginner') {
@@ -168,15 +168,18 @@ function buildCardioInstruction(goalKey: string, level: string, peso: number, id
       durationHint = '30-40 minutos, intensidade moderada a intensa';
     }
     return `CARDIO OBRIGATÓRIO (objetivo: emagrecimento):
-- Cada dia de treino DEVE conter a seção "cardio".
-- Tipo: "esteira" ou "bicicleta" (varie entre os dias).
+- TODOS os dias de treino DEVEM conter a seção "cardio".
+- Tipo: "esteira" ou "bicicleta" — ALTERNE entre os dias (não repita o mesmo tipo em dias consecutivos).
 - Sugestão para este perfil: ${durationHint}.
 - Considere peso (${peso}kg) e idade (${idade} anos) ao definir duração e intensidade.`;
   }
 
+  const maxCardioDays = Math.min(3, Math.max(2, Math.floor(numDias / 2)));
   return `CARDIO OPCIONAL (objetivo: ${goalKey}):
-- Você PODE incluir "cardio" com duração curta (10-15 min) em alguns dias.
-- Não é obrigatório.`;
+- Inclua cardio em NO MÁXIMO ${maxCardioDays} dos ${numDias} dias de treino (não todos os dias).
+- Duração curta: 10-15 minutos.
+- Se incluir em mais de 1 dia, ALTERNE entre "esteira" e "bicicleta".
+- Não é obrigatório, mas recomendado.`;
 }
 
 // ---------- Abs instruction ----------
@@ -186,13 +189,16 @@ function buildAbsInstruction(coreExercises: LocalExercise[]): string {
   return `SEÇÃO DE ABDOMINAIS (absExercises):
 - Exercícios de core/abdominal NUNCA devem aparecer em "exercises" (musculação principal).
 - Coloque-os APENAS na seção "absExercises" de cada dia.
-- Escolha 2-3 exercícios de core por dia da lista: ${names}
-- Cada exercício abdominal pode ser:
+- Escolha entre 1 e 2 exercícios de core por dia (NUNCA mais que 2).
+- Cada exercício abdominal deve ter exatamente 3 séries.
+- Exercícios disponíveis: ${names}
+- Formato:
   a) Por repetição: { "name": "...", "sets": 3, "reps": 15 }
   b) Por tempo: { "name": "Prancha", "sets": 3, "duration_seconds": 30 }
 - Se o exercício for unilateral, adicione "per_side": true.
 - Exercícios de tempo sugeridos: Prancha.
-- Demais exercícios de core: usar repetição.`;
+- Demais exercícios de core: usar repetição.
+- Varie os exercícios de core entre os dias.`;
 }
 
 // ---------- Main ----------
@@ -244,7 +250,7 @@ export async function gerarTreinoIA(
   ).join('\n');
 
   // 5. Cardio & abs instructions
-  const cardioInstruction = buildCardioInstruction(goalKey, level, dados.peso, dados.idade);
+  const cardioInstruction = buildCardioInstruction(goalKey, level, dados.peso, dados.idade, numDias);
   const absInstruction = buildAbsInstruction(coreExercises);
 
   const systemPrompt = `Você é um personal trainer com 15 anos de experiência.
@@ -414,7 +420,7 @@ IMPORTANTE:
       return isValid;
     });
 
-    // Validate abs exercises
+    // Validate abs exercises — max 2 per day, 3 sets each
     if (day.absExercises) {
       day.absExercises = day.absExercises.filter((ex) => {
         const isValid = validNames.has(ex.name.toLowerCase());
@@ -423,6 +429,12 @@ IMPORTANTE:
         }
         return isValid;
       });
+      // Enforce max 2 abs exercises per day
+      if (day.absExercises.length > 2) {
+        day.absExercises = day.absExercises.slice(0, 2);
+      }
+      // Enforce 3 sets each
+      day.absExercises.forEach((ex) => { ex.sets = 3; });
     }
   }
 
