@@ -156,7 +156,7 @@ function mapGoal(objetivo: string): string {
 
 // ---------- Cardio instruction ----------
 
-function buildCardioInstruction(goalKey: string, level: string, peso: number, idade: number): string {
+function buildCardioInstruction(goalKey: string, level: string, peso: number, idade: number, numDias: number): string {
   if (goalKey === 'fat_loss') {
     let durationHint: string;
     if (level === 'beginner') {
@@ -168,15 +168,18 @@ function buildCardioInstruction(goalKey: string, level: string, peso: number, id
       durationHint = '30-40 minutos, intensidade moderada a intensa';
     }
     return `CARDIO OBRIGATÓRIO (objetivo: emagrecimento):
-- Cada dia de treino DEVE conter a seção "cardio".
-- Tipo: "esteira" ou "bicicleta" (varie entre os dias).
+- TODOS os dias de treino DEVEM conter a seção "cardio".
+- Tipo: "esteira" ou "bicicleta" — ALTERNE entre os dias (não repita o mesmo tipo em dias consecutivos).
 - Sugestão para este perfil: ${durationHint}.
 - Considere peso (${peso}kg) e idade (${idade} anos) ao definir duração e intensidade.`;
   }
 
+  const maxCardioDays = Math.min(3, Math.max(2, Math.floor(numDias / 2)));
   return `CARDIO OPCIONAL (objetivo: ${goalKey}):
-- Você PODE incluir "cardio" com duração curta (10-15 min) em alguns dias.
-- Não é obrigatório.`;
+- Inclua cardio em NO MÁXIMO ${maxCardioDays} dos ${numDias} dias de treino (não todos os dias).
+- Duração curta: 10-15 minutos.
+- Se incluir em mais de 1 dia, ALTERNE entre "esteira" e "bicicleta".
+- Não é obrigatório, mas recomendado.`;
 }
 
 // ---------- Abs instruction ----------
