@@ -420,7 +420,7 @@ IMPORTANTE:
       return isValid;
     });
 
-    // Validate abs exercises
+    // Validate abs exercises — max 2 per day, 3 sets each
     if (day.absExercises) {
       day.absExercises = day.absExercises.filter((ex) => {
         const isValid = validNames.has(ex.name.toLowerCase());
@@ -429,6 +429,12 @@ IMPORTANTE:
         }
         return isValid;
       });
+      // Enforce max 2 abs exercises per day
+      if (day.absExercises.length > 2) {
+        day.absExercises = day.absExercises.slice(0, 2);
+      }
+      // Enforce 3 sets each
+      day.absExercises.forEach((ex) => { ex.sets = 3; });
     }
   }
 
