@@ -250,7 +250,7 @@ export async function gerarTreinoIA(
   ).join('\n');
 
   // 5. Cardio & abs instructions
-  const cardioInstruction = buildCardioInstruction(goalKey, level, dados.peso, dados.idade);
+  const cardioInstruction = buildCardioInstruction(goalKey, level, dados.peso, dados.idade, numDias);
   const absInstruction = buildAbsInstruction(coreExercises);
 
   const systemPrompt = `Você é um personal trainer com 15 anos de experiência.
