@@ -37,12 +37,16 @@ export const PremiumBanner: React.FC<PremiumBannerProps> = ({ feature, message }
 
   return (
     <div 
-      className="flex items-center justify-center gap-2 p-3 rounded-lg border border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
+      className="flex flex-col items-center gap-2 p-4 rounded-lg border border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
       onClick={() => openPremiumModal(feature)}
     >
-      <Lock className="w-4 h-4 text-primary" />
-      <span className="text-sm text-primary font-medium">
-        {message || `${feature} disponível no Iron Trainer Premium`}
+      <Lock className="w-5 h-5 text-primary" />
+      <span className="text-sm text-center text-muted-foreground">
+        Este recurso faz parte do plano Premium.
+      </span>
+      <span className="text-sm font-medium text-primary flex items-center gap-1.5">
+        <Crown className="w-4 h-4" />
+        Desbloquear Premium
       </span>
     </div>
   );
