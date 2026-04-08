@@ -101,7 +101,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
   }, [secondsLeft, isActive, startTime, distance, showDistanceInput, type]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     
     if (isActive && secondsLeft > 0) {
       interval = setInterval(() => {

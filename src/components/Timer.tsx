@@ -105,7 +105,7 @@ export const Timer: React.FC<TimerProps> = ({
   }, [timeLeft, isActive, type, exerciseId, setIndex]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
     if (isActive && !isPaused && timeLeft > 0) {
       interval = setInterval(() => {
