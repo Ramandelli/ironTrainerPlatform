@@ -51,7 +51,7 @@ export const AbdominalTimer: React.FC<AbdominalTimerProps> = ({
   const timePerSet = exercise.timePerSet || 30;
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
 
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
