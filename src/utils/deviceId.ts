@@ -42,7 +42,7 @@ export function validarCodigoPremium(codigoDigitado: string, deviceId: string): 
 
   const hash = (soma * 7) % 10000;
   const hashFormatado = hash.toString().padStart(4, "0");
-  const codigoEsperado = `IRON-${prefix}-${hash}`;
+  const codigoEsperado = `IRON-${prefix}-${hashFormatado}`;
 
   return codigoDigitado.trim().toUpperCase() === codigoEsperado.toUpperCase();
 }
