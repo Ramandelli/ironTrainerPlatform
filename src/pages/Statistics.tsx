@@ -1136,16 +1136,26 @@ const restDaysCount = React.useMemo(() => {
                     </p>
                   )}
                   
-                  {distributionChartData.some(d => d.isBest) && (
-                    <div className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <Trophy className="w-4 h-4 text-primary" />
-                      <span>
-                        Melhor dia: <strong className="text-foreground">
-                          {distributionChartData.find(d => d.isBest)?.fullDay}
-                        </strong>
-                      </span>
-                    </div>
-                  )}
+                  {distributionChartData.some(d => d.isBest) && (() => {
+                    const bestDayData = distributionChartData.find(d => d.isBest);
+                    return (
+                      <div className="mt-3 flex flex-col items-center gap-1">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Trophy className="w-4 h-4 text-primary" />
+                          <span>
+                            Melhor dia: <strong className="text-foreground">
+                              {bestDayData?.fullDay}
+                            </strong>
+                          </span>
+                        </div>
+                        {bestDayData && bestDayData.volume > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {bestDayData.count} treinos • {bestDayData.volume.toLocaleString('pt-BR')} kg de volume total
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </section>
