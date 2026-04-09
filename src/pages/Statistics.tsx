@@ -722,7 +722,7 @@ const restDaysCount = React.useMemo(() => {
       });
   }, [history]);
 
-  // Chart data with percentages and best day highlight
+  // Chart data with percentages and best day highlight (volume as tiebreaker)
   const distributionChartData = React.useMemo(() => {
     const entries = Object.entries(advancedStats.workoutDistribution);
     const total = entries.reduce((sum, [, count]) => sum + count, 0);
@@ -738,17 +738,35 @@ const restDaysCount = React.useMemo(() => {
       'sexta-feira': 'Sex',
       'sábado': 'Sáb'
     };
+
+    // Find the best day: highest count, then highest volume as tiebreaker
+    const daysWithMaxCount = entries.filter(([, count]) => count === maxCount && count > 0);
+    let bestDay = '';
+    if (daysWithMaxCount.length === 1) {
+      bestDay = daysWithMaxCount[0][0];
+    } else if (daysWithMaxCount.length > 1) {
+      // Tiebreaker: highest total volume
+      let maxVolume = -1;
+      daysWithMaxCount.forEach(([day]) => {
+        const vol = advancedStats.workoutVolumeByDay?.[day] || 0;
+        if (vol > maxVolume) {
+          maxVolume = vol;
+          bestDay = day;
+        }
+      });
+    }
     
     return entries
       .map(([day, count]) => ({
         day: dayAbbrev[day.toLowerCase()] || day.charAt(0).toUpperCase() + day.slice(1),
         fullDay: day,
         count,
+        volume: advancedStats.workoutVolumeByDay?.[day] || 0,
         percentage: total > 0 ? Math.round((count / total) * 100) : 0,
-        isBest: count === maxCount && count > 0
+        isBest: day === bestDay
       }))
       .sort((a, b) => dayOrder.indexOf(a.fullDay.toLowerCase()) - dayOrder.indexOf(b.fullDay.toLowerCase()));
-  }, [advancedStats.workoutDistribution]);
+  }, [advancedStats.workoutDistribution, advancedStats.workoutVolumeByDay]);
 
   const handleResetData = async () => {
     try {
