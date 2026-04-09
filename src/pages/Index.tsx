@@ -151,14 +151,19 @@ const Index = () => {
 
   // Escutar evento de atualização de dias de descanso (ex: após reset)
   useEffect(() => {
-    const handleRestDaysUpdated = () => {
-      checkRestDay();
+    const handleRestDaysUpdated = async () => {
+      // Recarregar workouts e re-checar dia de descanso com dados frescos
+      await loadWorkouts();
+      // Usar timeout para garantir que o state do workoutPlan atualizou
+      setTimeout(async () => {
+        await checkRestDay();
+      }, 100);
     };
     window.addEventListener('rest_days_updated', handleRestDaysUpdated);
     return () => {
       window.removeEventListener('rest_days_updated', handleRestDaysUpdated);
     };
-  }, []);
+  }, [workoutPlan]);
 
   const loadHistory = async () => {
     try {
