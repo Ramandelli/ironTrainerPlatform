@@ -83,6 +83,13 @@ export const PremiumActivationModal: React.FC = () => {
             </p>
           </div>
 
+          {/* Warning notice */}
+          <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+            <p className="text-xs text-amber-200 leading-relaxed text-center">
+              ⚠️ <strong>Importante:</strong> Anote seu código de ativação! Se formatar o celular ou trocar de aparelho, envie o código pelo WhatsApp para verificação e reativação.
+            </p>
+          </div>
+
           {/* Premium features grid */}
           <div className="grid grid-cols-2 gap-1.5 text-xs">
             {[
