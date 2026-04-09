@@ -600,6 +600,7 @@ const restDaysCount = React.useMemo(() => {
       .sort(([,a], [,b]) => b - a)[0]?.[0] || '';
 
     const workoutDistribution: Record<string, number> = {};
+    const workoutVolumeByDay: Record<string, number> = {};
     history.forEach(session => {
       try {
         let sessionDate: Date;
@@ -634,6 +635,7 @@ const restDaysCount = React.useMemo(() => {
         if (dayIndex >= 0 && dayIndex < days.length) {
           const dayName = days[dayIndex];
           workoutDistribution[dayName] = (workoutDistribution[dayName] || 0) + 1;
+          workoutVolumeByDay[dayName] = (workoutVolumeByDay[dayName] || 0) + (session.totalVolume || 0);
         }
       } catch (e) {
         console.error('Erro ao processar data:', session.date, e);
@@ -645,7 +647,8 @@ const restDaysCount = React.useMemo(() => {
         totalSets,
         totalReps,
         mostFrequentExercise,
-        workoutDistribution
+        workoutDistribution,
+        workoutVolumeByDay
       };
     }, [filteredHistory, history]);
 
