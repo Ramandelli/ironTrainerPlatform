@@ -6,6 +6,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { AbdominalTimer } from '../components/AbdominalTimer';
+import { FunctionalTimer } from '../components/FunctionalTimer';
 import { Timer } from '../components/Timer';
 import { AerobicTimer } from '../components/AerobicTimer';
 import { Statistics } from './Statistics';
@@ -51,8 +52,12 @@ const Index = () => {
     completeAbdominalSet,
     completeAbdominalExercise,
     skipAbdominalExercise,
+    completeFunctionalSet,
+    completeFunctionalExercise,
+    skipFunctionalExercise,
     updateExercise,
     updateAbdominalExercise,
+    updateFunctionalExercise,
     updateAerobic,
     addExercise,
     applyPermanentChanges,
@@ -61,7 +66,8 @@ const Index = () => {
     newAchievements,
     clearAchievements,
     setWarmupCompleted,
-    setAbdominalCompleted
+    setAbdominalCompleted,
+    setFunctionalCompleted
   } = useWorkoutSession();
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
@@ -83,6 +89,7 @@ const Index = () => {
   // Valores derivados da sessão (persistidos)
   const warmupCompleted = currentSession?.warmupCompleted ?? false;
   const abdominalCompleted = currentSession?.abdominalCompleted ?? false;
+  const functionalCompleted = currentSession?.functionalCompleted ?? false;
 
   const getLastWorkoutTime = () => {
     if (history.length === 0) return 0;
@@ -312,6 +319,7 @@ const Index = () => {
       // Reset workout-specific states
       setWarmupCompleted(false);
       setAbdominalCompleted(false);
+      setFunctionalCompleted(false);
       setAerobicContext(null);
       
       startWorkout(workoutDayId);
@@ -418,6 +426,10 @@ const Index = () => {
   
   const handleCompleteAbdominals = () => {
     setAbdominalCompleted(true);
+  };
+
+  const handleCompleteFunctionals = () => {
+    setFunctionalCompleted(true);
   };
 
   const handleCancelWorkout = () => {
