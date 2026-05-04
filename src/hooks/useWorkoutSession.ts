@@ -647,7 +647,26 @@ const loadSession = async () => {
     });
   }, [currentSession, toast]);
 
-  const updateAerobic = useCallback((updates: Partial<AerobicExercise>) => {
+  const updateFunctionalExercise = useCallback((exerciseId: string, updates: Partial<Exercise>) => {
+    if (!currentSession || !currentSession.functional) return;
+
+    setCurrentSession(prev => {
+      if (!prev || !prev.functional) return prev;
+
+      const updatedFunctional = prev.functional.map(ex =>
+        ex.id === exerciseId ? { ...ex, ...updates } : ex
+      );
+
+      return { ...prev, functional: updatedFunctional };
+    });
+
+    setModifiedExercises(prev => new Set(prev).add(exerciseId));
+
+    toast({
+      title: "Exercício atualizado",
+      description: "Alterações serão aplicadas neste treino.",
+    });
+  }, [currentSession, toast]);
     if (!currentSession || !currentSession.aerobic) return;
 
     setCurrentSession(prev => {
