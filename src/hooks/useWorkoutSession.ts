@@ -981,5 +981,3 @@ const loadSession = async () => {
     setFunctionalCompleted,
   };
 };
-  };
-};
