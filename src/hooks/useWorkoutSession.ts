@@ -485,6 +485,8 @@ const loadSession = async () => {
       console.error('Failed to skip functional exercise:', error);
     }
   }, [currentSession, toast]);
+
+  const finishWorkout = useCallback(async (notes?: string) => {
     if (!currentSession) return;
 
     try {
