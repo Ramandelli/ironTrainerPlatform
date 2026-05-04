@@ -615,6 +615,12 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                 onSave={updateExercise}
                 onCancel={() => setEditingExercise(null)}
               />
+            ) : editingExercise.type === 'functional' ? (
+              <FunctionalForm
+                exercise={editingExercise.exercise}
+                onSave={updateExercise}
+                onCancel={() => setEditingExercise(null)}
+              />
             ) : (
               <ExerciseForm
                 exercise={editingExercise.exercise}
