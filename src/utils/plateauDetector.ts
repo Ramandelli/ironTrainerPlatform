@@ -41,6 +41,7 @@ function extractPerformanceHistory(
     const allExercises: Exercise[] = [
       ...session.exercises,
       ...(session.abdominal || []),
+      ...(session.functional || []),
     ];
 
     for (const ex of allExercises) {

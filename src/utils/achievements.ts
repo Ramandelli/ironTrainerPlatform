@@ -326,7 +326,8 @@ export const ACHIEVEMENTS: Achievement[] = [
         const allExercisesCompleted = session.exercises.every(ex => ex.completed);
         const aerobicCompleted = !session.aerobic || session.aerobic.completed || session.aerobic.skipped;
         const abdominalCompleted = !session.abdominal || session.abdominal.every(ex => ex.completed);
-        return allExercisesCompleted && aerobicCompleted && abdominalCompleted;
+        const functionalCompleted = !session.functional || session.functional.every(ex => ex.completed);
+        return allExercisesCompleted && aerobicCompleted && abdominalCompleted && functionalCompleted;
       });
     },
   },

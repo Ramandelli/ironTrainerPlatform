@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from './ui/badge';
 import { ExerciseForm } from './ExerciseForm';
 import { AbdominalForm } from './AbdominalForm';
+import { FunctionalForm } from './FunctionalForm';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { Plus, Edit, Trash2, GripVertical, X, Lock } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types/workout';
@@ -69,14 +70,16 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     day: workout?.day ? mapDayToSelectValue(workout.day) : '',
     exercises: workout?.exercises || [],
     abdominal: workout?.abdominal || [],
+    functional: workout?.functional || [],
     aerobic: workout?.aerobic || null,
     warmup: workout?.warmup || ''
   });
 
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [showAbdominalForm, setShowAbdominalForm] = useState(false);
-  const [editingExercise, setEditingExercise] = useState<{ exercise: Exercise; index: number; type: 'main' | 'abdominal' } | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; type: 'main' | 'abdominal' } | null>(null);
+  const [showFunctionalForm, setShowFunctionalForm] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<{ exercise: Exercise; index: number; type: 'main' | 'abdominal' | 'functional' } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; type: 'main' | 'abdominal' | 'functional' } | null>(null);
   const [showAerobicForm, setShowAerobicForm] = useState(false);
   const [aerobicDraft, setAerobicDraft] = useState<{
     type?: 'esteira' | 'bicicleta';
@@ -113,31 +116,30 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
       day: dayLabel,
       exercises: formData.exercises,
       abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
+      functional: formData.functional.length > 0 ? formData.functional : undefined,
       aerobic: formData.aerobic,
       warmup: formData.warmup.trim() || undefined
     });
   };
 
-  const addExercise = (exerciseData: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>, isAbdominal = false) => {
+  const addExercise = (exerciseData: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>, kind: 'main' | 'abdominal' | 'functional' = 'main') => {
+    const idPrefix = kind === 'abdominal' ? 'ab' : kind === 'functional' ? 'fn' : 'ex';
     const newExercise: Exercise = {
       ...exerciseData,
-      id: `${isAbdominal ? 'ab' : 'ex'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `${idPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       completed: false,
       currentSet: 0,
       setData: []
     };
 
-    if (isAbdominal) {
-      setFormData(prev => ({
-        ...prev,
-        abdominal: [...prev.abdominal, newExercise]
-      }));
+    if (kind === 'abdominal') {
+      setFormData(prev => ({ ...prev, abdominal: [...prev.abdominal, newExercise] }));
       setShowAbdominalForm(false);
+    } else if (kind === 'functional') {
+      setFormData(prev => ({ ...prev, functional: [...prev.functional, newExercise] }));
+      setShowFunctionalForm(false);
     } else {
-      setFormData(prev => ({
-        ...prev,
-        exercises: [...prev.exercises, newExercise]
-      }));
+      setFormData(prev => ({ ...prev, exercises: [...prev.exercises, newExercise] }));
       setShowExerciseForm(false);
     }
   };
@@ -153,14 +155,21 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     if (editingExercise.type === 'abdominal') {
       setFormData(prev => ({
         ...prev,
-        abdominal: prev.abdominal.map((ex, i) => 
+        abdominal: prev.abdominal.map((ex, i) =>
+          i === editingExercise.index ? updatedExercise : ex
+        )
+      }));
+    } else if (editingExercise.type === 'functional') {
+      setFormData(prev => ({
+        ...prev,
+        functional: prev.functional.map((ex, i) =>
           i === editingExercise.index ? updatedExercise : ex
         )
       }));
     } else {
       setFormData(prev => ({
         ...prev,
-        exercises: prev.exercises.map((ex, i) => 
+        exercises: prev.exercises.map((ex, i) =>
           i === editingExercise.index ? updatedExercise : ex
         )
       }));
@@ -169,11 +178,16 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     setEditingExercise(null);
   };
 
-  const deleteExercise = (index: number, type: 'main' | 'abdominal') => {
+  const deleteExercise = (index: number, type: 'main' | 'abdominal' | 'functional') => {
     if (type === 'abdominal') {
       setFormData(prev => ({
         ...prev,
         abdominal: prev.abdominal.filter((_, i) => i !== index)
+      }));
+    } else if (type === 'functional') {
+      setFormData(prev => ({
+        ...prev,
+        functional: prev.functional.filter((_, i) => i !== index)
       }));
     } else {
       setFormData(prev => ({
@@ -183,7 +197,6 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     }
     setDeleteConfirm(null);
   };
-
   const moveExercise = (fromIndex: number, toIndex: number, type: 'main' | 'abdominal') => {
     const exercises = type === 'abdominal' ? formData.abdominal : formData.exercises;
     const newExercises = [...exercises];
@@ -456,7 +469,7 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
         {showExerciseForm && (
           <ExerciseForm
-            onSave={(exerciseData) => addExercise(exerciseData, false)}
+            onSave={(exerciseData) => addExercise(exerciseData, 'main')}
             onCancel={() => setShowExerciseForm(false)}
           />
         )}
@@ -504,19 +517,79 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
           {showAbdominalForm && (
             <AbdominalForm
-              onSave={(exerciseData) => addExercise(exerciseData, true)}
+              onSave={(exerciseData) => addExercise(exerciseData, 'abdominal')}
               onCancel={() => setShowAbdominalForm(false)}
             />
           )}
         </div>
       ) : (
-        <div 
+        <div
           className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
           onClick={() => openPremiumModal('Exercícios Abdominais Separados')}
         >
           <div className="flex items-center gap-2">
             <Lock className="w-4 h-4 text-primary" />
             <span className="text-sm text-primary font-medium">Exercícios Abdominais</span>
+          </div>
+          <Badge variant="outline" className="border-primary/40 text-primary text-xs">Premium</Badge>
+        </div>
+      )}
+
+      {/* Functional Exercises */}
+      {isPremium ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Exercícios Funcionais</h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFunctionalForm(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Funcional
+            </Button>
+          </div>
+
+          {formData.functional.map((exercise, index) => (
+            <Card key={exercise.id} className="border-border border-dashed">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{exercise.name}</h4>
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      <span>{exercise.sets} séries</span>
+                      <span>{exercise.targetReps}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setEditingExercise({ exercise, index, type: 'functional' })}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setDeleteConfirm({ index, type: 'functional' })}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {showFunctionalForm && (
+            <FunctionalForm
+              onSave={(exerciseData) => addExercise(exerciseData, 'functional')}
+              onCancel={() => setShowFunctionalForm(false)}
+            />
+          )}
+        </div>
+      ) : (
+        <div
+          className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
+          onClick={() => openPremiumModal('Exercícios Funcionais')}
+        >
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-primary" />
+            <span className="text-sm text-primary font-medium">Exercícios Funcionais</span>
           </div>
           <Badge variant="outline" className="border-primary/40 text-primary text-xs">Premium</Badge>
         </div>
@@ -538,6 +611,12 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
           <div className="w-full max-w-lg">
             {editingExercise.type === 'abdominal' ? (
               <AbdominalForm
+                exercise={editingExercise.exercise}
+                onSave={updateExercise}
+                onCancel={() => setEditingExercise(null)}
+              />
+            ) : editingExercise.type === 'functional' ? (
+              <FunctionalForm
                 exercise={editingExercise.exercise}
                 onSave={updateExercise}
                 onCancel={() => setEditingExercise(null)}

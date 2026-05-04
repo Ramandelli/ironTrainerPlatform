@@ -3,13 +3,15 @@ import { Progress } from './ui/progress';
 import { CheckCircle, Flame, Dumbbell, Target } from 'lucide-react';
 
 interface WorkoutProgressBarProps {
-  currentPhase: 'warmup' | 'aerobic-before' | 'exercises' | 'abdominal' | 'aerobic-after' | 'finished' | 'none';
+  currentPhase: 'warmup' | 'aerobic-before' | 'exercises' | 'functional' | 'abdominal' | 'aerobic-after' | 'finished' | 'none';
   exercisesCompleted: number;
   totalExercises: number;
   warmupCompleted: boolean;
   hasWarmup: boolean;
   hasAbdominal: boolean;
   abdominalCompleted: boolean;
+  hasFunctional: boolean;
+  functionalCompleted: boolean;
   hasAerobic: boolean;
   aerobicTiming?: 'antes' | 'depois';
   aerobicCompleted: boolean;
@@ -23,6 +25,8 @@ export const WorkoutProgressBar: React.FC<WorkoutProgressBarProps> = ({
   hasWarmup,
   hasAbdominal,
   abdominalCompleted,
+  hasFunctional,
+  functionalCompleted,
   hasAerobic,
   aerobicTiming,
   aerobicCompleted
@@ -47,6 +51,12 @@ export const WorkoutProgressBar: React.FC<WorkoutProgressBarProps> = ({
     // Main exercises
     totalSteps += totalExercises;
     completedSteps += exercisesCompleted;
+
+    // Functional (vem antes do abdominal)
+    if (hasFunctional) {
+      totalSteps += 1;
+      if (functionalCompleted) completedSteps += 1;
+    }
 
     // Abdominal
     if (hasAbdominal) {
@@ -74,6 +84,8 @@ export const WorkoutProgressBar: React.FC<WorkoutProgressBarProps> = ({
         return 'Cardio';
       case 'exercises':
         return `Exercício ${Math.min(exercisesCompleted + 1, totalExercises)}/${totalExercises}`;
+      case 'functional':
+        return 'Funcionais';
       case 'abdominal':
         return 'Abdominais';
       case 'aerobic-after':
@@ -95,6 +107,8 @@ export const WorkoutProgressBar: React.FC<WorkoutProgressBarProps> = ({
         return <Target className="w-4 h-4 text-iron-orange" />;
       case 'exercises':
         return <Dumbbell className="w-4 h-4 text-iron-orange" />;
+      case 'functional':
+        return <Target className="w-4 h-4 text-iron-orange" />;
       case 'abdominal':
         return <Target className="w-4 h-4 text-iron-orange" />;
       case 'finished':

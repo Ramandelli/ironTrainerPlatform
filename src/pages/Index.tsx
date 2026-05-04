@@ -6,6 +6,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { AbdominalTimer } from '../components/AbdominalTimer';
+import { FunctionalTimer } from '../components/FunctionalTimer';
 import { Timer } from '../components/Timer';
 import { AerobicTimer } from '../components/AerobicTimer';
 import { Statistics } from './Statistics';
@@ -51,8 +52,12 @@ const Index = () => {
     completeAbdominalSet,
     completeAbdominalExercise,
     skipAbdominalExercise,
+    completeFunctionalSet,
+    completeFunctionalExercise,
+    skipFunctionalExercise,
     updateExercise,
     updateAbdominalExercise,
+    updateFunctionalExercise,
     updateAerobic,
     addExercise,
     applyPermanentChanges,
@@ -61,7 +66,8 @@ const Index = () => {
     newAchievements,
     clearAchievements,
     setWarmupCompleted,
-    setAbdominalCompleted
+    setAbdominalCompleted,
+    setFunctionalCompleted
   } = useWorkoutSession();
 
   const [stats, setStats] = useState<WorkoutStats | null>(null);
@@ -83,6 +89,7 @@ const Index = () => {
   // Valores derivados da sessão (persistidos)
   const warmupCompleted = currentSession?.warmupCompleted ?? false;
   const abdominalCompleted = currentSession?.abdominalCompleted ?? false;
+  const functionalCompleted = currentSession?.functionalCompleted ?? false;
 
   const getLastWorkoutTime = () => {
     if (history.length === 0) return 0;
@@ -312,6 +319,7 @@ const Index = () => {
       // Reset workout-specific states
       setWarmupCompleted(false);
       setAbdominalCompleted(false);
+      setFunctionalCompleted(false);
       setAerobicContext(null);
       
       startWorkout(workoutDayId);
@@ -420,6 +428,10 @@ const Index = () => {
     setAbdominalCompleted(true);
   };
 
+  const handleCompleteFunctionals = () => {
+    setFunctionalCompleted(true);
+  };
+
   const handleCancelWorkout = () => {
     setShowCancelConfirm(true);
   };
@@ -508,10 +520,18 @@ const Index = () => {
       return 'exercises';
     }
 
-    // Quarta fase: Exercícios abdominais (somente Premium e se existem exercícios)
+    // Quarta fase: Exercícios funcionais (somente Premium e se existem exercícios) — ANTES do abdominal
+    const hasFunctionalExercises = workoutDay.functional && workoutDay.functional.length > 0;
+    const sessionHasFunctional = currentSession.functional && currentSession.functional.length > 0;
+
+    if (isPremium && hasFunctionalExercises && sessionHasFunctional && !functionalCompleted) {
+      return 'functional';
+    }
+
+    // Quinta fase: Exercícios abdominais (somente Premium e se existem exercícios)
     const hasAbdominalExercises = workoutDay.abdominal && workoutDay.abdominal.length > 0;
     const sessionHasAbdominal = currentSession.abdominal && currentSession.abdominal.length > 0;
-    
+
     if (isPremium && hasAbdominalExercises && sessionHasAbdominal && !abdominalCompleted) {
       return 'abdominal';
     }
@@ -639,6 +659,34 @@ const Index = () => {
               </CardContent>
             </Card>
           ))}
+
+          {workoutDay.functional && workoutDay.functional.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-foreground">Exercícios Funcionais</h2>
+              {workoutDay.functional.map((exercise) => (
+                <Card key={exercise.id} className="border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2 uppercase">
+                      <Dumbbell className="w-4 h-4 text-iron-orange" />
+                      {exercise.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Séries:</span>
+                        <span>{exercise.sets}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Repetições/Tempo:</span>
+                        <span>{exercise.targetReps}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {workoutDay.abdominal && workoutDay.abdominal.length > 0 && (
             <div className="space-y-4">
@@ -788,6 +836,8 @@ const Index = () => {
               hasWarmup={!!workoutDay.warmup && workoutDay.warmup.trim() !== ''}
               hasAbdominal={!!workoutDay.abdominal && workoutDay.abdominal.length > 0}
               abdominalCompleted={abdominalCompleted}
+              hasFunctional={!!workoutDay.functional && workoutDay.functional.length > 0}
+              functionalCompleted={functionalCompleted}
               hasAerobic={!!workoutDay.aerobic}
               aerobicTiming={workoutDay.aerobic?.timing}
               aerobicCompleted={!!currentSession.aerobic?.completed || !!currentSession.aerobic?.skipped}
@@ -875,6 +925,65 @@ const Index = () => {
                 );
               })}
             </>
+          )}
+
+          {workoutPhase === 'functional' && currentSession.functional && currentSession.functional.length > 0 && isPremium && (
+            <div className="space-y-4 mt-8">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-foreground mb-2 uppercase">Exercícios Funcionais</h2>
+                <p className="text-sm text-muted-foreground mb-4">Complete os exercícios funcionais para continuar</p>
+                <Button variant="outline" className="w-full" onClick={() => setFunctionalCompleted(true)}>
+                  Pular Funcionais
+                </Button>
+              </div>
+
+              {currentSession.functional.map((exercise) => (
+                exercise.isTimeBased ? (
+                  <FunctionalTimer
+                    key={exercise.id}
+                    exercise={exercise}
+                    onSetComplete={(setIndex, setData) => {
+                      completeFunctionalSet(exercise.id, setIndex, setData);
+                      if (!setData.isEdit && setIndex < (exercise.sets - 1)) {
+                        const restTime = exercise.restTime || 60;
+                        startRestTimer(restTime, 'rest-between-sets', exercise.id, setIndex);
+                      }
+                    }}
+                    onExerciseComplete={() => completeFunctionalExercise(exercise.id)}
+                    onExerciseSkip={() => skipFunctionalExercise(exercise.id)}
+                    onExerciseUpdate={(updates) => updateFunctionalExercise(exercise.id, updates)}
+                    isActive={!exercise.completed}
+                  />
+                ) : (
+                  <ExerciseCard
+                    key={exercise.id}
+                    exercise={exercise}
+                    onSetComplete={(setIndex, setData) => {
+                      completeFunctionalSet(exercise.id, setIndex, setData);
+                      if (!setData.isEdit && setIndex < (exercise.sets - 1)) {
+                        const restTime = exercise.restTime || 60;
+                        startRestTimer(restTime, 'rest-between-sets', exercise.id, setIndex);
+                      }
+                    }}
+                    onExerciseComplete={() => completeFunctionalExercise(exercise.id)}
+                    onExerciseSkip={() => skipFunctionalExercise(exercise.id)}
+                    onExerciseUpdate={(updates) => updateFunctionalExercise(exercise.id, updates)}
+                    isActive={!exercise.completed}
+                    hideWeightInputs
+                  />
+                )
+              ))}
+
+              {currentSession.functional.every(ex => ex.completed) && (
+                <Button
+                  variant="success"
+                  className="w-full"
+                  onClick={handleCompleteFunctionals}
+                >
+                  Concluir Funcionais ✅
+                </Button>
+              )}
+            </div>
           )}
 
           {workoutPhase === 'abdominal' && currentSession.abdominal && currentSession.abdominal.length > 0 && isPremium && (
@@ -1266,8 +1375,8 @@ const Index = () => {
                 <span className="text-xs">Conquistas</span>
                 {!isPremium && <Lock className="w-3 h-3 absolute top-1 right-1 text-primary" />}
               </Button>
-              
-              
+
+
               <Button
                 variant="ghost"
                 size="sm"
