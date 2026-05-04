@@ -101,6 +101,13 @@ class CustomWorkoutManager {
           currentSet: 0,
           setData: []
         })),
+        functional: sourceWorkout.functional?.map(ex => ({
+          ...ex,
+          id: `fn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          completed: false,
+          currentSet: 0,
+          setData: []
+        })),
         aerobic: sourceWorkout.aerobic ? {
           ...sourceWorkout.aerobic,
           completed: false
@@ -193,6 +200,13 @@ class CustomWorkoutManager {
           currentSet: 0,
           setData: []
         })),
+        functional: sourceWorkout.functional?.map(ex => ({
+          ...ex,
+          id: `fn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          completed: false,
+          currentSet: 0,
+          setData: []
+        })),
         aerobic: sourceWorkout.aerobic ? {
           ...sourceWorkout.aerobic,
           completed: false
@@ -243,6 +257,13 @@ class CustomWorkoutManager {
         abdominal: workout.abdominal?.map(ex => ({
           ...ex,
           id: `ab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          completed: false,
+          currentSet: 0,
+          setData: []
+        })),
+        functional: workout.functional?.map(ex => ({
+          ...ex,
+          id: `fn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           completed: false,
           currentSet: 0,
           setData: []
