@@ -667,6 +667,8 @@ const loadSession = async () => {
       description: "Alterações serão aplicadas neste treino.",
     });
   }, [currentSession, toast]);
+
+  const updateAerobic = useCallback((updates: Partial<AerobicExercise>) => {
     if (!currentSession || !currentSession.aerobic) return;
 
     setCurrentSession(prev => {
