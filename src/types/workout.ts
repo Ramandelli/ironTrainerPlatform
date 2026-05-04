@@ -44,6 +44,7 @@ export interface WorkoutDay {
   exercises: Exercise[];
   aerobic?: AerobicExercise;
   abdominal?: Exercise[];
+  functional?: Exercise[];
   warmup?: string;
   _isDeleted?: boolean;
   _originalId?: string;
@@ -69,11 +70,13 @@ export interface WorkoutSession {
   exercises: Exercise[];
   aerobic?: AerobicExercise;
   abdominal?: Exercise[];
+  functional?: Exercise[];
   totalVolume: number;
   notes?: string;
   completed: boolean;
   warmupCompleted?: boolean;
   abdominalCompleted?: boolean;
+  functionalCompleted?: boolean;
 }
 
 export interface WorkoutStats {
