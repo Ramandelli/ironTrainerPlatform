@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from './ui/badge';
 import { ExerciseForm } from './ExerciseForm';
 import { AbdominalForm } from './AbdominalForm';
+import { FunctionalForm } from './FunctionalForm';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { Plus, Edit, Trash2, GripVertical, X, Lock } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types/workout';
@@ -69,14 +70,16 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     day: workout?.day ? mapDayToSelectValue(workout.day) : '',
     exercises: workout?.exercises || [],
     abdominal: workout?.abdominal || [],
+    functional: workout?.functional || [],
     aerobic: workout?.aerobic || null,
     warmup: workout?.warmup || ''
   });
 
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [showAbdominalForm, setShowAbdominalForm] = useState(false);
-  const [editingExercise, setEditingExercise] = useState<{ exercise: Exercise; index: number; type: 'main' | 'abdominal' } | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; type: 'main' | 'abdominal' } | null>(null);
+  const [showFunctionalForm, setShowFunctionalForm] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<{ exercise: Exercise; index: number; type: 'main' | 'abdominal' | 'functional' } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; type: 'main' | 'abdominal' | 'functional' } | null>(null);
   const [showAerobicForm, setShowAerobicForm] = useState(false);
   const [aerobicDraft, setAerobicDraft] = useState<{
     type?: 'esteira' | 'bicicleta';
@@ -113,9 +116,86 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
       day: dayLabel,
       exercises: formData.exercises,
       abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
+      functional: formData.functional.length > 0 ? formData.functional : undefined,
       aerobic: formData.aerobic,
       warmup: formData.warmup.trim() || undefined
     });
+  };
+
+  const addExercise = (exerciseData: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>, kind: 'main' | 'abdominal' | 'functional' = 'main') => {
+    const idPrefix = kind === 'abdominal' ? 'ab' : kind === 'functional' ? 'fn' : 'ex';
+    const newExercise: Exercise = {
+      ...exerciseData,
+      id: `${idPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      completed: false,
+      currentSet: 0,
+      setData: []
+    };
+
+    if (kind === 'abdominal') {
+      setFormData(prev => ({ ...prev, abdominal: [...prev.abdominal, newExercise] }));
+      setShowAbdominalForm(false);
+    } else if (kind === 'functional') {
+      setFormData(prev => ({ ...prev, functional: [...prev.functional, newExercise] }));
+      setShowFunctionalForm(false);
+    } else {
+      setFormData(prev => ({ ...prev, exercises: [...prev.exercises, newExercise] }));
+      setShowExerciseForm(false);
+    }
+  };
+
+  const updateExercise = (exerciseData: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>) => {
+    if (!editingExercise) return;
+
+    const updatedExercise = {
+      ...editingExercise.exercise,
+      ...exerciseData
+    };
+
+    if (editingExercise.type === 'abdominal') {
+      setFormData(prev => ({
+        ...prev,
+        abdominal: prev.abdominal.map((ex, i) =>
+          i === editingExercise.index ? updatedExercise : ex
+        )
+      }));
+    } else if (editingExercise.type === 'functional') {
+      setFormData(prev => ({
+        ...prev,
+        functional: prev.functional.map((ex, i) =>
+          i === editingExercise.index ? updatedExercise : ex
+        )
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        exercises: prev.exercises.map((ex, i) =>
+          i === editingExercise.index ? updatedExercise : ex
+        )
+      }));
+    }
+
+    setEditingExercise(null);
+  };
+
+  const deleteExercise = (index: number, type: 'main' | 'abdominal' | 'functional') => {
+    if (type === 'abdominal') {
+      setFormData(prev => ({
+        ...prev,
+        abdominal: prev.abdominal.filter((_, i) => i !== index)
+      }));
+    } else if (type === 'functional') {
+      setFormData(prev => ({
+        ...prev,
+        functional: prev.functional.filter((_, i) => i !== index)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        exercises: prev.exercises.filter((_, i) => i !== index)
+      }));
+    }
+    setDeleteConfirm(null);
   };
 
   const addExercise = (exerciseData: Omit<Exercise, 'id' | 'completed' | 'currentSet' | 'setData'>, isAbdominal = false) => {
