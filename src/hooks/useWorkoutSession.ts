@@ -833,6 +833,58 @@ const loadSession = async () => {
         });
       }
 
+      // ----- Update functional exercises similarly -----
+      let updatedFunctional: Exercise[] | undefined = workoutToUpdate.functional;
+      if (currentSession.functional && currentSession.functional.length > 0) {
+        const baseFnByName = new Map(
+          (workoutToUpdate.functional || []).map((ex) => [ex.name.toLowerCase(), ex])
+        );
+
+        updatedFunctional = currentSession.functional.map((sessionFn, idx) => {
+          const baseFn = baseFnByName.get(sessionFn.name.toLowerCase()) ||
+                         (wasConverted ? null : workoutToUpdate!.functional?.[idx]);
+
+          if (modifiedExercises.has(sessionFn.id)) {
+            return {
+              id: baseFn?.id || `fn_${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${idx}`,
+              name: sessionFn.name,
+              sets: sessionFn.sets,
+              targetReps: sessionFn.targetReps,
+              restTime: sessionFn.restTime,
+              notes: sessionFn.notes,
+              isTimeBased: sessionFn.isTimeBased,
+              timePerSet: sessionFn.timePerSet,
+              isBilateral: sessionFn.isBilateral,
+              completed: false,
+              currentSet: 0,
+              setData: [],
+            };
+          } else if (baseFn) {
+            return {
+              ...baseFn,
+              completed: false,
+              currentSet: 0,
+              setData: [],
+            };
+          } else {
+            return {
+              id: `fn_${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${idx}`,
+              name: sessionFn.name,
+              sets: sessionFn.sets,
+              targetReps: sessionFn.targetReps,
+              restTime: sessionFn.restTime,
+              notes: sessionFn.notes,
+              isTimeBased: sessionFn.isTimeBased,
+              timePerSet: sessionFn.timePerSet,
+              isBilateral: sessionFn.isBilateral,
+              completed: false,
+              currentSet: 0,
+              setData: [],
+            };
+          }
+        });
+      }
+
       // ----- Update aerobic if modified -----
       let updatedAerobic = workoutToUpdate.aerobic;
       if (currentSession.aerobic && modifiedExercises.has('aerobic')) {
@@ -850,6 +902,7 @@ const loadSession = async () => {
         ...workoutToUpdate,
         exercises: updatedExercises,
         abdominal: updatedAbdominal,
+        functional: updatedFunctional,
         aerobic: updatedAerobic,
       };
 
@@ -888,6 +941,11 @@ const loadSession = async () => {
     setCurrentSession(prev => prev ? { ...prev, abdominalCompleted: completed } : null);
   }, [currentSession]);
 
+  const setFunctionalCompleted = useCallback((completed: boolean) => {
+    if (!currentSession) return;
+    setCurrentSession(prev => prev ? { ...prev, functionalCompleted: completed } : null);
+  }, [currentSession]);
+
   return {
     currentSession,
     timerState,
@@ -905,8 +963,12 @@ const loadSession = async () => {
     completeAbdominalSet,
     completeAbdominalExercise,
     skipAbdominalExercise,
+    completeFunctionalSet,
+    completeFunctionalExercise,
+    skipFunctionalExercise,
     updateExercise,
     updateAbdominalExercise,
+    updateFunctionalExercise,
     updateAerobic,
     addExercise,
     applyPermanentChanges,
@@ -916,5 +978,8 @@ const loadSession = async () => {
     clearAchievements,
     setWarmupCompleted,
     setAbdominalCompleted,
+    setFunctionalCompleted,
+  };
+};
   };
 };
