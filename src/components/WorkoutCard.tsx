@@ -20,7 +20,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   averageTime,
   isCompleted = false
 }) => {
-  const totalExercises = workoutDay.exercises.length + (workoutDay.abdominal?.length || 0);
+  const totalExercises = workoutDay.exercises.length + (workoutDay.abdominal?.length || 0) + (workoutDay.functional?.length || 0);
   const hasAerobic = !!workoutDay.aerobic;
 
   return (

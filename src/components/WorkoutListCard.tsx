@@ -96,6 +96,11 @@ export const WorkoutListCard: React.FC<WorkoutListCardProps> = ({
                 +{workout.abdominal.length} abd
               </span>
             )}
+            {workout.functional && workout.functional.length > 0 && (
+              <span className="text-muted-foreground/70">
+                +{workout.functional.length} fnc
+              </span>
+            )}
           </div>
 
           {/* Exercise tags */}

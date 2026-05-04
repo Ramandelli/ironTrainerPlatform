@@ -660,6 +660,34 @@ const Index = () => {
             </Card>
           ))}
 
+          {workoutDay.functional && workoutDay.functional.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-foreground">Exercícios Funcionais</h2>
+              {workoutDay.functional.map((exercise) => (
+                <Card key={exercise.id} className="border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2 uppercase">
+                      <Dumbbell className="w-4 h-4 text-iron-orange" />
+                      {exercise.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Séries:</span>
+                        <span>{exercise.sets}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Repetições/Tempo:</span>
+                        <span>{exercise.targetReps}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
           {workoutDay.abdominal && workoutDay.abdominal.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-foreground">Exercícios Abdominais</h2>
