@@ -130,6 +130,17 @@ const loadSession = async () => {
           }))
         }));
       }
+
+      if (workoutDay.functional) {
+        session.functional = workoutDay.functional.map(exercise => ({
+          ...exercise,
+          setData: Array(exercise.sets).fill(null).map(() => ({
+            weight: 0,
+            reps: 0,
+            completed: false
+          }))
+        }));
+      }
       
       setCurrentSession(session);
       
@@ -389,7 +400,91 @@ const loadSession = async () => {
     }
   }, [currentSession, toast]);
 
-  const finishWorkout = useCallback(async (notes?: string) => {
+  const completeFunctionalSet = useCallback(async (exerciseId: string, setIndex: number, setData: SetData) => {
+    if (!currentSession || !currentSession.functional) return;
+
+    try {
+      setCurrentSession(prev => {
+        if (!prev || !prev.functional) return prev;
+        const updated = prev.functional.map(ex => {
+          if (ex.id !== exerciseId) return ex;
+          const newSetData = [...ex.setData];
+          newSetData[setIndex] = { ...newSetData[setIndex], ...setData } as SetData;
+          const nextSet = Math.min(ex.currentSet + 1, ex.sets);
+          const isAllSetsCompleted = newSetData.filter(s => s?.completed).length >= ex.sets;
+          return {
+            ...ex,
+            setData: newSetData,
+            currentSet: isAllSetsCompleted ? ex.currentSet : nextSet,
+            completed: isAllSetsCompleted ? true : ex.completed,
+          };
+        });
+        return { ...prev, functional: updated };
+      });
+
+      const parts: string[] = [];
+      if (typeof setData.reps === 'number') parts.push(`${setData.reps} reps`);
+      if (typeof setData.timeCompleted === 'number') parts.push(`${setData.timeCompleted}s`);
+
+      toast({
+        title: "Série de funcional completada! ⚡",
+        description: parts.join(' × '),
+      });
+    } catch (error) {
+      console.error('Failed to complete functional set:', error);
+    }
+  }, [currentSession, toast]);
+
+  const completeFunctionalExercise = useCallback(async (exerciseId: string) => {
+    if (!currentSession || !currentSession.functional) return;
+
+    try {
+      setCurrentSession(prev => {
+        if (!prev || !prev.functional) return prev;
+        const updated = completeExercise(prev.functional, exerciseId);
+        return { ...prev, functional: updated };
+      });
+
+      toast({
+        title: "Funcional concluído! ✅",
+        description: "Ótimo trabalho!",
+      });
+    } catch (error) {
+      console.error('Failed to complete functional exercise:', error);
+    }
+  }, [currentSession, toast]);
+
+  const skipFunctionalExercise = useCallback(async (exerciseId: string) => {
+    if (!currentSession || !currentSession.functional) return;
+
+    try {
+      setCurrentSession(prev => {
+        if (!prev || !prev.functional) return prev;
+        const updated = prev.functional.map(ex => {
+          if (ex.id !== exerciseId) return ex;
+          const updatedSetData = ex.setData.map((set) => {
+            if (set.completed) return set;
+            return { ...set, completed: false, skipped: true };
+          });
+          return {
+            ...ex,
+            completed: true,
+            skipped: true,
+            currentSet: ex.sets,
+            setData: updatedSetData
+          };
+        });
+        return { ...prev, functional: updated };
+      });
+
+      toast({
+        title: "Exercício funcional pulado",
+        description: "O exercício foi ignorado sem registrar dados.",
+      });
+    } catch (error) {
+      console.error('Failed to skip functional exercise:', error);
+    }
+  }, [currentSession, toast]);
     if (!currentSession) return;
 
     try {
