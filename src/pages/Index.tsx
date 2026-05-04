@@ -520,10 +520,18 @@ const Index = () => {
       return 'exercises';
     }
 
-    // Quarta fase: Exercícios abdominais (somente Premium e se existem exercícios)
+    // Quarta fase: Exercícios funcionais (somente Premium e se existem exercícios) — ANTES do abdominal
+    const hasFunctionalExercises = workoutDay.functional && workoutDay.functional.length > 0;
+    const sessionHasFunctional = currentSession.functional && currentSession.functional.length > 0;
+
+    if (isPremium && hasFunctionalExercises && sessionHasFunctional && !functionalCompleted) {
+      return 'functional';
+    }
+
+    // Quinta fase: Exercícios abdominais (somente Premium e se existem exercícios)
     const hasAbdominalExercises = workoutDay.abdominal && workoutDay.abdominal.length > 0;
     const sessionHasAbdominal = currentSession.abdominal && currentSession.abdominal.length > 0;
-    
+
     if (isPremium && hasAbdominalExercises && sessionHasAbdominal && !abdominalCompleted) {
       return 'abdominal';
     }
@@ -800,6 +808,8 @@ const Index = () => {
               hasWarmup={!!workoutDay.warmup && workoutDay.warmup.trim() !== ''}
               hasAbdominal={!!workoutDay.abdominal && workoutDay.abdominal.length > 0}
               abdominalCompleted={abdominalCompleted}
+              hasFunctional={!!workoutDay.functional && workoutDay.functional.length > 0}
+              functionalCompleted={functionalCompleted}
               hasAerobic={!!workoutDay.aerobic}
               aerobicTiming={workoutDay.aerobic?.timing}
               aerobicCompleted={!!currentSession.aerobic?.completed || !!currentSession.aerobic?.skipped}
