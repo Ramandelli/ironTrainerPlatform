@@ -1289,65 +1289,6 @@ const Index = () => {
                 {!isPremium && <Lock className="w-3 h-3 absolute top-1 right-1 text-primary" />}
               </Button>
 
-          {workoutPhase === 'functional' && currentSession.functional && currentSession.functional.length > 0 && isPremium && (
-            <div className="space-y-4 mt-8">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-foreground mb-2 uppercase">Exercícios Funcionais</h2>
-                <p className="text-sm text-muted-foreground mb-4">Complete os exercícios funcionais para continuar</p>
-                <Button variant="outline" className="w-full" onClick={() => setFunctionalCompleted(true)}>
-                  Pular Funcionais
-                </Button>
-              </div>
-
-              {currentSession.functional.map((exercise) => (
-                exercise.isTimeBased ? (
-                  <FunctionalTimer
-                    key={exercise.id}
-                    exercise={exercise}
-                    onSetComplete={(setIndex, setData) => {
-                      completeFunctionalSet(exercise.id, setIndex, setData);
-                      if (!setData.isEdit && setIndex < (exercise.sets - 1)) {
-                        const restTime = exercise.restTime || 60;
-                        startRestTimer(restTime, 'rest-between-sets', exercise.id, setIndex);
-                      }
-                    }}
-                    onExerciseComplete={() => completeFunctionalExercise(exercise.id)}
-                    onExerciseSkip={() => skipFunctionalExercise(exercise.id)}
-                    onExerciseUpdate={(updates) => updateFunctionalExercise(exercise.id, updates)}
-                    isActive={!exercise.completed}
-                  />
-                ) : (
-                  <ExerciseCard
-                    key={exercise.id}
-                    exercise={exercise}
-                    onSetComplete={(setIndex, setData) => {
-                      completeFunctionalSet(exercise.id, setIndex, setData);
-                      if (!setData.isEdit && setIndex < (exercise.sets - 1)) {
-                        const restTime = exercise.restTime || 60;
-                        startRestTimer(restTime, 'rest-between-sets', exercise.id, setIndex);
-                      }
-                    }}
-                    onExerciseComplete={() => completeFunctionalExercise(exercise.id)}
-                    onExerciseSkip={() => skipFunctionalExercise(exercise.id)}
-                    onExerciseUpdate={(updates) => updateFunctionalExercise(exercise.id, updates)}
-                    isActive={!exercise.completed}
-                    hideWeightInputs
-                  />
-                )
-              ))}
-
-              {currentSession.functional.every(ex => ex.completed) && (
-                <Button
-                  variant="success"
-                  className="w-full"
-                  onClick={handleCompleteFunctionals}
-                >
-                  Concluir Funcionais ✅
-                </Button>
-              )}
-            </div>
-          )}
-
 
               <Button
                 variant="ghost"
