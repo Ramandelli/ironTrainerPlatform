@@ -1,38 +1,65 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { Preferences } from '@capacitor/preferences';
-import { toast } from '@/hooks/use-toast';
-
-const PREMIUM_STATUS_KEY = 'iron_trainer_premium_status';
+import {
+  getInitialPremiumState,
+  refreshPremium,
+  clearPremium,
+  type PremiumStatus,
+} from '../services/PremiumService';
 
 interface PremiumContextType {
   isPremium: boolean;
+  status: PremiumStatus | 'unknown';
+  loading: boolean;
   showPremiumModal: boolean;
   premiumFeature: string;
   openPremiumModal: (feature: string) => void;
   closePremiumModal: () => void;
-  activatePremium: () => Promise<void>;
+  /** Revalida online (usado pelo botão "Já paguei / Validar agora"). */
+  revalidate: () => Promise<boolean>;
+  /** Remove token local (debug / logout premium). */
+  resetPremium: () => Promise<void>;
 }
 
 const PremiumContext = createContext<PremiumContextType>({
   isPremium: false,
+  status: 'unknown',
+  loading: true,
   showPremiumModal: false,
   premiumFeature: '',
   openPremiumModal: () => {},
   closePremiumModal: () => {},
-  activatePremium: async () => {},
+  revalidate: async () => false,
+  resetPremium: async () => {},
 });
 
 export const usePremium = () => useContext(PremiumContext);
 
 export const PremiumProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isPremium, setIsPremium] = useState(false);
+  const [status, setStatus] = useState<PremiumStatus | 'unknown'>('unknown');
+  const [loading, setLoading] = useState(true);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [premiumFeature, setPremiumFeature] = useState('');
 
+  // Boot: validação offline imediata + revalidação online em background.
   useEffect(() => {
-    Preferences.get({ key: PREMIUM_STATUS_KEY }).then(({ value }) => {
-      if (value === 'true') setIsPremium(true);
-    }).catch(() => {});
+    let mounted = true;
+    (async () => {
+      const offline = await getInitialPremiumState();
+      if (!mounted) return;
+      setIsPremium(offline.premium);
+      setStatus(offline.status);
+      setLoading(false);
+
+      // Revalida online silenciosamente.
+      const online = await refreshPremium();
+      if (!mounted) return;
+      setIsPremium(online.premium);
+      setStatus(online.status);
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const openPremiumModal = useCallback((feature: string) => {
@@ -45,17 +72,33 @@ export const PremiumProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setPremiumFeature('');
   }, []);
 
-  const activatePremium = useCallback(async () => {
-    try {
-      await Preferences.set({ key: PREMIUM_STATUS_KEY, value: 'true' });
-      setIsPremium(true);
-    } catch (error) {
-      console.error('Falha ao ativar premium:', error);
-    }
+  const revalidate = useCallback(async () => {
+    const result = await refreshPremium();
+    setIsPremium(result.premium);
+    setStatus(result.status);
+    return result.premium;
+  }, []);
+
+  const resetPremium = useCallback(async () => {
+    await clearPremium();
+    setIsPremium(false);
+    setStatus('inactive');
   }, []);
 
   return (
-    <PremiumContext.Provider value={{ isPremium, showPremiumModal, premiumFeature, openPremiumModal, closePremiumModal, activatePremium }}>
+    <PremiumContext.Provider
+      value={{
+        isPremium,
+        status,
+        loading,
+        showPremiumModal,
+        premiumFeature,
+        openPremiumModal,
+        closePremiumModal,
+        revalidate,
+        resetPremium,
+      }}
+    >
       {children}
     </PremiumContext.Provider>
   );
