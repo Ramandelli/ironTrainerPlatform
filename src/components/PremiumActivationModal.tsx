@@ -1,24 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Crown, Copy, MessageCircle, Check, KeyRound, Smartphone } from 'lucide-react';
+import { Crown, Copy, MessageCircle, Check, Smartphone, RefreshCw, Loader2 } from 'lucide-react';
 import { usePremium } from '../contexts/PremiumContext';
-import { getDeviceId, validarCodigoPremium, abrirWhatsApp } from '../utils/deviceId';
+import { getDeviceId, abrirWhatsApp } from '../utils/deviceId';
 import { toast } from '@/hooks/use-toast';
 
 export const PremiumActivationModal: React.FC = () => {
-  const { showPremiumModal, closePremiumModal, activatePremium } = usePremium();
+  const { showPremiumModal, closePremiumModal, revalidate, status } = usePremium();
   const [deviceId, setDeviceId] = useState('');
-  const [codigo, setCodigo] = useState('');
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState('');
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     if (showPremiumModal) {
       getDeviceId().then(setDeviceId);
-      setCodigo('');
-      setError('');
       setCopied(false);
     }
   }, [showPremiumModal]);
@@ -33,17 +29,17 @@ export const PremiumActivationModal: React.FC = () => {
     }
   };
 
-  const handleActivate = () => {
-    if (!codigo.trim()) {
-      setError('Digite o código de ativação.');
-      return;
-    }
-    if (validarCodigoPremium(codigo, deviceId)) {
-      activatePremium();
+  const handleCheck = async () => {
+    setChecking(true);
+    const ok = await revalidate();
+    setChecking(false);
+    if (ok) {
+      toast({ title: '🚀 Premium ativado!', description: 'Todas as funcionalidades foram desbloqueadas.' });
       closePremiumModal();
-      toast({ title: '🚀 Premium ativado com sucesso!', description: 'Todas as funcionalidades foram desbloqueadas.' });
+    } else if (status === 'revoked') {
+      toast({ title: 'Acesso revogado', description: 'Entre em contato pelo WhatsApp.', variant: 'destructive' });
     } else {
-      setError('Código inválido. Verifique e tente novamente.');
+      toast({ title: 'Ainda não liberado', description: 'Conclua o pagamento e tente novamente em alguns instantes.' });
     }
   };
 
@@ -64,7 +60,7 @@ export const PremiumActivationModal: React.FC = () => {
           <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Smartphone className="w-3.5 h-3.5" />
-              <span>Seu código de ativação</span>
+              <span>Seu DeviceID</span>
             </div>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-center text-lg font-mono font-bold tracking-widest text-foreground bg-background rounded px-3 py-2 select-all">
@@ -79,25 +75,25 @@ export const PremiumActivationModal: React.FC = () => {
           {/* Payment notice */}
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
             <p className="text-xs text-muted-foreground leading-relaxed text-center">
-              O acesso Premium é <strong className="text-foreground">pago</strong> e liberado após confirmação do pagamento.
+              Premium é <strong className="text-foreground">vitalício</strong> e liberado após confirmação do pagamento. 1 licença = 1 DeviceID.
             </p>
           </div>
 
-          {/* Warning notice */}
+          {/* Warning */}
           <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
             <p className="text-xs text-amber-200 leading-relaxed text-center">
-              ⚠️ <strong>Importante:</strong> Anote seu código de ativação! Se formatar o celular ou trocar de aparelho, envie o código pelo WhatsApp para verificação e reativação.
+              ⚠️ Anote seu DeviceID. Se formatar o celular ou trocar de aparelho, envie pelo WhatsApp para reassociação.
             </p>
           </div>
 
-          {/* Premium features grid */}
+          {/* Features */}
           <div className="grid grid-cols-2 gap-1.5 text-xs">
             {[
               'Geração de treino por IA',
               'Estatísticas completas',
               'Conquistas',
               'Dropsets & Rest-Pause',
-              'Importar/Exportar',
+              'Funcional & Abdominal',
               'Múltiplos treinos/dia',
               'Edição durante treino',
               'Progressão automática',
@@ -109,7 +105,7 @@ export const PremiumActivationModal: React.FC = () => {
             ))}
           </div>
 
-          {/* WhatsApp button */}
+          {/* WhatsApp */}
           <Button
             className="w-full bg-[#25D366] hover:bg-[#1da851] text-white"
             size="lg"
@@ -119,25 +115,20 @@ export const PremiumActivationModal: React.FC = () => {
             Solicitar ativação via WhatsApp
           </Button>
 
-          {/* Activation input */}
-          <div className="space-y-2 pt-1 border-t border-border">
-            <label className="flex items-center gap-1.5 text-sm font-medium pt-2">
-              <KeyRound className="w-4 h-4 text-primary" />
-              Digite seu código de ativação
-            </label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="IRON-XXXXXX-XXXX"
-                value={codigo}
-                onChange={(e) => { setCodigo(e.target.value); setError(''); }}
-                className="font-mono uppercase"
-              />
-              <Button onClick={handleActivate} className="shrink-0">
-                Ativar
-              </Button>
-            </div>
-            {error && <p className="text-xs text-destructive">{error}</p>}
-          </div>
+          {/* Já paguei / Validar agora */}
+          <Button className="w-full" size="lg" onClick={handleCheck} disabled={checking || !deviceId}>
+            {checking ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Verificando...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Já paguei — Validar agora
+              </>
+            )}
+          </Button>
 
           <Button variant="ghost" className="w-full text-xs" onClick={closePremiumModal}>
             Continuar com versão gratuita
