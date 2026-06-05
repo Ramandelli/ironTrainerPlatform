@@ -353,7 +353,11 @@ const Index = () => {
     
     const nextExercise = getNextExercise(currentSession?.exercises || []);
     if (nextExercise) {
-      startRestTimer(120, 'rest-between-exercises');
+      const workoutDay = workoutPlan.find(day => day.id === currentSession?.workoutDayId);
+      const restTime = workoutDay?.restBetweenExercises ?? 120;
+      if (restTime > 0) {
+        startRestTimer(restTime, 'rest-between-exercises');
+      }
     }
   };
 
