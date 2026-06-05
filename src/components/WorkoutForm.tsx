@@ -119,7 +119,8 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
       abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
       functional: formData.functional.length > 0 ? formData.functional : undefined,
       aerobic: formData.aerobic,
-      warmup: formData.warmup.trim() || undefined
+      warmup: formData.warmup.trim() || undefined,
+      restBetweenExercises: formData.restBetweenExercises
     });
   };
 
