@@ -268,6 +268,25 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
               />
             </div>
 
+            {/* Rest Between Exercises */}
+            <div>
+              <Label htmlFor="restBetweenExercises">Descanso entre exercícios (segundos)</Label>
+              <Input
+                id="restBetweenExercises"
+                type="number"
+                min={0}
+                max={600}
+                step={5}
+                value={formData.restBetweenExercises}
+                onChange={(e) => setFormData(prev => ({ ...prev, restBetweenExercises: Math.max(0, Number(e.target.value) || 0) }))}
+                placeholder="Ex: 120"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Tempo de descanso aplicado ao concluir cada exercício (padrão: 120s).
+              </p>
+            </div>
+
+
             {/* Aerobic Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
