@@ -72,7 +72,8 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     abdominal: workout?.abdominal || [],
     functional: workout?.functional || [],
     aerobic: workout?.aerobic || null,
-    warmup: workout?.warmup || ''
+    warmup: workout?.warmup || '',
+    restBetweenExercises: workout?.restBetweenExercises ?? 120
   });
 
   const [showExerciseForm, setShowExerciseForm] = useState(false);
