@@ -72,7 +72,8 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
     abdominal: workout?.abdominal || [],
     functional: workout?.functional || [],
     aerobic: workout?.aerobic || null,
-    warmup: workout?.warmup || ''
+    warmup: workout?.warmup || '',
+    restBetweenExercises: workout?.restBetweenExercises ?? 120
   });
 
   const [showExerciseForm, setShowExerciseForm] = useState(false);
@@ -118,7 +119,8 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
       abdominal: formData.abdominal.length > 0 ? formData.abdominal : undefined,
       functional: formData.functional.length > 0 ? formData.functional : undefined,
       aerobic: formData.aerobic,
-      warmup: formData.warmup.trim() || undefined
+      warmup: formData.warmup.trim() || undefined,
+      restBetweenExercises: formData.restBetweenExercises
     });
   };
 
@@ -265,6 +267,25 @@ export const WorkoutForm: React.FC<WorkoutFormProps> = ({
                 placeholder="Descreva o aquecimento para este treino (ex: 5min de caminhada, alongamentos dinâmicos, articulação dos ombros...)"
               />
             </div>
+
+            {/* Rest Between Exercises */}
+            <div>
+              <Label htmlFor="restBetweenExercises">Descanso entre exercícios (segundos)</Label>
+              <Input
+                id="restBetweenExercises"
+                type="number"
+                min={0}
+                max={600}
+                step={5}
+                value={formData.restBetweenExercises}
+                onChange={(e) => setFormData(prev => ({ ...prev, restBetweenExercises: Math.max(0, Number(e.target.value) || 0) }))}
+                placeholder="Ex: 120"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Tempo de descanso aplicado ao concluir cada exercício (padrão: 120s).
+              </p>
+            </div>
+
 
             {/* Aerobic Section */}
             <div className="space-y-3">

@@ -46,6 +46,7 @@ export interface WorkoutDay {
   abdominal?: Exercise[];
   functional?: Exercise[];
   warmup?: string;
+  restBetweenExercises?: number; // segundos
   _isDeleted?: boolean;
   _originalId?: string;
 }
