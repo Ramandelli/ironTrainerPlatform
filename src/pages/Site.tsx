@@ -26,12 +26,19 @@ import {
   AccordionContent,
 } from '@/components/ui/accordion';
 
-import screenHome from '../assets/site/screen-home.jpg.asset.json';
-import screenStats from '../assets/site/screen-stats.jpg.asset.json';
-import screenEvolution from '../assets/site/screen-evolution.jpg.asset.json';
-import screenAi from '../assets/site/screen-ai.jpg.asset.json';
-import screenAchievements from '../assets/site/screen-achievements.jpg.asset.json';
-import screenManage from '../assets/site/screen-manage.jpg.asset.json';
+import screenHomeAsset from '../assets/site/screen-home.jpg.asset.json';
+import screenStatsAsset from '../assets/site/screen-stats.jpg.asset.json';
+import screenEvolutionAsset from '../assets/site/screen-evolution.jpg.asset.json';
+import screenAiAsset from '../assets/site/screen-ai.jpg.asset.json';
+import screenAchievementsAsset from '../assets/site/screen-achievements.jpg.asset.json';
+import screenManageAsset from '../assets/site/screen-manage.jpg.asset.json';
+
+const screenHome = screenHomeAsset as { url: string };
+const screenStats = screenStatsAsset as { url: string };
+const screenEvolution = screenEvolutionAsset as { url: string };
+const screenAi = screenAiAsset as { url: string };
+const screenAchievements = screenAchievementsAsset as { url: string };
+const screenManage = screenManageAsset as { url: string };
 
 /**
  * Site oficial Iron Trainer
