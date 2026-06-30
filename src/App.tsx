@@ -7,6 +7,7 @@ import { PremiumProvider } from "./contexts/PremiumContext";
 import { PremiumActivationModal } from "./components/PremiumActivationModal";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Site from "./pages/Site";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/site" element={<Site />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
