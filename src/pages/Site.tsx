@@ -31,7 +31,7 @@ import screenStatsAsset from '../assets/site/screen-stats.jpg.asset.json';
 import screenEvolutionAsset from '../assets/site/screen-evolution.jpg.asset.json';
 import screenAiAsset from '../assets/site/screen-ai.jpg.asset.json';
 import screenAchievementsAsset from '../assets/site/screen-achievements.jpg.asset.json';
-import screenManageAsset from '../assets/site/screen-manage.jpg.asset.json';
+import screenManageAsset from '../assets/site/screen-home.jpg.asset.json';
 
 const screenHome = screenHomeAsset as { url: string };
 const screenStats = screenStatsAsset as { url: string };
