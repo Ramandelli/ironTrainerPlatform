@@ -20,8 +20,8 @@ const App = () => (
         <PremiumActivationModal />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/site" element={<Site />} />
+            <Route path="/" element={<Site />} />
+            <Route path="/app" element={<Index />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
