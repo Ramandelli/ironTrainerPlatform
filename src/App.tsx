@@ -8,6 +8,7 @@ import { PremiumActivationModal } from "./components/PremiumActivationModal";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Site from "./pages/Site";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Site />} />
             <Route path="/app" element={<Index />} />
+            <Route path="/privacidade" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

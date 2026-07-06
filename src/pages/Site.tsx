@@ -510,7 +510,7 @@ const Site: React.FC = () => {
           </div>
           <div className="space-y-2">
             <div className="font-semibold text-foreground">Legal</div>
-            <a href="#" className="block text-muted-foreground hover:text-foreground">
+            <a href="/privacidade" className="block text-muted-foreground hover:text-foreground">
               Política de privacidade
             </a>
             <div className="text-muted-foreground text-xs">Versão atual: 2.0.0</div>
