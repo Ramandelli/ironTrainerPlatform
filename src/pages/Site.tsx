@@ -405,8 +405,16 @@ const Site: React.FC = () => {
           <Accordion type="single" collapsible className="w-full">
             {[
               {
-                q: 'Preciso de internet?',
-                a: 'Não. O Iron Trainer funciona 100% offline. A internet só é usada para validar o Premium e gerar treinos com IA.',
+                q: 'Preciso de internet para usar o app?',
+                a: 'Não. O Iron Trainer funciona 100% offline — treinos, cronômetros, histórico e estatísticas rodam sem conexão. A internet só é necessária em dois momentos: para gerar treinos com IA e para a validação automática do Premium (veja abaixo).',
+              },
+              {
+                q: 'Como funciona a validação do Premium?',
+                a: 'Ao ativar, seu aparelho recebe uma licença válida por 30 dias que fica salva localmente. Nos primeiros 20 dias o app nem consulta o servidor — tudo funciona offline. A partir do 20º dia, na primeira vez que você abrir o app conectado à internet, ele renova a licença automaticamente por mais 30 dias, sem você notar nada. Esse ciclo se repete: basicamente, 1 verificação silenciosa por mês é o suficiente.',
+              },
+              {
+                q: 'E se eu ficar mais de 30 dias sem internet?',
+                a: 'Sem problema. Após o 30º dia o app entra em um período de tolerância de 4 dias, ainda com Premium ativo, e exibe o aviso "Acesse o app conectado à internet para renovação automática". Basta abrir o app online uma vez nesse intervalo para renovar. Se passarem os 4 dias sem nenhuma conexão, o Premium é revogado até que você conecte novamente.',
               },
               {
                 q: 'Perco meus dados se trocar de aparelho?',
@@ -414,14 +422,14 @@ const Site: React.FC = () => {
               },
               {
                 q: 'Como ativo o Premium?',
-                a: 'Abra o app, copie seu DeviceID e envie pelo WhatsApp. Após a confirmação, toque em "Já paguei — Validar agora" e o Premium é ativado em segundos.',
+                a: 'Abra o app, copie seu DeviceID e envie pelo WhatsApp. Após a confirmação do pagamento, toque em "Já paguei — Validar agora" e o Premium é ativado em segundos.',
               },
               {
                 q: 'Troquei de celular, e agora?',
-                a: 'Envie seu novo DeviceID pelo WhatsApp. Como o Premium é vitalício vinculado ao aparelho, fazemos a reassociação manualmente sem custo extra.',
+                a: 'Envie seu novo DeviceID pelo WhatsApp. Fazemos a reassociação manualmente: o DeviceID antigo é inativado e o novo é ativado no mesmo momento. Como cada licença vale para 1 aparelho, o app no celular antigo perderá o Premium na próxima verificação online.',
               },
               {
-                q: 'Como funciona o teste / versão grátis?',
+                q: 'Como funciona a versão grátis?',
                 a: 'Você usa o app gratuitamente sem prazo. A versão Free inclui 1 treino, execução completa e cronômetros. Premium libera estatísticas, IA, conquistas e múltiplos treinos.',
               },
             ].map((it, i) => (
