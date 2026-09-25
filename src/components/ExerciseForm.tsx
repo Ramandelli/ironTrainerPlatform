@@ -7,6 +7,8 @@ import { Textarea } from './ui/textarea';
 import { Checkbox } from './ui/checkbox';
 import { X, Lock } from 'lucide-react';
 import { Exercise } from '../types/workout';
+import { ExercisePicker, SimilarExerciseConfirm, resolveExercise } from './ExercisePicker';
+import { LibraryExercise } from '../utils/exerciseLibrary';
 import { usePremium } from '../contexts/PremiumContext';
 
 interface ExerciseFormProps {
@@ -21,6 +23,8 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
   onCancel
 }) => {
   const { isPremium, openPremiumModal } = usePremium();
+  const [picked, setPicked] = useState<{ name: string; exerciseId?: string }>({ name: exercise?.name || '', exerciseId: exercise?.exerciseId });
+  const [similar, setSimilar] = useState<LibraryExercise[]>([]);
   const [formData, setFormData] = useState({
     name: exercise?.name || '',
     sets: exercise?.sets || 3,
@@ -31,12 +35,21 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
     hasDropset: exercise?.hasDropset || false
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim()) return;
+  const handleSubmit = (e?: React.FormEvent, forceCreate = false, useEntry?: LibraryExercise) => {
+    e?.preventDefault();
+    if (!picked.name.trim()) return;
+    const value = useEntry ? { name: useEntry.name, exerciseId: useEntry.id } : picked;
+    resolveExercise(value, 'main', forceCreate, { isTimeBased: (formData as any).isTimeBased, isBilateral: (formData as any).isBilateral }).then((res) => {
+      if ('similar' in res) { setSimilar(res.similar); return; }
+      setSimilar([]);
+      doSave(res.id, res.name);
+    });
+  };
 
+  const doSave = (exerciseId: string, name: string) => {
     onSave({
-      name: formData.name.trim(),
+      exerciseId,
+      name,
       sets: formData.sets,
       targetReps: formData.targetReps,
       suggestedWeight: formData.suggestedWeight || undefined,
@@ -62,16 +75,22 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nome do Exercício *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Ex: Supino reto"
-              required
+          <ExercisePicker
+            value={picked}
+            onChange={(v) => { setPicked(v); setSimilar([]); }}
+            category="main"
+            onPickExisting={(entry) => {
+              if (entry.isTimeBased !== undefined) setFormData(prev => ({ ...prev, isTimeBased: !!entry.isTimeBased, isBilateral: !!entry.isBilateral } as typeof prev));
+            }}
+          />
+          {similar.length > 0 && (
+            <SimilarExerciseConfirm
+              name={picked.name}
+              matches={similar}
+              onUse={(m) => { setPicked({ name: m.name, exerciseId: m.id }); handleSubmit(undefined, false, m); }}
+              onCreate={() => handleSubmit(undefined, true)}
             />
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
