@@ -1,3 +1,4 @@
+import { displayNameFor, sameExercise } from '../utils/exerciseLibrary';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -312,34 +313,34 @@ useEffect(() => {
     
     sortedHistory.forEach(session => {
       session.exercises.forEach(exercise => {
-        if (!exerciseData[exercise.name]) {
-          exerciseData[exercise.name] = { sessions: 0, maxWeight: 0, totalVolume: 0, weightHistory: [] };
+        if (!exerciseData[displayNameFor(exercise)]) {
+          exerciseData[displayNameFor(exercise)] = { sessions: 0, maxWeight: 0, totalVolume: 0, weightHistory: [] };
         }
         
-        exerciseData[exercise.name].sessions++;
+        exerciseData[displayNameFor(exercise)].sessions++;
         
         let sessionMaxWeight = 0;
         exercise.setData.forEach(set => {
           if (set.completed) {
             const w = set.weight || 0;
             sessionMaxWeight = Math.max(sessionMaxWeight, w);
-            exerciseData[exercise.name].maxWeight = Math.max(exerciseData[exercise.name].maxWeight, w);
+            exerciseData[displayNameFor(exercise)].maxWeight = Math.max(exerciseData[displayNameFor(exercise)].maxWeight, w);
             
             if (set.weight && set.reps) {
-              exerciseData[exercise.name].totalVolume += set.weight * set.reps;
+              exerciseData[displayNameFor(exercise)].totalVolume += set.weight * set.reps;
             }
             
             if (set.dropsetData && set.dropsetData.length > 0) {
               set.dropsetData.forEach(dropset => {
-                exerciseData[exercise.name].totalVolume += dropset.weight * dropset.reps;
-                exerciseData[exercise.name].maxWeight = Math.max(exerciseData[exercise.name].maxWeight, dropset.weight);
+                exerciseData[displayNameFor(exercise)].totalVolume += dropset.weight * dropset.reps;
+                exerciseData[displayNameFor(exercise)].maxWeight = Math.max(exerciseData[displayNameFor(exercise)].maxWeight, dropset.weight);
               });
             }
           }
         });
         
         if (sessionMaxWeight > 0) {
-          exerciseData[exercise.name].weightHistory.push({
+          exerciseData[displayNameFor(exercise)].weightHistory.push({
             date: session.date,
             weight: sessionMaxWeight,
           });
@@ -380,7 +381,7 @@ useEffect(() => {
         
         previousSessions.forEach(session => {
           session.exercises.forEach(ex => {
-            if (ex.name.toLowerCase() === exercise.name.toLowerCase()) {
+            if (sameExercise(ex, exercise)) {
               ex.setData.forEach(s => {
                 if (s.completed) {
                   prevMaxWeight = Math.max(prevMaxWeight, s.weight || 0);
@@ -393,18 +394,18 @@ useEffect(() => {
         });
         
         if (weight > prevMaxWeight && prevMaxWeight > 0) {
-          if (!records.find(r => r.exercise === exercise.name && r.type === 'weight')) {
-            records.push({ exercise: exercise.name, type: 'weight', value: weight });
+          if (!records.find(r => r.exercise === displayNameFor(exercise) && r.type === 'weight')) {
+            records.push({ exercise: displayNameFor(exercise), type: 'weight', value: weight });
           }
         }
         if (reps > prevMaxReps && prevMaxReps > 0) {
-          if (!records.find(r => r.exercise === exercise.name && r.type === 'reps')) {
-            records.push({ exercise: exercise.name, type: 'reps', value: reps });
+          if (!records.find(r => r.exercise === displayNameFor(exercise) && r.type === 'reps')) {
+            records.push({ exercise: displayNameFor(exercise), type: 'reps', value: reps });
           }
         }
         if (volume > prevMaxVolume && prevMaxVolume > 0) {
-          if (!records.find(r => r.exercise === exercise.name && r.type === 'volume')) {
-            records.push({ exercise: exercise.name, type: 'volume', value: volume });
+          if (!records.find(r => r.exercise === displayNameFor(exercise) && r.type === 'volume')) {
+            records.push({ exercise: displayNameFor(exercise), type: 'volume', value: volume });
           }
         }
       });
@@ -590,7 +591,7 @@ const restDaysCount = React.useMemo(() => {
 
     filteredHistory.forEach(session => {
       session.exercises.forEach(exercise => {
-        exerciseFrequency[exercise.name] = (exerciseFrequency[exercise.name] || 0) + 1;
+        exerciseFrequency[displayNameFor(exercise)] = (exerciseFrequency[displayNameFor(exercise)] || 0) + 1;
         totalSets += exercise.setData.filter(set => set.completed).length;
         totalReps += exercise.setData.filter(set => set.completed).reduce((sum, set) => sum + set.reps, 0);
       });

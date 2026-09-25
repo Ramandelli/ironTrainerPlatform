@@ -245,7 +245,9 @@ async saveToHistory(session: WorkoutSession): Promise<void> {
         Preferences.remove({ key: this.WORKOUT_AVERAGES_KEY }),
         restDayManager.resetRestDays(),
         missedWorkoutManager.resetMissedWorkouts(),
-        Preferences.set({ key: this.INSTALL_DATE_KEY, value: today })
+        Preferences.set({ key: this.INSTALL_DATE_KEY, value: today }),
+        Preferences.remove({ key: 'exercise_library' }),
+        Preferences.remove({ key: 'exercise_library_v1_migrated' })
       ]);
     } catch (error) {
       console.error('Failed to reset all data:', error);

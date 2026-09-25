@@ -27,7 +27,8 @@ interface ExercisePerformance {
 function extractPerformanceHistory(
   exerciseName: string,
   history: WorkoutSession[],
-  count = 4
+  count = 4,
+  exerciseId?: string
 ): ExercisePerformance[] {
   const performances: ExercisePerformance[] = [];
 
@@ -77,9 +78,10 @@ function extractPerformanceHistory(
  */
 export function analyzePlateau(
   exerciseName: string,
-  history: WorkoutSession[]
+  history: WorkoutSession[],
+  exerciseId?: string
 ): PlateauResult {
-  const performances = extractPerformanceHistory(exerciseName, history, 4);
+  const performances = extractPerformanceHistory(exerciseName, history, 4, exerciseId);
 
   if (performances.length < 4) {
     return { plateauDetected: false, sessionsAnalyzed: performances.length, suggestions: [] };
@@ -135,7 +137,7 @@ export function analyzePlateau(
  * Função principal reutilizável.
  * Carrega histórico automaticamente e retorna resultado.
  */
-export async function detectPlateau(exerciseName: string): Promise<PlateauResult> {
+export async function detectPlateau(exerciseName: string, exerciseId?: string): Promise<PlateauResult> {
   const history = await storage.loadWorkoutHistory();
-  return analyzePlateau(exerciseName, history);
+  return analyzePlateau(exerciseName, history, exerciseId);
 }

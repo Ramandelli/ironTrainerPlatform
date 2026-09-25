@@ -57,7 +57,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     if (showSuggestion && !hideWeightInputs) {
       loadSuggestion();
     }
-  }, [exercise.name, showSuggestion, hideWeightInputs]);
+  }, [exercise.name, exercise.exerciseId, showSuggestion, hideWeightInputs]);
 
   const [currentSetInputs, setCurrentSetInputs] = useState<{ weight: string; reps: string }>({
     weight: '',
@@ -73,7 +73,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const loadSuggestion = async () => {
     try {
       const history = await storage.loadWorkoutHistory();
-      const exerciseSuggestion = exerciseSuggestionManager.getSuggestion(exercise.name, history);
+      const exerciseSuggestion = exerciseSuggestionManager.getSuggestion(exercise.name, history, exercise.exerciseId);
+      if (!exerciseSuggestion) setCurrentSetInputs({ weight: '', reps: '' });
       setSuggestion(exerciseSuggestion);
       
       if (exerciseSuggestion && exercise.currentSet === 0 && !currentSetInputs.weight && !currentSetInputs.reps) {
@@ -282,6 +283,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         )}
         {isActive && !exercise.completed && (
           <PlateauAlert
+            exerciseId={exercise.exerciseId}
             exerciseName={exercise.name}
             isCompleted={exercise.completed}
             onApplyDropset={onExerciseUpdate ? () => onExerciseUpdate({ hasDropset: true }) : undefined}
