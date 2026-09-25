@@ -583,9 +583,21 @@ const loadSession = async () => {
     setCurrentSession(prev => {
       if (!prev) return null;
       
-      const updatedExercises = prev.exercises.map(ex => 
-        ex.id === exerciseId ? { ...ex, ...updates } : ex
-      );
+      const updatedExercises = prev.exercises.map(ex => {
+        if (ex.id !== exerciseId) return ex;
+        const swapped = updates.exerciseId !== undefined && updates.exerciseId !== ex.exerciseId;
+        const merged = { ...ex, ...updates };
+        if (swapped) {
+          // Exercício trocado: a execução passa a pertencer ao novo exercício
+          return {
+            ...merged,
+            completed: false,
+            currentSet: 0,
+            setData: Array.from({ length: merged.sets }, () => ({ completed: false })),
+          };
+        }
+        return merged;
+      });
       
       return { ...prev, exercises: updatedExercises };
     });

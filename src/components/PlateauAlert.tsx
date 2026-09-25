@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { detectPlateau, PlateauResult, PlateauSuggestion } from '../utils/plateauDetector';
 
 interface PlateauAlertProps {
+  exerciseId?: string;
   exerciseName: string;
   isCompleted?: boolean;
   onApplyDropset?: () => void;
@@ -20,6 +21,7 @@ const suggestionIcons: Record<PlateauSuggestion['type'], React.ReactNode> = {
 
 export const PlateauAlert: React.FC<PlateauAlertProps> = ({
   exerciseName,
+  exerciseId,
   isCompleted,
   onApplyDropset,
   onApplyRestPause,
@@ -30,9 +32,9 @@ export const PlateauAlert: React.FC<PlateauAlertProps> = ({
 
   useEffect(() => {
     if (!isCompleted) {
-      detectPlateau(exerciseName).then(setResult).catch(() => {});
+      detectPlateau(exerciseName, exerciseId).then(setResult).catch(() => {});
     }
-  }, [exerciseName, isCompleted]);
+  }, [exerciseName, exerciseId, isCompleted]);
 
   if (!result?.plateauDetected || isCompleted || dismissed) return null;
 

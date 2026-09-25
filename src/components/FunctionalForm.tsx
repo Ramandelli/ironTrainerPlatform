@@ -7,6 +7,8 @@ import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
 import { X } from 'lucide-react';
 import { Exercise } from '../types/workout';
+import { ExercisePicker, SimilarExerciseConfirm, resolveExercise } from './ExercisePicker';
+import { LibraryExercise } from '../utils/exerciseLibrary';
 
 interface FunctionalFormProps {
   exercise?: Exercise;
@@ -19,6 +21,8 @@ export const FunctionalForm: React.FC<FunctionalFormProps> = ({
   onSave,
   onCancel
 }) => {
+  const [picked, setPicked] = useState<{ name: string; exerciseId?: string }>({ name: exercise?.name || '', exerciseId: exercise?.exerciseId });
+  const [similar, setSimilar] = useState<LibraryExercise[]>([]);
   const [formData, setFormData] = useState({
     name: exercise?.name || '',
     sets: exercise?.sets || 3,
@@ -30,12 +34,21 @@ export const FunctionalForm: React.FC<FunctionalFormProps> = ({
     isBilateral: exercise?.isBilateral || false
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim()) return;
+  const handleSubmit = (e?: React.FormEvent, forceCreate = false, useEntry?: LibraryExercise) => {
+    e?.preventDefault();
+    if (!picked.name.trim()) return;
+    const value = useEntry ? { name: useEntry.name, exerciseId: useEntry.id } : picked;
+    resolveExercise(value, 'functional', forceCreate, { isTimeBased: (formData as any).isTimeBased, isBilateral: (formData as any).isBilateral }).then((res) => {
+      if ('similar' in res) { setSimilar(res.similar); return; }
+      setSimilar([]);
+      doSave(res.id, res.name);
+    });
+  };
 
+  const doSave = (exerciseId: string, name: string) => {
     onSave({
-      name: formData.name.trim(),
+      exerciseId,
+      name,
       sets: formData.sets,
       targetReps: formData.isTimeBased
         ? `${formData.timePerSet}s${formData.isBilateral ? ' cada lado' : ''}`
@@ -64,16 +77,22 @@ export const FunctionalForm: React.FC<FunctionalFormProps> = ({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nome do Exercício *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Ex: Burpee, Agachamento com salto, Kettlebell swing"
-              required
+          <ExercisePicker
+            value={picked}
+            onChange={(v) => { setPicked(v); setSimilar([]); }}
+            category="functional"
+            onPickExisting={(entry) => {
+              if (entry.isTimeBased !== undefined) setFormData(prev => ({ ...prev, isTimeBased: !!entry.isTimeBased, isBilateral: !!entry.isBilateral } as typeof prev));
+            }}
+          />
+          {similar.length > 0 && (
+            <SimilarExerciseConfirm
+              name={picked.name}
+              matches={similar}
+              onUse={(m) => { setPicked({ name: m.name, exerciseId: m.id }); handleSubmit(undefined, false, m); }}
+              onCreate={() => handleSubmit(undefined, true)}
             />
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
