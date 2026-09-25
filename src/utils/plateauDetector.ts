@@ -1,3 +1,4 @@
+import { sameExercise } from './exerciseLibrary';
 import { WorkoutSession, Exercise } from '../types/workout';
 import { storage } from './storage';
 
@@ -45,7 +46,7 @@ function extractPerformanceHistory(
     ];
 
     for (const ex of allExercises) {
-      if (ex.name.toLowerCase() !== exerciseName.toLowerCase()) continue;
+      if (!sameExercise(ex, { name: exerciseName, exerciseId })) continue;
       if (!ex.completed) continue;
 
       const completedSets = ex.setData.filter((s) => s.completed && s.reps && s.reps > 0);

@@ -1,3 +1,4 @@
+import { sameExercise } from './exerciseLibrary';
 import { WorkoutSession, Exercise } from '../types/workout';
 
 export interface ExerciseSuggestion {
@@ -16,10 +17,12 @@ interface SessionPerformance {
 }
 
 export class ExerciseSuggestionManager {
+  private _currentId?: string;
   /**
    * Get smart suggestion based on performance progression
    */
-  getSuggestion(exerciseName: string, history: WorkoutSession[]): ExerciseSuggestion | null {
+  getSuggestion(exerciseName: string, history: WorkoutSession[], exerciseId?: string): ExerciseSuggestion | null {
+    this._currentId = exerciseId;
     const exerciseHistory = this.getExerciseHistory(exerciseName, history);
     
     if (exerciseHistory.length === 0) {
@@ -83,7 +86,7 @@ export class ExerciseSuggestionManager {
       if (!session.completed) continue;
 
       for (const exercise of session.exercises) {
-        if (exercise.name.toLowerCase() === exerciseName.toLowerCase()) {
+        if (sameExercise(exercise, { name: exerciseName, exerciseId: this._currentId })) {
           const completedSets = exercise.setData.filter(set => set.completed && set.reps);
           
           if (completedSets.length > 0) {

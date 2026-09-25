@@ -1,3 +1,4 @@
+import { displayNameFor } from './exerciseLibrary';
 import { WorkoutSession, Exercise, WorkoutStats, SetData } from '../types/workout';
 import { format } from 'date-fns';
 
@@ -106,7 +107,7 @@ export const calculatePersonalRecords = (history: WorkoutSession[]): Record<stri
       exercise.setData.forEach(set => {
         if (set.completed) {
           // Usar o nome do exercício em vez do ID
-          const key = exercise.name;
+          const key = displayNameFor(exercise);
           
           if (!records[key] || 
               (set.weight || 0) > records[key].weight || 
