@@ -1,5 +1,7 @@
 export interface Exercise {
   id: string;
+  /** ID do exercício na biblioteca (entidade única, compartilhada entre treinos) */
+  exerciseId?: string;
   name: string;
   sets: number;
   targetReps?: string;
