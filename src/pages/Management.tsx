@@ -9,6 +9,7 @@ import { ImportExportGuide } from '../components/ImportExportGuide';
 import { WorkoutListCard } from '../components/WorkoutListCard';
 import { ActionConfirmation } from '../components/ActionConfirmation';
 import { AIWorkoutModal } from '../components/AIWorkoutModal';
+import { ExerciseLibraryDialog } from '../components/ExerciseLibraryDialog';
 import { useToast } from '../hooks/use-toast';
 import { customWorkoutManager } from '../utils/customWorkouts';
 import { WORKOUT_PLAN } from '../data/workoutPlan';
@@ -58,6 +59,7 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
     type: 'duplicate' | 'import' | 'export';
     show: boolean;
   } | null>(null);
+  const [showLibrary, setShowLibrary] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -409,6 +411,14 @@ const getWorkoutId = (day: string) => {
             </div>
             <div className="flex gap-2">
               <Button
+                onClick={() => setShowLibrary(true)}
+                size="sm"
+                variant="outline"
+                className="h-10 active:scale-95 transition-transform"
+              >
+                Biblioteca
+              </Button>
+              <Button
                 onClick={() => setShowAIModal(true)}
                 size="sm"
                 variant="outline"
@@ -595,6 +605,7 @@ const getWorkoutId = (day: string) => {
       )}
 
       {/* AI Workout Modal */}
+      <ExerciseLibraryDialog open={showLibrary} onOpenChange={setShowLibrary} />
       <AIWorkoutModal
         open={showAIModal}
         onOpenChange={setShowAIModal}
