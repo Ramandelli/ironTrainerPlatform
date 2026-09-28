@@ -12,7 +12,6 @@ import {
   X,
   ChevronDown,
   MessageCircle,
-  TrendingUp,
   BarChart3,
   Trophy,
   Zap,
@@ -170,13 +169,6 @@ const Site: React.FC = () => {
               </Button>
             </div>
 
-            <div className="mt-8 inline-flex items-center gap-3 px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm">
-              <TrendingUp className="w-4 h-4 text-success" />
-              <span className="text-sm">
-                <span className="font-bold text-foreground">184.982 kg</span>{' '}
-                <span className="text-muted-foreground">registrados pelos atletas — e subindo</span>
-              </span>
-            </div>
           </div>
 
           <div className="relative">
@@ -382,7 +374,6 @@ const Site: React.FC = () => {
         {/* Pequenos cards de prova */}
         <div className="mt-10 grid sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
           {[
-            { icon: BarChart3, label: 'Volume registrado', value: '184.982 kg' },
             { icon: Trophy, label: 'Conquistas', value: '37 desbloqueáveis' },
             { icon: Zap, label: 'Ativação', value: 'Instantânea' },
           ].map(({ icon: Icon, label, value }) => (
