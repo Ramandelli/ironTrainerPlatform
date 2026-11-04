@@ -24,3 +24,6 @@ dist-ssr
 .env
 .env.local
 .env.*
+
+# Gerado pelo Lovable
+IRON-TRAINER-APP/.env

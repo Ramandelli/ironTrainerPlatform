@@ -1,0 +1,98 @@
+export interface Exercise {
+  id: string;
+  /** ID do exercício na biblioteca (entidade única, compartilhada entre treinos) */
+  exerciseId?: string;
+  name: string;
+  sets: number;
+  targetReps?: string;
+  suggestedWeight?: number;
+  restTime?: number;
+  notes?: string;
+  completed: boolean;
+  skipped?: boolean;
+  currentSet: number;
+  setData: SetData[];
+  // Propriedades específicas para abdominais por tempo
+  isTimeBased?: boolean;
+  timePerSet?: number; 
+  isBilateral?: boolean; 
+  // Propriedades para dropset
+  hasDropset?: boolean; 
+  restPause?: boolean;
+}
+
+export interface SetData {
+  weight?: number;
+  reps?: number;
+  completed: boolean;
+  skipped?: boolean;
+  restStartTime?: number;
+  timeCompleted?: number; 
+  leftSideCompleted?: boolean; 
+  rightSideCompleted?: boolean; 
+  dropsetData?: DropsetData[];
+  isEdit?: boolean;
+}
+
+export interface DropsetData {
+  weight: number;
+  reps: number;
+}
+
+export interface WorkoutDay {
+  id: string;
+  name: string;
+  day: string;
+  exercises: Exercise[];
+  aerobic?: AerobicExercise;
+  abdominal?: Exercise[];
+  functional?: Exercise[];
+  warmup?: string;
+  restBetweenExercises?: number; // segundos
+  _isDeleted?: boolean;
+  _originalId?: string;
+}
+
+export interface AerobicExercise {
+  type: 'esteira' | 'bicicleta';
+  duration: number;
+  actualDuration?: number;
+  distance?: number; 
+  intensity: 'leve' | 'moderada' | 'intensa';
+  timing: 'antes' | 'depois';
+  completed: boolean;
+  skipped?: boolean;
+}
+
+export interface WorkoutSession {
+  id: string;
+  workoutDayId: string;
+  date: string;
+  startTime: number;
+  endTime?: number;
+  exercises: Exercise[];
+  aerobic?: AerobicExercise;
+  abdominal?: Exercise[];
+  functional?: Exercise[];
+  totalVolume: number;
+  notes?: string;
+  completed: boolean;
+  warmupCompleted?: boolean;
+  abdominalCompleted?: boolean;
+  functionalCompleted?: boolean;
+}
+
+export interface WorkoutStats {
+  totalWorkouts: number;
+  averageTime: number;
+  weeklyVolume: number;
+  personalRecords: Record<string, { weight: number; reps: number; date: string }>;
+}
+
+export interface TimerState {
+  isActive: boolean;
+  timeLeft: number;
+  type: 'rest-between-sets' | 'rest-between-exercises';
+  exerciseId?: string;
+  setIndex?: number;
+}
