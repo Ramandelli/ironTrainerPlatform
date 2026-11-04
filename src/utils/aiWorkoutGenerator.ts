@@ -364,6 +364,10 @@ IMPORTANTE:
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.6,
+        max_completion_tokens: 8192,
+        reasoning_effort: 'low',
+        include_reasoning: false,
+        response_format: { type: 'json_object' },
       }),
     }
   );
@@ -381,6 +385,7 @@ IMPORTANTE:
   const generatedText = data?.choices?.[0]?.message?.content;
 
   if (!generatedText) {
+    console.error('Groq resposta vazia:', JSON.stringify(data).slice(0, 500));
     throw new Error('A IA não retornou uma resposta válida. Tente novamente.');
   }
 
