@@ -1,0 +1,33 @@
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { PremiumProvider } from "./contexts/PremiumContext";
+import { PremiumActivationModal } from "./components/PremiumActivationModal";
+import NotFound from "./pages/NotFound";
+import Site from "./pages/Site";
+import Privacy from "./pages/Privacy";
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <PremiumProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <PremiumActivationModal />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Site />} />
+            <Route path="/privacidade" element={<Privacy />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </PremiumProvider>
+  </QueryClientProvider>
+);
+
+export default App;
