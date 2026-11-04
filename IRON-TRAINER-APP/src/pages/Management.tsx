@@ -99,6 +99,11 @@ export const Management: React.FC<ManagementProps> = ({ onBack }) => {
   };
 
   const handleAIWorkoutsGenerated = async (workouts: import('../types/workout').WorkoutDay[]) => {
+    if (!isPremium) {
+      setShowAIModal(false);
+      openPremiumModal('Gerar Treinos com IA');
+      return;
+    }
     try {
       for (const workout of workouts) {
         await customWorkoutManager.saveWorkout(workout);
@@ -419,12 +424,12 @@ const getWorkoutId = (day: string) => {
                 Biblioteca
               </Button>
               <Button
-                onClick={() => setShowAIModal(true)}
+                onClick={isPremium ? () => setShowAIModal(true) : () => openPremiumModal('Gerar Treinos com IA')}
                 size="sm"
                 variant="outline"
                 className="h-10 active:scale-95 transition-transform gap-1"
               >
-                <Brain className="w-4 h-4" />
+                {!isPremium ? <Lock className="w-3 h-3" /> : <Brain className="w-4 h-4" />}
                 IA
               </Button>
               <Button 
