@@ -240,7 +240,9 @@ const loadSession = async () => {
       timeLeft: duration,
       type,
       exerciseId,
-      setIndex
+      setIndex,
+      endAt: Date.now() + duration * 1000,
+      totalTime: duration
     };
     
     setTimerState(timer);
