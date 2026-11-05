@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Input } from './ui/input';
@@ -23,99 +23,78 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
   onCancel,
   onUpdate
 }) => {
-  const [secondsLeft, setSecondsLeft] = useState(duration * 60);
-  const [isActive, setIsActive] = useState(true);
-  const [distance, setDistance] = useState<string>('');
-  const [showDistanceInput, setShowDistanceInput] = useState(false);
+  // Estado salvo com base no relógio real: sobrevive a segundo plano e recarga do app.
+  const key = `aerobic_timer_${type}`;
+  const loadSaved = () => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (!d.savedStartTime || Date.now() - d.savedStartTime > 6 * 60 * 60 * 1000) return null;
+      return d as { savedStartTime: number; endAt?: number; pausedLeft?: number | null; savedDistance?: string; savedShowDistanceInput?: boolean };
+    } catch { return null; }
+  };
+  const initial = useRef(loadSaved()).current;
+  const startTime = useRef<number>(initial?.savedStartTime ?? Date.now()).current;
+  const endAtRef = useRef<number>(
+    initial?.endAt ?? (initial ? initial.savedStartTime + duration * 60 * 1000 : Date.now() + duration * 60 * 1000)
+  );
+  const pausedLeftRef = useRef<number | null>(initial?.pausedLeft ?? null);
+  const calc = () => pausedLeftRef.current != null
+    ? pausedLeftRef.current
+    : Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
+  const [secondsLeft, setSecondsLeft] = useState<number>(calc);
+  const [isActive, setIsActiveState] = useState<boolean>(pausedLeftRef.current == null && !initial?.savedShowDistanceInput);
+  const [distance, setDistance] = useState<string>(initial?.savedDistance || '');
+  const [showDistanceInput, setShowDistanceInput] = useState<boolean>(!!initial?.savedShowDistanceInput || calc() <= 0);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [startTime] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`aerobic_timer_${type}`);
-      if (saved) {
-        const { savedStartTime } = JSON.parse(saved);
-        return savedStartTime || Date.now();
-      }
-    } catch (error) {
-      console.error('Error loading start time:', error);
+
+  const setIsActive = (active: boolean) => {
+    if (active && pausedLeftRef.current != null) {
+      endAtRef.current = Date.now() + pausedLeftRef.current * 1000;
+      pausedLeftRef.current = null;
+    } else if (!active && pausedLeftRef.current == null) {
+      pausedLeftRef.current = calc();
     }
-    return Date.now();
-  });
+    setIsActiveState(active);
+  };
 
-  
-  useEffect(() => {
-    const loadSavedState = () => {
-      try {
-        const saved = localStorage.getItem(`aerobic_timer_${type}`);
-        if (saved) {
-          const { savedSecondsLeft, savedIsActive, savedStartTime, savedDistance, savedShowDistanceInput } = JSON.parse(saved);
-          
-          if (savedStartTime) {
-            const elapsedSeconds = Math.floor((Date.now() - savedStartTime) / 1000);
-            const maxValidTime = 6 * 60 * 60; // 6 horas em segundos
-            
-            // Se o estado salvo é muito antigo (mais de 6 horas), ignore e comece do zero
-            if (elapsedSeconds > maxValidTime) {
-              console.log('Saved aerobic timer state is too old, starting fresh');
-              localStorage.removeItem(`aerobic_timer_${type}`);
-              return;
-            }
-            
-            const adjustedSecondsLeft = Math.max(0, (duration * 60) - elapsedSeconds);
-            
-            // Apenas restaurar se ainda houver tempo significativo (mais de 5 segundos)
-            if (adjustedSecondsLeft > 5) {
-              setSecondsLeft(adjustedSecondsLeft);
-              setIsActive(savedIsActive);
-              setDistance(savedDistance || '');
-              setShowDistanceInput(false);
-            } else {
-              // Se o tempo acabou, limpar o estado salvo
-              localStorage.removeItem(`aerobic_timer_${type}`);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading aerobic timer state:', error);
-        localStorage.removeItem(`aerobic_timer_${type}`);
-      }
-    };
-
-    loadSavedState();
-  }, [duration, type]);
-
-  
   useEffect(() => {
     try {
-      const stateToSave = {
-        savedSecondsLeft: secondsLeft,
-        savedIsActive: isActive,
+      localStorage.setItem(key, JSON.stringify({
         savedStartTime: startTime,
+        endAt: endAtRef.current,
+        pausedLeft: pausedLeftRef.current,
         savedDistance: distance,
-        savedShowDistanceInput: showDistanceInput
-      };
-      
-      localStorage.setItem(`aerobic_timer_${type}`, JSON.stringify(stateToSave));
+        savedShowDistanceInput: showDistanceInput,
+      }));
     } catch (error) {
       console.error('Error saving aerobic timer state:', error);
     }
-  }, [secondsLeft, isActive, startTime, distance, showDistanceInput, type]);
+  }, [isActive, distance, showDistanceInput, key, startTime]);
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    
-    if (isActive && secondsLeft > 0) {
-      interval = setInterval(() => {
-        setSecondsLeft(prev => prev - 1);
-      }, 1000);
-    } else if (secondsLeft === 0) {
-      setShowDistanceInput(true);
-      setIsActive(false);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
+    if (!isActive) return;
+    const tick = () => {
+      const left = calc();
+      setSecondsLeft(left);
+      if (left <= 0) {
+        pausedLeftRef.current = 0;
+        setShowDistanceInput(true);
+        setIsActiveState(false);
+      }
     };
-  }, [isActive, secondsLeft, duration, onComplete]);
+    tick();
+    const interval: ReturnType<typeof setInterval> = setInterval(tick, 500);
+    const onVis = () => { if (document.visibilityState === 'visible') tick(); };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onVis);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onVis);
+    };
+  }, [isActive]);
 
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;
@@ -124,6 +103,7 @@ export const AerobicTimer: React.FC<AerobicTimerProps> = ({
 
   const handleFinish = () => {
     setIsActive(false);
+    setSecondsLeft(calc());
     setShowDistanceInput(true);
   };
 
