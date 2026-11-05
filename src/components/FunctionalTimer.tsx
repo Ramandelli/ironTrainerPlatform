@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -36,10 +36,25 @@ export const FunctionalTimer: React.FC<FunctionalTimerProps> = ({
   isActive = false
 }) => {
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
-  const [isRunning, setIsRunning] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(exercise.timePerSet || 30);
-  const [currentSide, setCurrentSide] = useState<'left' | 'right' | 'both'>('both');
-  const [sideProgress, setSideProgress] = useState<{ left: boolean; right: boolean }>({
+  // Estado do cronômetro salvo com relógio real: sobrevive a segundo plano/recarga.
+  const persistKey = `func_timer_${exercise.id}`;
+  const saved = useRef((() => {
+    try {
+      const raw = localStorage.getItem(persistKey);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (d.set !== exercise.currentSet || Date.now() - (d.savedAt || 0) > 6 * 60 * 60 * 1000) return null;
+      return d;
+    } catch { return null; }
+  })()).current;
+  const endAtRef = useRef<number | null>(saved?.isRunning ? saved.endAt : null);
+  const [isRunning, setIsRunning] = useState<boolean>(!!saved?.isRunning);
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    if (saved?.isRunning && saved.endAt) return Math.max(0, Math.ceil((saved.endAt - Date.now()) / 1000));
+    return saved?.timeLeft ?? (exercise.timePerSet || 30);
+  });
+  const [currentSide, setCurrentSide] = useState<'left' | 'right' | 'both'>(saved?.currentSide ?? 'both');
+  const [sideProgress, setSideProgress] = useState<{ left: boolean; right: boolean }>(saved?.sideProgress ?? {
     left: false,
     right: false
   });
@@ -51,18 +66,47 @@ export const FunctionalTimer: React.FC<FunctionalTimerProps> = ({
   const timePerSet = exercise.timePerSet || 30;
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-
+    if (isRunning && endAtRef.current == null) {
+      endAtRef.current = Date.now() + timeLeft * 1000;
+    }
+    if (!isRunning) endAtRef.current = null;
     if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
+      const tick = () => {
+        if (endAtRef.current == null) return;
+        setTimeLeft(Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000)));
+      };
+      const interval: ReturnType<typeof setInterval> = setInterval(tick, 500);
+      const onVis = () => { if (document.visibilityState === 'visible') tick(); };
+      document.addEventListener('visibilitychange', onVis);
+      window.addEventListener('focus', onVis);
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', onVis);
+        window.removeEventListener('focus', onVis);
+      };
+    } else if (isRunning && timeLeft === 0) {
+      endAtRef.current = null;
       handleTimeComplete();
     }
-
-    return () => clearInterval(interval);
   }, [isRunning, timeLeft]);
+
+  useEffect(() => {
+    try {
+      if (exercise.completed) {
+        localStorage.removeItem(persistKey);
+        return;
+      }
+      localStorage.setItem(persistKey, JSON.stringify({
+        set: exercise.currentSet,
+        isRunning,
+        timeLeft,
+        endAt: endAtRef.current,
+        currentSide,
+        sideProgress,
+        savedAt: Date.now(),
+      }));
+    } catch { /* ignore */ }
+  }, [isRunning, timeLeft, currentSide, sideProgress, exercise.currentSet, exercise.completed, persistKey]);
 
   const handleTimeComplete = () => {
     setIsRunning(false);
