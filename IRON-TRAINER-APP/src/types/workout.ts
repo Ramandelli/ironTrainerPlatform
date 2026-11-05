@@ -95,4 +95,7 @@ export interface TimerState {
   type: 'rest-between-sets' | 'rest-between-exercises';
   exerciseId?: string;
   setIndex?: number;
+  endAt?: number;
+  totalTime?: number;
+  pausedLeft?: number;
 }
