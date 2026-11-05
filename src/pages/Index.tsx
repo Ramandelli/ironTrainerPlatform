@@ -261,26 +261,24 @@ const Index = () => {
   useEffect(() => {
     if (currentSession && currentView === 'home') {
       setCurrentView('workout');
-      
-      // Restaurar estado do timer aeróbico se existir
-      const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
-      if (workoutDay?.aerobic) {
-        try {
-          const savedTimer = localStorage.getItem(`aerobic_timer_${workoutDay.aerobic.type}`);
-          if (savedTimer) {
-            const { savedStartTime } = JSON.parse(savedTimer);
-            if (savedStartTime) {
-              setShowAerobicTimer(true);
-              const isBeforeTiming = workoutDay.aerobic.timing === 'antes';
-              setAerobicContext(isBeforeTiming ? 'before' : 'after');
-            }
-          }
-        } catch (error) {
-          console.error('Error restoring aerobic timer:', error);
-        }
-      }
     }
-  }, [currentSession, currentView, workoutPlan]);
+  }, [currentSession, currentView]);
+
+  // Restaurar cardio em andamento (ex.: Android recarregou o app em segundo plano)
+  useEffect(() => {
+    if (!currentSession || showAerobicTimer) return;
+    const workoutDay = workoutPlan.find(day => day.id === currentSession.workoutDayId);
+    if (!workoutDay?.aerobic) return;
+    try {
+      const savedTimer = localStorage.getItem(`aerobic_timer_${workoutDay.aerobic.type}`);
+      if (savedTimer && JSON.parse(savedTimer).savedStartTime) {
+        setAerobicContext(workoutDay.aerobic.timing === 'antes' ? 'before' : 'after');
+        setShowAerobicTimer(true);
+      }
+    } catch (error) {
+      console.error('Error restoring aerobic timer:', error);
+    }
+  }, [currentSession?.id, currentSession?.workoutDayId, workoutPlan]);
 
   const loadStats = async () => {
     try {
@@ -801,7 +799,11 @@ const Index = () => {
 
         {timerState && (
           <Timer
+            key={`${timerState.endAt ?? ''}-${timerState.exerciseId ?? ''}-${timerState.setIndex ?? ''}`}
             initialTime={timerState.timeLeft}
+            endAt={timerState.endAt}
+            totalTime={timerState.totalTime}
+            pausedLeft={timerState.pausedLeft}
             type={timerState.type}
             exerciseId={timerState.exerciseId}
             setIndex={timerState.setIndex}
