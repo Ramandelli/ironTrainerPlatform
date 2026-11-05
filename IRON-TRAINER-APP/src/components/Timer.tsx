@@ -46,6 +46,9 @@ interface TimerProps {
   type: 'rest-between-sets' | 'rest-between-exercises';
   exerciseId?: string;
   setIndex?: number;
+  endAt?: number;
+  totalTime?: number;
+  pausedLeft?: number;
   onComplete?: () => void;
   onCancel?: () => void;
 }
@@ -55,84 +58,67 @@ export const Timer: React.FC<TimerProps> = ({
   type,
   exerciseId,
   setIndex,
+  endAt: initialEndAt,
+  totalTime,
+  pausedLeft: initialPausedLeft,
   onComplete,
   onCancel
 }) => {
-  const [timeLeft, setTimeLeft] = useState(initialTime);
+  // Contagem baseada no relógio real (endAt): continua correta mesmo com o app
+  // em segundo plano ou se o Android recarregar a tela.
+  const total = totalTime || initialTime;
+  const endAtRef = useRef<number>(initialEndAt ?? Date.now() + initialTime * 1000);
+  const [isPaused, setIsPaused] = useState<boolean>(initialPausedLeft != null);
+  const pausedLeftRef = useRef<number | null>(initialPausedLeft ?? null);
+  const calc = () => pausedLeftRef.current != null
+    ? pausedLeftRef.current
+    : Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
+  const [timeLeft, setTimeLeft] = useState<number>(calc);
   const [isActive, setIsActive] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
-  const [startTime] = useState(Date.now());
+  const doneRef = useRef(false);
 
-  // Load saved state on mount from global storage only
+  const persist = () => {
+    const state: TimerState = {
+      isActive: true,
+      timeLeft: calc(),
+      type,
+      exerciseId,
+      setIndex,
+      endAt: endAtRef.current,
+      totalTime: total,
+      pausedLeft: pausedLeftRef.current ?? undefined,
+    };
+    storage.saveTimerState(state).catch(() => {});
+  };
+
+  useEffect(() => { persist(); }, []);
+
   useEffect(() => {
-    const loadSavedState = async () => {
-      try {
-        const savedTimer = await storage.loadTimerState();
-        if (savedTimer && savedTimer.timeLeft > 0) {
-          const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-          const adjustedTimeLeft = Math.max(0, savedTimer.timeLeft - elapsedSeconds);
-          
-          if (adjustedTimeLeft > 0) {
-            setTimeLeft(adjustedTimeLeft);
-            setIsActive(true);
-            setIsPaused(false);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading timer state:', error);
+    if (!isActive) return;
+    const tick = () => {
+      const left = calc();
+      setTimeLeft(left);
+      if (left <= 0 && !doneRef.current) {
+        doneRef.current = true;
+        handleComplete();
       }
     };
-
-    loadSavedState();
-  }, [initialTime, startTime]);
-
-  
-  useEffect(() => {
-    const saveState = async () => {
-      if (timeLeft > 0 && isActive) {
-        const timerState: TimerState = {
-          isActive,
-          timeLeft,
-          type,
-          exerciseId,
-          setIndex
-        };
-        await storage.saveTimerState(timerState);
-      }
-    };
-
-    saveState();
-  }, [timeLeft, isActive, type, exerciseId, setIndex]);
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-
-    if (isActive && !isPaused && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(time => {
-          if (time <= 1) {
-            handleComplete();
-            return 0;
-          }
-          return time - 1;
-        });
-      }, 1000);
-    }
-
+    tick();
+    const interval: ReturnType<typeof setInterval> = setInterval(tick, 500);
+    const onVis = () => { if (document.visibilityState === 'visible') tick(); };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onVis);
     return () => {
-      if (interval) clearInterval(interval);
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onVis);
     };
-  }, [isActive, isPaused, timeLeft]);
+  }, [isActive, isPaused]);
 
   const handleComplete = async () => {
     setIsActive(false);
-    
-    // Play completion sound
     playCompletionSound();
-    
-    // Trigger haptic feedback
     hapticTimerEnd();
-    
     try {
       await storage.clearTimerState();
     } catch (error) {
@@ -143,6 +129,7 @@ export const Timer: React.FC<TimerProps> = ({
 
   const handleCancel = async () => {
     setIsActive(false);
+    doneRef.current = true;
     try {
       await storage.clearTimerState();
     } catch (error) {
@@ -152,7 +139,15 @@ export const Timer: React.FC<TimerProps> = ({
   };
 
   const togglePause = () => {
-    setIsPaused(!isPaused);
+    if (isPaused) {
+      endAtRef.current = Date.now() + (pausedLeftRef.current ?? 0) * 1000;
+      pausedLeftRef.current = null;
+      setIsPaused(false);
+    } else {
+      pausedLeftRef.current = calc();
+      setIsPaused(true);
+    }
+    persist();
   };
 
   const formatTime = (seconds: number): string => {
@@ -167,7 +162,7 @@ export const Timer: React.FC<TimerProps> = ({
       : 'Descanso entre exercícios';
   };
 
-  const progress = ((initialTime - timeLeft) / initialTime) * 100;
+  const progress = ((total - timeLeft) / total) * 100;
 
   return (
     <Card className="fixed inset-4 z-50 bg-card/95 backdrop-blur-lg border-2 border-iron-orange shadow-timer flex flex-col items-center justify-center">
